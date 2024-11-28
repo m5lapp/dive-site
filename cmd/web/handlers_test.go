@@ -22,9 +22,10 @@ func TestStatus(t *testing.T) {
 
 func TestDiveSiteGet(t *testing.T) {
 	app := newTestApplication(t)
-
 	ts := newTestServer(t, app.routes())
 	defer ts.Close()
+
+	_ = ts.logIn(t, "", "")
 
 	tests := []struct {
 		name     string
@@ -33,33 +34,33 @@ func TestDiveSiteGet(t *testing.T) {
 		wantBody string
 	}{
 		{
-			name:     "valid id",
+			name:     "Valid ID",
 			urlPath:  "/log-book/dive-site/view/1",
 			wantCode: http.StatusOK,
 			wantBody: "Sail Rock",
 		},
 		{
-			name:     "non-existent id",
+			name:     "Non-existent ID",
 			urlPath:  "/log-book/dive-site/view/99999",
 			wantCode: http.StatusNotFound,
 		},
 		{
-			name:     "negative id",
+			name:     "Negative ID",
 			urlPath:  "/log-book/dive-site/view/-1",
 			wantCode: http.StatusNotFound,
 		},
 		{
-			name:     "decimal id",
+			name:     "Decimal ID",
 			urlPath:  "/log-book/dive-site/view/3.14159",
 			wantCode: http.StatusNotFound,
 		},
 		{
-			name:     "string id",
+			name:     "String ID",
 			urlPath:  "/log-book/dive-site/view/foo",
 			wantCode: http.StatusNotFound,
 		},
 		{
-			name:     "empty id",
+			name:     "Empty ID",
 			urlPath:  "/log-book/dive-site/view/",
 			wantCode: http.StatusNotFound,
 		},

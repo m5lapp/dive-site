@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"html"
 	"io"
 	"log/slog"
@@ -70,6 +71,41 @@ func newTestServer(t *testing.T, h http.Handler) *testServer {
 	}
 
 	return &testServer{ts}
+}
+
+// authenticate attempts to log the user in with the given email address and
+// password. If the email or password are blank, then a known default valid one
+// will be used instead. If the log in process succeeds, then the log in cookie
+// will get added to the testServer's cookie jar and the CSRF token will be
+// returned for use in future non-safe requests.
+func (ts *testServer) logIn(t *testing.T, email, password string) string {
+	if email == "" {
+		email = "alice@example.com"
+	}
+	if password == "" {
+		password = "Pa55W0rd"
+	}
+
+	_, _, body := ts.get(t, "/user/log-in")
+	csrfToken := extractCSRFToken(t, body)
+
+	form := url.Values{}
+	form.Add("email", email)
+	form.Add("password", password)
+	form.Add("csrf_token", csrfToken)
+
+	code, _, _ := ts.postForm(t, "/user/log-in", form)
+	if code != http.StatusSeeOther {
+		err := fmt.Errorf(
+			"unexpected HTTP response code (%d) when logging in as %s/%s",
+			code,
+			email,
+			password,
+		)
+		t.Fatal(err)
+	}
+
+	return csrfToken
 }
 
 func (ts *testServer) get(t *testing.T, urlPath string) (int, http.Header, string) {
