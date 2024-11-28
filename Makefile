@@ -1,0 +1,125 @@
+include .envrc
+
+# ============================================================================ #
+# HELPERS
+# ============================================================================ #
+
+## help: Print this help message
+.PHONY: help
+help:
+	@echo "Usage:"
+	@sed -n "s/^##//p" ${MAKEFILE_LIST} | column -t -s ":" | sed -e "s/^/ /"
+
+.PHONY: confirm
+confirm:
+	@echo -n "Are you sure? [y/N] " && read ans && [ $${ans:-N} = y ]
+
+# ============================================================================ #
+# DEVELOPMENT
+# ============================================================================ #
+
+## run: Run the cmd/web application
+.PHONY: run
+run:
+	go run ./cmd/web/ --addr ":8080" \
+		--db-dsn ${DIVESITE_DB_DSN}
+
+## gen-cert: Generate a TLS certificate and key for testing on localhost
+.PHONY: gen-cert
+gen-cert:
+	@echo "Generating new TLS certificate and key for testing on localhost..."
+	go run $$(dirname $$(dirname $$(which go)))/src/crypto/tls/generate_cert.go \
+		--host localhost \
+		--rsa-bits 2048
+	mkdir tls/ || true
+	mv cert.pem key.pem tls/
+	@echo "New TLS certificate and key written to tls/ directory"
+
+# ============================================================================ #
+# DATABASE
+# ============================================================================ #
+
+## db/connect: connect to the database using psql
+.PHONY: db/connect
+db/connect:
+	psql ${DIVESITE_DB_DSN}
+
+## db/start/integration: start a local database for running integration tests
+.PHONY: db/start/integration
+db/start/integration:
+	@echo "Starting new database instance for integration testing..."
+	podman container run \
+		-d --rm \
+		--name divesite-integration-test-db \
+		-e POSTGRES_USER=divesite_integration_test \
+		-e POSTGRES_PASSWORD=password \
+		-p 5432:5432 \
+		docker.io/postgres:14-alpine
+
+## db/stop/integration: stop the local database for running integration tests
+.PHONY: db/stop/integration
+db/stop/integration:
+	@echo "Stop the database instance for integration testing..."
+	podman container run stop divesite-integration-test-db
+
+## db/migrations/new name=$1: Create a new database migration
+.PHONY: db/migrations/new
+db/migrations/new:
+	@echo "Creating migration files for ${name}..."
+	migrate create --seq --ext .sql --dir ./migrations/ ${name}
+
+## db/migrations/up: Apply all up database migrations
+.PHONY: db/migrations/up
+db/migrations/up: confirm
+	@echo "Running up migrations..."
+	@# For some reason, migrate requires sslmode=disable in the DSN string.
+	migrate \
+		--path ./migrations/ \
+		--database ${DIVESITE_DB_DSN}?sslmode=disable \
+		up
+
+## db/migrations/down: Apply all down database migrations
+.PHONY: db/migrations/down
+db/migrations/down: confirm
+	@echo "Running down migrations..."
+	@# For some reason, migrate requires sslmode=disable in the DSN string.
+	migrate \
+		--path ./migrations/ \
+		--database ${DIVESITE_DB_DSN}?sslmode=disable \
+		down
+
+# ============================================================================ #
+# QUALITY CONTROL
+# ============================================================================ #
+
+## audit: Tidy dependencies and format, vet and test all code
+.PHONY: audit
+audit: vendor
+	@echo "Formatting code..."
+	go fmt ./...
+	@echo "Vetting code..."
+	go vet ./...
+	staticcheck ./...
+	@echo "Running tests..."
+	go test --race --vet off ./...
+
+## vendor: Tidy and vendor dependencies
+.PHONY: vendor
+vendor:
+	@echo "Tidying and verifying module dependencies..."
+	go mod tidy
+	go mod verify
+	@echo "Vendoring dependencies..."
+	go mod vendor
+
+# ============================================================================ #
+# BUILD
+# ============================================================================ #
+
+## build/api: Build the cmd/api application
+.PHONY: build/api
+build/api:
+	@echo "Building cmd/api"
+	go build --ldflags "-s" -o ./bin/api ./cmd/api
+	GOOS=linux GOARCH=amd64 go build --ldflags "-s" -o ./bin/linux_amd64/api ./cmd/api
+

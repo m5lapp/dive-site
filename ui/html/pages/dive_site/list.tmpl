@@ -1,0 +1,73 @@
+{{define "title"}}Dive Sites{{end}}
+
+{{define "heading"}}Dive Sites [<a href="/log-book/dive-site/add">new</a>]{{end}}
+
+{{define "main"}}
+  <section>
+    {{if .DiveSites}}
+      {{/* include './paging_controls.html' %} */}}
+      <div class="table-wrapper">
+        <table class="alt">
+          <thead>
+            <tr>
+              <th>Country</th>
+              <th>Location</th>
+              <th>Name</th>
+              <th>Water Type</th>
+              <th>Max Depth</th>
+              <th>Rating</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .DiveSites}}
+              <tr>
+                <td>
+                  <img src="/static/img/flags/svg/{{.Country.ISO2Code}}.svg"
+                      height="24"
+                      alt="{{.Country.Name}}"
+                      title="{{.Country.Name}}" />
+                  <a href="/log-book/dive-site/view/{{.ID}}">
+                    {{.Country.Name}}
+                  </a>
+                </td>
+                <td>
+                  <a href="/log-book/dive-site/view/{{.ID}}">
+                    {{.Location}}
+                  </a>
+                </td>
+                <td>
+                  <a href="/log-book/dive-site/view/{{.ID}}">
+                    {{.Name}}
+                  </a>
+                </td>
+                <td>
+                  <a href="/log-book/dive-site/view/{{.ID}}">
+                    {{.WaterBody.Name}}
+                  </a>
+                </td>
+                <td>
+                  <a href="/log-book/dive-site/view/{{.ID}}">
+                    {{or .MaxDepth "-"}}
+                  </a>
+                </td>
+                <td>
+                  <a href="/log-book/dive-site/view/{{.ID}}">
+                    {{if.Rating}}{{.Rating}}/10{{end}}
+                  </a>
+                </td>
+              </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+      {{/* include './paging_controls.html' */}}
+    {{else}}
+      <p>
+        No dive sites exist yet. Please feel free to
+        <a href="/log-book/dive-site/add">add a new one</a>.
+      </p>
+    {{end}}
+
+  </section>
+{{end}}
+

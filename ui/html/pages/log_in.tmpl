@@ -1,0 +1,46 @@
+{{define "title"}}Account Log In{{end}}
+
+{{define "heading"}}Log In to Your Account{{end}}
+
+{{define "main"}}
+  <section>
+    <form method="post" action="/user/log-in">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+      {{with .Form.NonFieldErrors}}
+        <ul>
+          {{range .}}
+            <li class="errortext">{{.}}</li>
+          {{end}}
+        </ul>
+      {{end}}
+
+      <div class="row uniform">
+
+        <div class="6u 12u$(xsmall)">
+          {{with .Form.FieldErrors.Email}}
+            <ul class="errorlist">
+              <li>{{.}}</li>
+            </ul>
+          {{end}}
+          <label for="id_email">Email Address</label>
+          <input type="email" name="email" id="id_email"
+                  minlength="6" maxlength="256" value="{{.Form.Email}}" required>
+        </div>
+        <div class="6u$ 12u$(xsmall)">
+          <label for="id_password">Password</label>
+          <input type="password" name="password" id="id_password"
+                  minlength="8" maxlength="1024" required>
+        </div>
+
+        <div class="12u$">
+          <ul class="actions">
+            <li><input type="submit" value="Log In" class="special" /></li>
+            <li><input type="reset" value="Reset" /></li>
+          </ul>
+        </div>
+      </div>
+    </form>
+  </section>
+{{end}}
+

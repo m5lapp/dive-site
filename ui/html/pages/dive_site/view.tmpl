@@ -1,0 +1,126 @@
+{{define "title"}}Dive Site {{.DiveSite.Name}}, {{.DiveSite.Location}}, {{.DiveSite.Region}}, {{.DiveSite.Country.Name}}{{end}}
+
+{{define "heading"}}
+  <img src="/static/img/flags/svg/{{.DiveSite.Country.ISO2Code}}.svg"
+      height="32"
+      alt="{{.DiveSite.Country.Name}}"
+      title="{{.DiveSite.Country.Name}}" />
+  {{.DiveSite.Name}}, {{.DiveSite.Location}},
+  {{or .DiveSite.Region .DiveSite.Country.Name}}
+{{end}}
+
+{{define "main"}}
+  <section>
+    <div class="row">
+
+      <div class="12u$">
+        <h2>General</h2>
+      </div>
+      <div class="6u 12u$(medium)">
+        <ul class="alt">
+          <li>
+            <strong>Name:</strong>
+            {{.DiveSite.Name}}
+          </li>
+          <li>
+            <strong>Alternative Name:</strong>
+            {{.DiveSite.AltName}}
+          </li>
+          <li><strong>Location:</strong> {{.DiveSite.Location}}</li>
+          <li><strong>Region:</strong> {{.DiveSite.Region}}</li>
+          <li><strong>Country:</strong> {{.DiveSite.Country.Name}}</li>
+          <li><strong>Timezone:</strong> {{stringsReplace .DiveSite.TimeZone "_" " " -1}}</li>
+        </ul>
+      </div>
+
+      <div class="6u$ 12u$(medium)">
+        <ul class="alt">
+          <li>
+            <strong>Rating:</strong>
+            {{if .DiveSite.Rating}}{{.DiveSite.Rating}}/10{{else}}-{{end}}
+          </li>
+          <li>
+            <strong>Latitude/Longitude:</strong>
+            {{if and .DiveSite.Latitude .DiveSite.Longitude}}
+              <a href="http://www.google.com/maps/place/{{.DiveSite.Latitude}},{{.DiveSite.Longitude}}"
+                target="_blank">
+                {{.DiveSite.Latitude}}, {{.DiveSite.Longitude}}
+              </a>
+            {{end}}
+          </li>
+          <li>
+            <strong>Altitude (MAMSL):</strong> {{.DiveSite.Altitude}}
+          </li>
+          <li>
+            <strong>Max Depth:</strong>
+            {{if .DiveSite.MaxDepth}}{{.DiveSite.MaxDepth}}m{{end}}
+          </li>
+          <li><strong>Water Body:</strong> {{.DiveSite.WaterBody.Name}}</li>
+          <li><strong>Water Type:</strong> {{.DiveSite.WaterType.Name}}</li>
+        </ul>
+      </div>
+
+      {{if .DiveSite.Notes}}
+        <div class="12u$">
+          <h2>Notes</h2>
+        </div>
+        <div class="8u 12u$(medium)">
+          <blockquote>{{.DiveSite.Notes}}</blockquote>
+        </div>
+      {{end}}
+
+      {{/*{{if .UserDives}}
+        <div class="12u$">
+          <h2>Your Dives at {{.DiveSite.Name}} ({{len .UserDives}})</h2>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="alt">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Date</th>
+                <th>Dive Site</th>
+                <th>Activity</th>
+                <th>Depth</th>
+                <th>Bottom Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{dive := range .UserDives}}
+                <tr>
+                  <td>
+                    <a href="{{url 'divelog:view_dive' dive.pk}}">{{dive.number}}</a>
+                  </td>
+                  <td>
+                    <a href="{{url 'divelog:view_dive' dive.pk}}">{{dive.date_time_in|date:"Y-m-d H:i e"|timezone:"dive.timezone"}}</a>
+                    <a href="{{url 'divelog:view_dive' dive.pk}}">{{dive.date_time_in|timezone:dive.site.timezone|date:"Y-m-d H:i e"}}</a>
+                  </td>
+                  <td>
+                    <img src="/static/img/flags/svg/AU.svg"
+                        height="24"
+                        alt="{{dive.site.country}}"
+                        title="{{dive.site.country}}" />
+                    <a href="/blah">
+                      {{dive.site.name}}
+                    </a>
+                  </td>
+                  <td>
+                    <a href="{{url 'divelog:view_dive' dive.pk}}">{{dive.activity}}</a>
+                  </td>
+                  <td>
+                    <a href="{{url 'divelog:view_dive' dive.pk}}">{{dive.max_depth}}</a>
+                  </td>
+                  <td>
+                    <a href="{{url 'divelog:view_dive' dive.pk}}">{{dive.bottom_time}}</a>
+                  </td>
+                </tr>
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+      {{end}} */}}
+    </div>
+  </section>
+{{end}}
+

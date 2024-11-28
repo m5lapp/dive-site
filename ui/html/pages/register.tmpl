@@ -1,0 +1,62 @@
+{{define "title"}}Register a New Account{{end}}
+
+{{define "heading"}}Register Your Details For a New Account{{end}}
+
+{{define "main"}}
+  <section>
+    <form method="post" action="/user/sign-up">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+      <div class="row uniform">
+
+        <div class="12u$">
+          <label for="id_name">Name</label>
+          <input type="text" name="name" id="id_name"
+                 minlength="2" maxlength="256"
+                 value="{{.Form.Name}}" required>
+          {{with .Form.FieldErrors.name}}
+              <span class="errortext">{{.}}</span>
+          {{end}}
+        </div>
+
+        <div class="12u$">
+          <label for="id_email">Email Address</label>
+          <input type="email" name="email" id="id_email"
+                 minlength="6" maxlength="256"
+                 value="{{.Form.Email}}" required>
+          {{with .Form.FieldErrors.email}}
+              <span class="errortext">{{.}}</span>
+          {{end}}
+        </div>
+
+        <div class="6u 12u$(xsmall)">
+          <label for="id_password">Password</label>
+          <input type="password" name="password" id="id_password"
+                  minlength="8" maxlength="1024" required>
+          {{with .Form.FieldErrors.password}}
+            <span class="errortext">{{.}}</span>
+          {{end}}
+        </div>
+        <div class="6u$ 12u$(xsmall)">
+          <label for="id_password_confirm">Confirm Password</label>
+          <input type="password" name="password_confirm" id="id_password_confirm"
+                  minlength="8" maxlength="1024" required>
+          {{with .Form.FieldErrors.password_confirm}}
+            <span class="errortext">{{.}}</span>
+          {{end}}
+        </div>
+
+        <div class="12u$">
+          <ul class="actions">
+            <li>
+              <input type="submit" value="Create Account" class="special" />
+            </li>
+            <li><input type="reset" value="Reset" /></li>
+          </ul>
+        </div>
+
+      </div>
+    </form>
+  </section>
+{{end}}
+

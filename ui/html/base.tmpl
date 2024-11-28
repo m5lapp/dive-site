@@ -1,0 +1,91 @@
+{{define "base"}}
+  <!--
+    Hyperspace by HTML5 UP
+    html5up.net | @n33co
+    Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+  -->
+
+  <!doctype html>
+  <html>
+    <head>
+      <title>DiveSite - {{template "title" .}}</title>
+
+      <link rel="apple-touch-icon" sizes="180x180" href="/static/img/apple-touch-icon.png">
+      <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16x16.png">
+      <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png">
+      <link rel="manifest" href="/static/img/site.webmanifest">
+
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+      <!--[if lte IE 8]>
+        <script src="/static/js/ie/html5shiv.js"></script>
+      <![endif]-->
+      <link rel="stylesheet" href="/static/css/main.css" />
+      <!--[if lte IE 9]>
+        <link rel="stylesheet" href="/static/css/ie9.css" />
+      <![endif]-->
+      <!--[if lte IE 8]>
+        <link rel="stylesheet" href="/static/css/ie8.css" />
+      <![endif]-->
+      <link rel="stylesheet" href="/static/css/custom.css" />
+    </head>
+    
+    <body>
+      <!-- Header -->
+      <header id="header">
+        <a href="/" class="title">DiveSite</a>
+          {{template "nav" .}}
+      </header>
+
+      <!-- Wrapper -->
+      <div id="wrapper">
+
+        <!-- Main -->
+        <section id="main" class="wrapper">
+          <div class="inner">
+
+            <h1 class="major">{{template "heading" .}}</h1>
+
+            {{with .Flash}}
+              <p>
+                <ul class="successlist nonfield">
+                  <li>{{.}}</li>
+                </ul>
+              </p>
+            {{end}}
+
+            {{template "main" .}}
+
+          </div>
+        </section>
+      </div>
+      <!-- Footer -->
+      <footer id="footer" class="wrapper alt">
+        <div class="inner">
+          <ul class="menu">
+            <li>&copy; {{.CurrentYear}}. All rights reserved.</li>
+            {{/*{{if eq 1 1 }}
+              <li>Logged in as: {{.UserName}}</li>
+              <li>Last log-in: {{"2022-09-02 11:31 UTC"}}</li>
+            {{end}}*/}}
+            <li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+          </ul>
+        </div>
+      </footer>
+
+      <!-- Scripts -->
+      <script src="/static/js/jquery.min.js"></script>
+      <script src="/static/js/jquery.scrollex.min.js"></script>
+      <script src="/static/js/jquery.scrolly.min.js"></script>
+      <script src="/static/js/skel.min.js"></script>
+      <script src="/static/js/util.js"></script>
+      <!--[if lte IE 8]>
+        <script src="/static/js/ie/respond.min.js"></script>
+      <![endif]-->
+      <script src="/static/js/main.js"></script>
+
+    </body>
+  </html>
+{{end}}
+

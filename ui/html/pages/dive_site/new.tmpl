@@ -1,0 +1,224 @@
+{{define "title"}}Add a new Dive Site{{end}}
+
+{{define "heading"}}Add a new Dive Site{{end}}
+
+{{define "main"}}
+  <!-- Dive Site Form -->
+  <section>
+
+    <p>
+      <ul class="errorlist nonfield">
+        <li>This is error 1</li>
+        <li>This is error 2</li>
+      </ul>
+    </p>
+    
+    <form method="POST" action="/log-book/dive-site/add">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+      <div class="row uniform">
+
+        <div class="12u$">
+          <h2>Main Details</h2>
+        </div>
+
+        <div class="6u 12u$(xsmall)">
+          {{with .Form.FieldErrors.Name}}
+            <ul class="errorlist">
+              <li>{{.}}</li>
+            </ul>
+          {{end}}
+          <label for="id_name">Name *</label>
+          <input type="text" name="name" id="id_name"
+                 maxlength="256" value="{{.Form.Name}}" required>
+        </div>
+
+        <div class="6u$ 12u$(xsmall)">
+          {{with .Form.FieldErrors.AltName}}
+            <ul class="errorlist">
+              <li>{{.}}</li>
+            </ul>
+          {{end}}
+          <label for="id_alt_name">Alternative Name</label>
+          <input type="text" name="alt_name" id="id_alt_name"
+                 maxlength="256" value="{{.Form.AltName}}">
+        </div>
+
+        <div class="4u 12u$(xsmall)">
+          {{with .Form.FieldErrors.Location}}
+            <ul class="errorlist">
+              <li>{{.}}</li>
+            </ul>
+          {{end}}
+          <label for="id_location">Location *</label>
+          <input type="text" name="location" id="id_location"
+                 maxlength="256" value="{{.Form.Location}}" required>
+        </div>
+
+        <div class="4u 12u$(xsmall)">
+         {{with .Form.FieldErrors.Region}}
+            <ul class="errorlist">
+              <li>{{.}}</li>
+            </ul>
+          {{end}}
+          <label for="id_region">Region</label>
+          <input type="text" name="region" id="id_region"
+                 maxlength="256" value="{{.Form.Region}}">
+        </div>
+
+        <div class="4u$ 12u$(xsmall)">
+          {{with .Form.FieldErrors.Rating}}
+            <ul class="errorlist">
+              <li>{{.}}</li>
+            </ul>
+          {{end}}
+          <label for="id_rating">Rating</label>
+          <div class="select-wrapper">
+            <select name="rating" id="id_rating">
+              <option value="">---------</option>
+              {{range $i := intRange 0 10}}
+                <option value="{{$i}}"
+                  {{if $.Form.Rating}}{{if eq (printf "%d" $i) $.Form.Rating}} selected{{end}}{{end}}>
+                  {{$i}}
+                </option>
+              {{end}}
+            </select>
+          </div>
+        </div>
+
+        <div class="6u 12u$(xsmall)">
+          <label for="id_country">Country *</label>
+          <div class="select-wrapper">
+            <select name="country" id="id_country" required>
+              <option value="">---------</option>
+              <option value="4"{{if eq 4 .Form.CountryID}} selected{{end}}>Afghanistan</option>
+              <option value="8"{{if eq 8 .Form.CountryID}} selected{{end}}>Albania</option>
+              <option value="12">Algeria</option>
+              <option value="16">American Samoa</option>
+              <option value="20">Andorra</option>
+              <option value="24">Angola</option>
+              <option value="660">Anguilla</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="6u$ 12u$(xsmall)">
+          {{with .Form.FieldErrors.TimeZone}}
+            <ul class="errorlist">
+              <li>{{.}}</li>
+            </ul>
+          {{end}}
+          <label for="id_timezone">Timezone *</label>
+          <div class="select-wrapper">
+            <select name="timezone" id="id_timezone">
+              {{range $tz := getOSTimeZones}}
+                <option value="{{$tz}}"{{if eq $tz $.Form.TimeZone}} selected{{end}}>
+                  {{stringsReplace $tz "_" " " -1}}
+                </option>
+              {{end}}
+            </select>
+          </div>
+        </div>
+
+        <div class="12u$">
+          <h2>Hydrology</h2>
+        </div>
+
+        <div class="6u 12u$(xsmall)">
+          <label for="id_water_body">Water body *</label>
+          <div class="select-wrapper">
+            <select name="water_body" id="id_water_body">
+              <option value="1">Artificial Lake</option>
+              <option value="2">Harbour</option>
+            </select>
+          </div>
+        </div>
+      
+        <div class="6u$ 12u$(xsmall)">          
+          <label for="id_water_type">Water type *</label>
+          <div class="select-wrapper">
+            <select name="water_type" id="id_water_type">
+              <option value="1">Fresh Water</option>
+              <option value="2" selected>Salt Water</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="12u$">
+          <h2>Geography</h2>
+        </div>
+
+        <div class="3u 12u$(xsmall)">          
+          {{with .Form.FieldErrors.Latitude}}
+            <ul class="errorlist">
+              <li>{{.}}</li>
+            </ul>
+          {{end}}
+          <label for="id_latitude">Latitude</label>
+          <input type="number" name="latitude" id="id_latitude"
+                 min="-90.0" max="90.0" step="0.000001"
+                 value="{{.Form.Latitude}}">
+        </div>
+
+        <div class="3u 12u$(xsmall)">
+          {{with .Form.FieldErrors.Longitude}}
+            <ul class="errorlist">
+              <li>{{.}}</li>
+            </ul>
+          {{end}}
+          <label for="id_longitude">Longitude</label>
+          <input type="number" name="longitude" id="id_longitude"
+                 min="-180.0" max="180.0" step="0.000001"
+                 value="{{.Form.Longitude}}">
+        </div>
+
+        <div class="3u 12u$(xsmall)">
+          {{with .Form.FieldErrors.altitude}}
+            <ul class="errorlist">
+              <li>{{.}}</li>
+            </ul>
+          {{end}}
+          <label for="id_altitude">Altitude (MAMSL) *</label>
+          <input type="number" name="altitude" id="id_altitude"
+                 min="-422" max="7000" step="1"
+                 value="{{.Form.Altitude}}" required>
+        </div>
+
+        <div class="3u$ 12u$(xsmall)">
+          {{with .Form.FieldErrors.max_depth}}
+            <ul class="errorlist">
+              <li>{{.}}</li>
+            </ul>
+          {{end}}
+          <label for="id_max_depth">Max Depth (m)</label>
+          <input type="number" name="max_depth" id="id_max_depth"
+                 min="4" max="350" step="0.1"
+                 value="{{.Form.MaxDepth}}">
+        </div>
+
+        <div class="12u$">
+          <h2>Additional</h2>
+        </div>
+
+        <div class="12u$">
+          {{with .Form.FieldErrors.Notes}}
+            <ul class="errorlist">
+              <li>{{.}}</li>
+            </ul>
+          {{end}}
+          <label for="id_notes">Notes</label>
+          <textarea name="notes" id="id_notes" cols="40" rows="10">{{.Form.Notes}}</textarea>
+        </div>
+
+        <div class="12u$">
+          <ul class="actions">
+            <li><input type="submit" value="Add Dive Site" class="special" /></li>
+            <li><input type="reset" value="Reset" /></li>
+          </ul>
+        </div>
+
+      </div>
+    </form>
+  </section>
+{{end}}
+

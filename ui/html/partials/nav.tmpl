@@ -1,0 +1,28 @@
+{{define "nav"}}
+  <nav>
+    <ul>
+      {{if .IsAuthenticated}}
+        <li><a href="/diveplan">Dive Plans</a></li>
+        <li><a href="/divelog">View Divelog</a></li>
+        <li><a href="/divelog/new_dive">Log Dive</a></li>
+        <li><a href="/divelog/buddy_index">Buddies</a></li>
+        <li><a href="/log-book/dive-site">Sites</a></li>
+        <li><a href="/divelog/new_operator">Operators</a></li>
+        <li><a href="/divelog/course_index">Courses</a></li>
+        <li><a href="/divelog/trip_index">Trips</a></li>
+        <li><a href="/divelog/stats">Stats</a></li>
+        <li>
+          <!-- TODO: Fix this as it breaks the layout somewhat. -->
+          <form action="/user/log-out" method="POST">
+            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+            <input type="submit" class="button" value="Log Out" />
+          </form>
+        </li>
+      {{else}}
+        <li><a href="/user/sign-up" class="button">Sign Up</a></li>
+        <li><a href="/user/log-in" class="button special">Log In</a></li>
+      {{end}}
+    </ul>
+  </nav>
+{{end}}
+
