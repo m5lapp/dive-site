@@ -65,6 +65,7 @@ func (app *app) newTemplateData(r *http.Request) templateData {
 		CurrentYear:     time.Now().Year(),
 		Flash:           app.sessionManager.PopString(r.Context(), "flash"),
 		IsAuthenticated: app.isAuthenticated(r),
+		WasPosted:       r.Method == http.MethodPost,
 	}
 }
 

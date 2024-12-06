@@ -4,42 +4,47 @@
 
 {{define "main"}}
   <section>
-    <form method="post" action="/user/log-in">
+    {{template "form_non_field_errors" .}}
+
+    <p>Please login to see this page.</p>
+
+    <h2>Enter Your Credentials</h2>
+
+    <form method="post" action="/user/log-in"
+          class="{{template "bootstrap_form_class" .}}">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
-      {{with .Form.NonFieldErrors}}
-        <ul>
-          {{range .}}
-            <li class="errortext">{{.}}</li>
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_email">Email Address</label>
+          <input {{template "form_field_common_attrs" "email"}}
+                 type="email" value="{{.Form.Email}}"
+                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.email}}"
+                 minlength="6" maxlength="256" required>
+          {{with .Form.FieldErrors.email}}
+            <div class="invalid-feedback" id="id_email_feedback">{{.}}</div>
           {{end}}
-        </ul>
-      {{end}}
-
-      <div class="row uniform">
-
-        <div class="6u 12u$(xsmall)">
-          {{with .Form.FieldErrors.Email}}
-            <ul class="errorlist">
-              <li>{{.}}</li>
-            </ul>
-          {{end}}
-          <label for="id_email">Email Address</label>
-          <input type="email" name="email" id="id_email"
-                  minlength="6" maxlength="256" value="{{.Form.Email}}" required>
-        </div>
-        <div class="6u$ 12u$(xsmall)">
-          <label for="id_password">Password</label>
-          <input type="password" name="password" id="id_password"
-                  minlength="8" maxlength="1024" required>
         </div>
 
-        <div class="12u$">
-          <ul class="actions">
-            <li><input type="submit" value="Log In" class="special" /></li>
-            <li><input type="reset" value="Reset" /></li>
-          </ul>
+        <div class="col-sm">
+          <label class="form-label" for="id_password">Password</label>
+          <input {{template "form_field_common_attrs" "password"}}
+                 type="password"
+                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.password}}"
+                 minlength="8" maxlength="1024" required>
+          {{with .Form.FieldErrors.password}}
+            <div class="invalid-feedback" id="id_password_feedback">{{.}}</div>
+          {{end}}
         </div>
       </div>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <button class="btn btn-primary me-2" type="submit">Log In</button>
+          <button class="btn btn-outline-danger" type="reset">Reset</button>
+        </div>
+      </div>
+
     </form>
   </section>
 {{end}}

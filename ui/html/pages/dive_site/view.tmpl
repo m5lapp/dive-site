@@ -1,4 +1,7 @@
-{{define "title"}}Dive Site {{.DiveSite.Name}}, {{.DiveSite.Location}}, {{.DiveSite.Region}}, {{.DiveSite.Country.Name}}{{end}}
+{{define "title"}}
+  Dive Site {{.DiveSite.Name}}, {{.DiveSite.Location}}, {{.DiveSite.Region}},
+  {{.DiveSite.Country.Name}}
+{{end}}
 
 {{define "heading"}}
   <img src="/static/img/flags/svg/{{.DiveSite.Country.ISO2Code}}.svg"
@@ -11,68 +14,105 @@
 
 {{define "main"}}
   <section>
-    <div class="row">
 
-      <div class="12u$">
-        <h2>General</h2>
-      </div>
-      <div class="6u 12u$(medium)">
-        <ul class="alt">
-          <li>
-            <strong>Name:</strong>
-            {{.DiveSite.Name}}
-          </li>
-          <li>
-            <strong>Alternative Name:</strong>
-            {{.DiveSite.AltName}}
-          </li>
-          <li><strong>Location:</strong> {{.DiveSite.Location}}</li>
-          <li><strong>Region:</strong> {{.DiveSite.Region}}</li>
-          <li><strong>Country:</strong> {{.DiveSite.Country.Name}}</li>
-          <li><strong>Timezone:</strong> {{stringsReplace .DiveSite.TimeZone "_" " " -1}}</li>
-        </ul>
-      </div>
+    <div class="row mt-5">
+      <h2>General</h2>
 
-      <div class="6u$ 12u$(medium)">
-        <ul class="alt">
-          <li>
-            <strong>Rating:</strong>
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Name</h4>
+          <p class="mb-1">{{.DiveSite.Name}}</p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Rating</h4>
+          <p class="mb-1">
             {{if .DiveSite.Rating}}{{.DiveSite.Rating}}/10{{else}}-{{end}}
-          </li>
-          <li>
-            <strong>Latitude/Longitude:</strong>
+          </p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Alternative Name</h4>
+          <p class="mb-1">{{or .DiveSite.AltName "-"}}</p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Latitude/Longitude</h4>
+          <p class="mb-1">
             {{if and .DiveSite.Latitude .DiveSite.Longitude}}
               <a href="http://www.google.com/maps/place/{{.DiveSite.Latitude}},{{.DiveSite.Longitude}}"
                 target="_blank">
                 {{.DiveSite.Latitude}}, {{.DiveSite.Longitude}}
               </a>
+            {{else}}
+              -
             {{end}}
-          </li>
-          <li>
-            <strong>Altitude (MAMSL):</strong> {{.DiveSite.Altitude}}
-          </li>
-          <li>
-            <strong>Max Depth:</strong>
-            {{if .DiveSite.MaxDepth}}{{.DiveSite.MaxDepth}}m{{end}}
-          </li>
-          <li><strong>Water Body:</strong> {{.DiveSite.WaterBody.Name}}</li>
-          <li><strong>Water Type:</strong> {{.DiveSite.WaterType.Name}}</li>
-        </ul>
+          </p>
+        </div>
       </div>
 
-      {{if .DiveSite.Notes}}
-        <div class="12u$">
-          <h2>Notes</h2>
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Location</h4>
+          <p class="mb-1">{{.DiveSite.Location}}</p>
         </div>
-        <div class="8u 12u$(medium)">
-          <blockquote>{{.DiveSite.Notes}}</blockquote>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Altitude (MAMSL)</h4>
+          <p class="mb-1">{{.DiveSite.Altitude}}</p>
         </div>
-      {{end}}
+      </div>
 
-      {{/*{{if .UserDives}}
-        <div class="12u$">
-          <h2>Your Dives at {{.DiveSite.Name}} ({{len .UserDives}})</h2>
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Region</h4>
+          <p class="mb-1">{{.DiveSite.Region}}</p>
         </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Maximum Depth</h4>
+          <p class="mb-1">
+            {{if .DiveSite.MaxDepth}}{{.DiveSite.MaxDepth}}m{{else}}-{{end}}
+          </p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Country</h4>
+          <p class="mb-1">{{.DiveSite.Country.Name}}</p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Water Body</h4>
+          <p class="mb-1">{{.DiveSite.WaterBody.Name}}</p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Timezone</h4>
+          <p class="mb-1">{{stringsReplace .DiveSite.TimeZone "_" " " -1}}</p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Water Type</h4>
+          <p class="mb-1">{{.DiveSite.WaterType.Name}}</p>
+        </div>
+      </div>
+    </div>
+
+    {{if .DiveSite.Notes}}
+      <div class="row mt-5">
+        <h2>Notes</h2>
+
+        <div class="list-group list-group-horizontal">
+          <div class="list-group-item list-group-item-action flex-fill">
+            <blockquote class="mb-1">{{.DiveSite.Notes}}</blockquote>
+          </div>
+        </div>
+      </div>
+    {{end}}
+
+    {{/*{{if .UserDives}}
+      <div class="row mt-4">
+        <h2>Your Dives at {{.DiveSite.Name}} ({{len .UserDives}})</h2>
 
         <div class="table-wrapper">
           <table class="alt">

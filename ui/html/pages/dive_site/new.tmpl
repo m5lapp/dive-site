@@ -3,221 +3,215 @@
 {{define "heading"}}Add a new Dive Site{{end}}
 
 {{define "main"}}
-  <!-- Dive Site Form -->
   <section>
+    {{template "form_non_field_errors" .}}
 
-    <p>
-      <ul class="errorlist nonfield">
-        <li>This is error 1</li>
-        <li>This is error 2</li>
-      </ul>
-    </p>
-    
-    <form method="POST" action="/log-book/dive-site/add">
+    <p>Add the details for a dive site to the system.</p>
+
+    <h2>Main Details</h2>
+
+    <form method="post" action="/log-book/dive-site/add"
+          class="{{template "bootstrap_form_class" .}}">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
-      <div class="row uniform">
-
-        <div class="12u$">
-          <h2>Main Details</h2>
-        </div>
-
-        <div class="6u 12u$(xsmall)">
-          {{with .Form.FieldErrors.Name}}
-            <ul class="errorlist">
-              <li>{{.}}</li>
-            </ul>
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_name">Name *</label>
+          <input {{template "form_field_common_attrs" "name"}}
+                 type="text" value="{{.Form.Name}}"
+                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.name}}"
+                 maxlength="256" required>
+          {{with .Form.FieldErrors.name}}
+            <div class="invalid-feedback" id="id_name_feedback">{{.}}</div>
           {{end}}
-          <label for="id_name">Name *</label>
-          <input type="text" name="name" id="id_name"
-                 maxlength="256" value="{{.Form.Name}}" required>
         </div>
 
-        <div class="6u$ 12u$(xsmall)">
-          {{with .Form.FieldErrors.AltName}}
-            <ul class="errorlist">
-              <li>{{.}}</li>
-            </ul>
+        <div class="col-sm">
+          <label class="form-label" for="id_alt_name">Alternative Name</label>
+          <input {{template "form_field_common_attrs" "alt_name"}}
+                 type="text" value="{{.Form.AltName}}"
+                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.alt_name}}"
+                 maxlength="256">
+          {{with .Form.FieldErrors.alt_name}}
+            <div class="invalid-feedback" id="id_alt_name_feedback">{{.}}</div>
           {{end}}
-          <label for="id_alt_name">Alternative Name</label>
-          <input type="text" name="alt_name" id="id_alt_name"
-                 maxlength="256" value="{{.Form.AltName}}">
         </div>
-
-        <div class="4u 12u$(xsmall)">
-          {{with .Form.FieldErrors.Location}}
-            <ul class="errorlist">
-              <li>{{.}}</li>
-            </ul>
-          {{end}}
-          <label for="id_location">Location *</label>
-          <input type="text" name="location" id="id_location"
-                 maxlength="256" value="{{.Form.Location}}" required>
-        </div>
-
-        <div class="4u 12u$(xsmall)">
-         {{with .Form.FieldErrors.Region}}
-            <ul class="errorlist">
-              <li>{{.}}</li>
-            </ul>
-          {{end}}
-          <label for="id_region">Region</label>
-          <input type="text" name="region" id="id_region"
-                 maxlength="256" value="{{.Form.Region}}">
-        </div>
-
-        <div class="4u$ 12u$(xsmall)">
-          {{with .Form.FieldErrors.Rating}}
-            <ul class="errorlist">
-              <li>{{.}}</li>
-            </ul>
-          {{end}}
-          <label for="id_rating">Rating</label>
-          <div class="select-wrapper">
-            <select name="rating" id="id_rating">
-              <option value="">---------</option>
-              {{range $i := intRange 0 10}}
-                <option value="{{$i}}"
-                  {{if $.Form.Rating}}{{if eq (printf "%d" $i) $.Form.Rating}} selected{{end}}{{end}}>
-                  {{$i}}
-                </option>
-              {{end}}
-            </select>
-          </div>
-        </div>
-
-        <div class="6u 12u$(xsmall)">
-          <label for="id_country">Country *</label>
-          <div class="select-wrapper">
-            <select name="country" id="id_country" required>
-              <option value="">---------</option>
-              <option value="4"{{if eq 4 .Form.CountryID}} selected{{end}}>Afghanistan</option>
-              <option value="8"{{if eq 8 .Form.CountryID}} selected{{end}}>Albania</option>
-              <option value="12">Algeria</option>
-              <option value="16">American Samoa</option>
-              <option value="20">Andorra</option>
-              <option value="24">Angola</option>
-              <option value="660">Anguilla</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="6u$ 12u$(xsmall)">
-          {{with .Form.FieldErrors.TimeZone}}
-            <ul class="errorlist">
-              <li>{{.}}</li>
-            </ul>
-          {{end}}
-          <label for="id_timezone">Timezone *</label>
-          <div class="select-wrapper">
-            <select name="timezone" id="id_timezone">
-              {{range $tz := getOSTimeZones}}
-                <option value="{{$tz}}"{{if eq $tz $.Form.TimeZone}} selected{{end}}>
-                  {{stringsReplace $tz "_" " " -1}}
-                </option>
-              {{end}}
-            </select>
-          </div>
-        </div>
-
-        <div class="12u$">
-          <h2>Hydrology</h2>
-        </div>
-
-        <div class="6u 12u$(xsmall)">
-          <label for="id_water_body">Water body *</label>
-          <div class="select-wrapper">
-            <select name="water_body" id="id_water_body">
-              <option value="1">Artificial Lake</option>
-              <option value="2">Harbour</option>
-            </select>
-          </div>
-        </div>
-      
-        <div class="6u$ 12u$(xsmall)">          
-          <label for="id_water_type">Water type *</label>
-          <div class="select-wrapper">
-            <select name="water_type" id="id_water_type">
-              <option value="1">Fresh Water</option>
-              <option value="2" selected>Salt Water</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="12u$">
-          <h2>Geography</h2>
-        </div>
-
-        <div class="3u 12u$(xsmall)">          
-          {{with .Form.FieldErrors.Latitude}}
-            <ul class="errorlist">
-              <li>{{.}}</li>
-            </ul>
-          {{end}}
-          <label for="id_latitude">Latitude</label>
-          <input type="number" name="latitude" id="id_latitude"
-                 min="-90.0" max="90.0" step="0.000001"
-                 value="{{.Form.Latitude}}">
-        </div>
-
-        <div class="3u 12u$(xsmall)">
-          {{with .Form.FieldErrors.Longitude}}
-            <ul class="errorlist">
-              <li>{{.}}</li>
-            </ul>
-          {{end}}
-          <label for="id_longitude">Longitude</label>
-          <input type="number" name="longitude" id="id_longitude"
-                 min="-180.0" max="180.0" step="0.000001"
-                 value="{{.Form.Longitude}}">
-        </div>
-
-        <div class="3u 12u$(xsmall)">
-          {{with .Form.FieldErrors.altitude}}
-            <ul class="errorlist">
-              <li>{{.}}</li>
-            </ul>
-          {{end}}
-          <label for="id_altitude">Altitude (MAMSL) *</label>
-          <input type="number" name="altitude" id="id_altitude"
-                 min="-422" max="7000" step="1"
-                 value="{{.Form.Altitude}}" required>
-        </div>
-
-        <div class="3u$ 12u$(xsmall)">
-          {{with .Form.FieldErrors.max_depth}}
-            <ul class="errorlist">
-              <li>{{.}}</li>
-            </ul>
-          {{end}}
-          <label for="id_max_depth">Max Depth (m)</label>
-          <input type="number" name="max_depth" id="id_max_depth"
-                 min="4" max="350" step="0.1"
-                 value="{{.Form.MaxDepth}}">
-        </div>
-
-        <div class="12u$">
-          <h2>Additional</h2>
-        </div>
-
-        <div class="12u$">
-          {{with .Form.FieldErrors.Notes}}
-            <ul class="errorlist">
-              <li>{{.}}</li>
-            </ul>
-          {{end}}
-          <label for="id_notes">Notes</label>
-          <textarea name="notes" id="id_notes" cols="40" rows="10">{{.Form.Notes}}</textarea>
-        </div>
-
-        <div class="12u$">
-          <ul class="actions">
-            <li><input type="submit" value="Add Dive Site" class="special" /></li>
-            <li><input type="reset" value="Reset" /></li>
-          </ul>
-        </div>
-
       </div>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_location">Location *</label>
+          <input {{template "form_field_common_attrs" "location"}}
+                 type="text"  value="{{.Form.Location}}"
+                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.location}}"
+                 maxlength="256" required>
+          {{with .Form.FieldErrors.location}}
+            <div class="invalid-feedback" id="id_location_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        <div class="col-sm">
+          <label class="form-label" for="id_region">Region</label>
+          <input {{template "form_field_common_attrs" "region"}}
+                 type="text"  value="{{.Form.Region}}"
+                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.region}}"
+                 maxlength="256">
+          {{with .Form.FieldErrors.region}}
+            <div class="invalid-feedback" id="id_region_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        <div class="col-sm">
+          <label class="form-label" for="id_rating">Rating</label>
+          <select {{template "form_field_common_attrs" "rating"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.rating}}">
+            <option value="">---------</option>
+            {{range $i := intRange 0 10}}
+              <option value="{{$i}}"
+                {{/*{{if $.Form.Rating}}{{if eq (printf "%d" $i) $.Form.Rating}}selected{{end}}{{end}}>*/}}
+                {{with $.Form.Rating}}{{if eq (printf "%d" $i) .}}selected{{end}}{{end}}>
+                {{$i}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.rating}}
+            <div class="invalid-feedback" id="id_rating_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_country">Country *</label>
+          <select {{template "form_field_common_attrs" "country"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.country}}">
+            <option value="4"{{if eq 4 .Form.CountryID}} selected{{end}}>Afghanistan</option>
+            <option value="8"{{if eq 8 .Form.CountryID}} selected{{end}}>Albania</option>
+            <option value="12"{{if eq 12 .Form.CountryID}} selected{{end}}>Algeria</option>
+            <option value="16"{{if eq 16 .Form.CountryID}} selected{{end}}>American Samoa</option>
+            <option value="20"{{if eq 20 .Form.CountryID}} selected{{end}}>Andorra</option>
+            <option value="24"{{if eq 24 .Form.CountryID}} selected{{end}}>Angola</option>
+            <option value="660"{{if eq 660 .Form.CountryID}} selected{{end}}>Anguilla</option>
+          </select>
+          {{with .Form.FieldErrors.rating}}
+            <div class="invalid-feedback" id="id_country_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        <div class="col-sm">
+          <label class="form-label" for="id_timezone">Timezone *</label>
+          <select {{template "form_field_common_attrs" "timezone"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.timezone}}">
+            {{range $tz := getOSTimeZones}}
+              <option value="{{$tz}}"{{if eq $tz $.Form.TimeZone}} selected{{end}}>
+                {{stringsReplace $tz "_" " " -1}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.timezone}}
+            <div class="invalid-feedback" id="id_timezone_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <h2>Hydrology</h2>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_water_body">Water Body *</label>
+          <select {{template "form_field_common_attrs" "water_body"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.water_body}}">
+            <option value="1">Artificial Lake</option>
+            <option value="2">Harbour</option>
+          </select>
+          {{with .Form.FieldErrors.water_body}}
+            <div class="invalid-feedback" id="id_water_body_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        <div class="col-sm">
+          <label class="form-label" for="id_water_type">Water Type *</label>
+          <select {{template "form_field_common_attrs" "water_type"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.water_type}}">
+            <option value="1">Fresh Water</option>
+            <option value="2" selected>Salt Water</option>
+          </select>
+          {{with .Form.FieldErrors.water_type}}
+            <div class="invalid-feedback" id="id_water_type_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <h2>Geography</h2>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_latitude">Latitude</label>
+          <input {{template "form_field_common_attrs" "latitude"}}
+                 type="number" value="{{.Form.Latitude}}"
+                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.latitude}}"
+                 min="-90.0" max="90.0" step="0.000001">
+          {{with .Form.FieldErrors.latitude}}
+            <div class="invalid-feedback" id="id_latitude_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        <div class="col-sm">
+          <label class="form-label" for="id_longitude">Longitude</label>
+          <input {{template "form_field_common_attrs" "longitude"}}
+                 type="number" value="{{.Form.Longitude}}"
+                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.longitude}}"
+                 min="-180.0" max="180.0" step="0.000001">
+          {{with .Form.FieldErrors.longitude}}
+            <div class="invalid-feedback" id="id_longitude_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        <div class="col-sm">
+          <label class="form-label" for="id_altitude">Altitude (MAMSL) *</label>
+          <input {{template "form_field_common_attrs" "altitude"}}
+                 type="number" value="{{.Form.Altitude}}"
+                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.altitude}}"
+                 min="-422" max="7000" step="1" required>
+          {{with .Form.FieldErrors.altitude}}
+            <div class="invalid-feedback" id="id_altitude_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        <div class="col-sm">
+          <label class="form-label" for="id_max_depth">Max Depth (m)</label>
+          <input {{template "form_field_common_attrs" "max_depth"}}
+                 type="number" value="{{.Form.MaxDepth}}"
+                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.max_depth}}"
+                 min="4.0" max="350.0" step="0.1">
+          {{with .Form.FieldErrors.max_depth}}
+            <div class="invalid-feedback" id="id_max_depth_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <h2>Additional</h2>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_notes">Notes</label>
+          <textarea {{template "form_field_common_attrs" "notes"}}
+                    class="{{template "bootstrap_form_field_class" .Form.FieldErrors.notes}}">
+            {{- .Form.Notes -}}
+          </textarea>
+          {{with .Form.FieldErrors.notes}}
+            <div class="invalid-feedback" id="id_notes_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <button class="btn btn-primary me-2" type="submit">Add Dive Site</button>
+          <button class="btn btn-outline-danger" type="reset">Reset</button>
+        </div>
+      </div>
+
     </form>
   </section>
 {{end}}

@@ -1,0 +1,52 @@
+{{/*
+  bootstrap_form_class checks if the form was POSTed or not and configures a
+  form's Bootstrap class appropriately so that validations are rendered or not
+  as appropriate.
+*/}}
+{{define "bootstrap_form_class" -}}
+  {{if .WasPosted}}was-validated{{else}}needs-validation{{end}}
+{{- end}}
+
+{{/*
+  bootstrap_form_field_class expects to have a form field error value passed to
+  it which may or may not be nil. It will return the standard form field class
+  attributes for rendering that field in Bootstrap.
+*/}}
+{{define "bootstrap_form_field_class" -}}
+  form-control{{with .}} is-invalid{{end}}
+{{- end}}
+
+{{/*
+  bootstrap_form_select_class expects to have a form select field error value
+  passed to it which may or may not be nil. It will return the standard form
+  select field class attributes for rendering that field in Bootstrap.
+*/}}
+{{define "bootstrap_form_select_class" -}}
+  form-select{{with .}} is-invalid{{end}}
+{{- end}}
+
+{{/*
+  form_field_common_attrs expects the name of a form field to be passed to it
+  and renders the id, name and aria-describedby attributes using that name.
+*/}}
+{{define "form_field_common_attrs" -}}
+  id="id_{{.}}" name="{{.}}" aria-describedby="id_{{.}}_feedback"
+{{- end}}
+
+{{/*
+  form_non_field_errors renders any non-field errors in the page if any exist.
+*/}}
+{{define "form_non_field_errors"}}
+  {{with .Form.NonFieldErrors}}
+    <div class="alert alert-danger" role="form-non-field-errors">
+      <p>Please correct the following errors in the form and try again.</p>
+
+      <ul>
+        {{range .}}
+          <li>{{.}}</li>
+        {{end}}
+      </ul>
+    </div>
+  {{end}}
+{{end}}
+

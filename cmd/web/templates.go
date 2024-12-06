@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"html/template"
 	"io/fs"
 	"os"
@@ -11,6 +12,22 @@ import (
 	"github.com/m5lapp/divesite-monolith/internal/models"
 	"github.com/m5lapp/divesite-monolith/ui"
 )
+
+// https://stackoverflow.com/a/48887775/641460
+func isoCountryToEmoji(code string) (string, error) {
+	if len(code) != 2 {
+		return "", errors.New("iso country code must be two letters")
+	}
+
+	if code[0] < 'A' || code[0] > 'Z' || code[1] < 'A' || code[1] > 'Z' {
+		return "", errors.New("invalid iso country code")
+	}
+
+	rune1 := string(0x1F1E6 + rune(code[0]) - 'A')
+	rune2 := string(0x1F1E6 + rune(code[1]) - 'A')
+
+	return string(rune1 + rune2), nil
+}
 
 // getOSTimeZones searches the zoneDirs directories for files whose names are
 // valid timezones suitable for passing to time.LoadLocation() and returns the
@@ -92,9 +109,10 @@ func intRange(start, stop int) chan int {
 }
 
 var functions = template.FuncMap{
-	"getOSTimeZones": getOSTimeZones,
-	"intRange":       intRange,
-	"stringsReplace": strings.Replace,
+	"getOSTimeZones":    getOSTimeZones,
+	"intRange":          intRange,
+	"isoCountryToEmoji": isoCountryToEmoji,
+	"stringsReplace":    strings.Replace,
 }
 
 type templateData struct {
@@ -105,6 +123,7 @@ type templateData struct {
 	Flash           string
 	Form            any
 	IsAuthenticated bool
+	WasPosted       bool
 }
 
 // https://stackoverflow.com/questions/26809484/how-to-use-double-star-glob-in-go

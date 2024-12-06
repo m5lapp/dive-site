@@ -1,28 +1,66 @@
 {{define "nav"}}
-  <nav>
-    <ul>
-      {{if .IsAuthenticated}}
-        <li><a href="/diveplan">Dive Plans</a></li>
-        <li><a href="/divelog">View Divelog</a></li>
-        <li><a href="/divelog/new_dive">Log Dive</a></li>
-        <li><a href="/divelog/buddy_index">Buddies</a></li>
-        <li><a href="/log-book/dive-site">Sites</a></li>
-        <li><a href="/divelog/new_operator">Operators</a></li>
-        <li><a href="/divelog/course_index">Courses</a></li>
-        <li><a href="/divelog/trip_index">Trips</a></li>
-        <li><a href="/divelog/stats">Stats</a></li>
-        <li>
-          <!-- TODO: Fix this as it breaks the layout somewhat. -->
-          <form action="/user/log-out" method="POST">
-            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-            <input type="submit" class="button" value="Log Out" />
-          </form>
-        </li>
-      {{else}}
-        <li><a href="/user/sign-up" class="button">Sign Up</a></li>
-        <li><a href="/user/log-in" class="button special">Log In</a></li>
-      {{end}}
-    </ul>
+  <nav id="nav" class="navbar navbar-expand-lg bg-body-tertiary">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">DiveSite</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+              data-bs-target="#navbarSupportedContent"
+              aria-controls="navbarSupportedContent"
+              aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="/">Home</a>
+          </li>
+        {{if .IsAuthenticated}}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button"
+               data-bs-toggle="dropdown" aria-expanded="false">
+              Log Book
+            </a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="#">Log Dive</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#">Buddies</a></li>
+              <li><a class="dropdown-item" href="#">Dive Courses</a></li>
+              <li><a class="dropdown-item" href="#">Dive Operators</a></li>
+              <li><a class="dropdown-item" href="#">Dive Trips</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#">Stats</a></li>
+            </ul>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button"
+               data-bs-toggle="dropdown" aria-expanded="false">
+              Dive Sites
+            </a>
+            <ul class="dropdown-menu">
+              <li>
+                <a class="dropdown-item" href="/log-book/dive-site">
+                  Dive Sites
+                </a>
+                <a class="dropdown-item" href="/log-book/dive-site/add">
+                  Add Dive Site
+                </a>
+              </li>
+            </ul>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Dive Plans</a>
+          </li>
+        </ul>
+        <form class="d-flex" role="log-out" action="/user/log-out" method="POST">
+          <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+          <button class="btn btn-primary" type="submit">Log Out</button>
+        </form>
+        {{else}}
+        </ul>
+        <a class="btn btn-primary me-2" href="/user/sign-up" role="button">Sign Up</a>
+        <a class="btn btn-outline-primary" href="/user/log-in" role="button">Log In</a>
+        {{end}}
+      </div>
+    </div>
   </nav>
 {{end}}
 

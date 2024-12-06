@@ -4,58 +4,73 @@
 
 {{define "main"}}
   <section>
-    <form method="post" action="/user/sign-up">
+    {{template "form_non_field_errors" .}}
+
+    <p>Register your details to create a new DiveSite account.</p>
+
+    <h2>Enter Your Details</h2>
+
+    <form method="post" action="/user/sign-up"
+          class="{{template "bootstrap_form_class" .}}">
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
-      <div class="row uniform">
-
-        <div class="12u$">
-          <label for="id_name">Name</label>
-          <input type="text" name="name" id="id_name"
-                 minlength="2" maxlength="256"
-                 value="{{.Form.Name}}" required>
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_name">Name</label>
+          <input {{template "form_field_common_attrs" "name"}}
+                 type="text"  value="{{.Form.Name}}"
+                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.name}}"
+                 minlength="2" maxlength="256" required>
           {{with .Form.FieldErrors.name}}
-              <span class="errortext">{{.}}</span>
+            <div class="invalid-feedback" id="id_name_feedback">{{.}}</div>
           {{end}}
         </div>
-
-        <div class="12u$">
-          <label for="id_email">Email Address</label>
-          <input type="email" name="email" id="id_email"
-                 minlength="6" maxlength="256"
-                 value="{{.Form.Email}}" required>
-          {{with .Form.FieldErrors.email}}
-              <span class="errortext">{{.}}</span>
-          {{end}}
-        </div>
-
-        <div class="6u 12u$(xsmall)">
-          <label for="id_password">Password</label>
-          <input type="password" name="password" id="id_password"
-                  minlength="8" maxlength="1024" required>
-          {{with .Form.FieldErrors.password}}
-            <span class="errortext">{{.}}</span>
-          {{end}}
-        </div>
-        <div class="6u$ 12u$(xsmall)">
-          <label for="id_password_confirm">Confirm Password</label>
-          <input type="password" name="password_confirm" id="id_password_confirm"
-                  minlength="8" maxlength="1024" required>
-          {{with .Form.FieldErrors.password_confirm}}
-            <span class="errortext">{{.}}</span>
-          {{end}}
-        </div>
-
-        <div class="12u$">
-          <ul class="actions">
-            <li>
-              <input type="submit" value="Create Account" class="special" />
-            </li>
-            <li><input type="reset" value="Reset" /></li>
-          </ul>
-        </div>
-
       </div>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_email">Email Address</label>
+          <input {{template "form_field_common_attrs" "email"}}
+                 type="email" value="{{.Form.Email}}"
+                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.email}}"
+                 minlength="6" maxlength="256" required>
+          {{with .Form.FieldErrors.email}}
+            <div class="invalid-feedback" id="id_email_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_password">Password</label>
+          <input {{template "form_field_common_attrs" "password"}}
+                 type="password"
+                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.password}}"
+                 minlength="8" maxlength="1024" required>
+          {{with .Form.FieldErrors.password}}
+            <div class="invalid-feedback" id="id_password_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        <div class="col-sm">
+          <label class="form-label" for="id_password_confirm">Confirm Password</label>
+          <input {{template "form_field_common_attrs" "password_confirm"}}
+                 type="password"
+                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.password_confirm}}"
+                 minlength="8" maxlength="1024" required>
+          {{with .Form.FieldErrors.password_confirm}}
+            <div class="invalid-feedback" id="id_password_confirm_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <button class="btn btn-primary me-2" type="submit">Create Account</button>
+          <button class="btn btn-outline-danger" type="reset">Reset</button>
+        </div>
+      </div>
+
     </form>
   </section>
 {{end}}
