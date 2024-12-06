@@ -4,10 +4,7 @@
 {{end}}
 
 {{define "heading"}}
-  <img src="/static/img/flags/svg/{{.DiveSite.Country.ISO2Code}}.svg"
-      height="32"
-      alt="{{.DiveSite.Country.Name}}"
-      title="{{.DiveSite.Country.Name}}" />
+  {{isoCountryToEmoji .DiveSite.Country.ISO2Code}}
   {{.DiveSite.Name}}, {{.DiveSite.Location}},
   {{or .DiveSite.Region .DiveSite.Country.Name}}
 {{end}}
@@ -137,10 +134,7 @@
                     <a href="{{url 'divelog:view_dive' dive.pk}}">{{dive.date_time_in|timezone:dive.site.timezone|date:"Y-m-d H:i e"}}</a>
                   </td>
                   <td>
-                    <img src="/static/img/flags/svg/AU.svg"
-                        height="24"
-                        alt="{{dive.site.country}}"
-                        title="{{dive.site.country}}" />
+                    {{isoCountryToEmoji .Country.ISO2Code}}
                     <a href="/blah">
                       {{dive.site.name}}
                     </a>
