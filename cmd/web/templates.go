@@ -118,6 +118,7 @@ var functions = template.FuncMap{
 type templateData struct {
 	CSRFToken       string
 	CurrentYear     int
+	DarkMode        bool
 	DiveSite        models.DiveSite
 	DiveSites       []models.DiveSite
 	Flash           string

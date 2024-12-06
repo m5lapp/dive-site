@@ -63,6 +63,7 @@ func (app *app) newTemplateData(r *http.Request) templateData {
 	return templateData{
 		CSRFToken:       nosurf.Token(r),
 		CurrentYear:     time.Now().Year(),
+		DarkMode:        true,
 		Flash:           app.sessionManager.PopString(r.Context(), "flash"),
 		IsAuthenticated: app.isAuthenticated(r),
 		WasPosted:       r.Method == http.MethodPost,
