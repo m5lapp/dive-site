@@ -83,15 +83,15 @@ type DiveSiteModelInterface interface {
 
 	GetOneByID(id int) (DiveSite, error)
 
-	List(filters map[string]any) ([]DiveSite, error)
+	List(ListControls ListFilters) ([]DiveSite, PageData, error)
 }
 
 var diveSiteSelectQuery string = `
     select
-            ds.id, ds.version, ds.created_at, ds.updated_at, ds.owner_id,
-            ds.name, ds.alt_name, ds.location, ds.region, ds.timezone,
-            ds.latitude, ds.longitude, ds.altitude, ds.max_depth, ds.notes,
-            ds.rating, co.id, co.name, co.iso_number, co.iso2_code,
+            count(*) over(), ds.id, ds.version, ds.created_at, ds.updated_at,
+            ds.owner_id, ds.name, ds.alt_name, ds.location, ds.region,
+            ds.timezone, ds.latitude, ds.longitude, ds.altitude, ds.max_depth,
+            ds.notes, ds.rating, co.id, co.name, co.iso_number, co.iso2_code,
             co.iso3_code, co.dialing_code, co.capital, cu.id, cu.iso_alpha,
             cu.iso_number, cu.name, cu.exponent, wb.id, wb.name, wb.description,
             wt.id, wt.name, wt.description, wt.density
@@ -103,8 +103,9 @@ var diveSiteSelectQuery string = `
      where ds.owner_id = $1
 `
 
-func diveSiteFromDBRow(rs RowScanner, ds *DiveSite) error {
+func diveSiteFromDBRow(rs RowScanner, totalRecords *int, ds *DiveSite) error {
 	return rs.Scan(
+		totalRecords,
 		&ds.ID,
 		&ds.Version,
 		&ds.Created,
@@ -212,9 +213,10 @@ func (m *DiveSiteModel) GetOneByID(id int) (DiveSite, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
+	var totalRecords int
 	var diveSite DiveSite
 	row := m.DB.QueryRowContext(ctx, stmt, "abc123", id)
-	err := diveSiteFromDBRow(row, &diveSite)
+	err := diveSiteFromDBRow(row, &totalRecords, &diveSite)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -227,31 +229,40 @@ func (m *DiveSiteModel) GetOneByID(id int) (DiveSite, error) {
 	return diveSite, nil
 }
 
-func (m *DiveSiteModel) List(filters map[string]any) ([]DiveSite, error) {
-	stmt := diveSiteSelectQuery
+func (m *DiveSiteModel) List(filters ListFilters) ([]DiveSite, PageData, error) {
+	limit := filters.limit()
+	offset := filters.offset()
+	stmt := fmt.Sprintf("%s limit $2 offset $3", diveSiteSelectQuery)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, stmt, "abc123")
+	rows, err := m.DB.QueryContext(ctx, stmt, "abc123", limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, PageData{}, err
 	}
 	defer rows.Close()
 
+	var totalRecords int
 	var diveSites []DiveSite
 	for rows.Next() {
 		var ds DiveSite
-		err := diveSiteFromDBRow(rows, &ds)
+		err := diveSiteFromDBRow(rows, &totalRecords, &ds)
 		if err != nil {
-			return nil, err
+			return nil, PageData{}, err
 		}
 		diveSites = append(diveSites, ds)
 	}
 
 	err = rows.Err()
 	if err != nil {
-		return nil, err
+		return nil, PageData{}, err
 	}
 
-	return diveSites, nil
+	paginationData := newPaginationData(
+		totalRecords,
+		filters.page,
+		filters.pageSize,
+	)
+
+	return diveSites, paginationData, nil
 }

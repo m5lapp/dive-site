@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"runtime/debug"
+	"strconv"
 	"time"
 
 	"github.com/go-playground/form/v4"
@@ -68,6 +70,21 @@ func (app *app) newTemplateData(r *http.Request) templateData {
 		IsAuthenticated: app.isAuthenticated(r),
 		WasPosted:       r.Method == http.MethodPost,
 	}
+}
+
+func (app *app) readInt(qs url.Values, key string, defaultValue int) int {
+	value := qs.Get(key)
+
+	if value == "" {
+		return defaultValue
+	}
+
+	i, err := strconv.Atoi(value)
+	if err != nil {
+		return defaultValue
+	}
+
+	return i
 }
 
 func (app *app) render(

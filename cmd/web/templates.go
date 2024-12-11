@@ -109,6 +109,7 @@ func intRange(start, stop int) chan int {
 }
 
 var functions = template.FuncMap{
+	"pageControls":      ui.PageControls,
 	"getOSTimeZones":    getOSTimeZones,
 	"intRange":          intRange,
 	"isoCountryToEmoji": isoCountryToEmoji,
@@ -124,6 +125,7 @@ type templateData struct {
 	Flash           string
 	Form            any
 	IsAuthenticated bool
+	PageData        models.PageData
 	WasPosted       bool
 }
 

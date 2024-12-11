@@ -328,7 +328,14 @@ func (app *app) diveSiteCreatePOST(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *app) diveSiteList(w http.ResponseWriter, r *http.Request) {
-	diveSites, err := app.diveSites.List(nil)
+	const defaultPageSize = 20
+
+	page := app.readInt(r.URL.Query(), "page", 1)
+	pageSize := app.readInt(r.URL.Query(), "page_size", defaultPageSize)
+
+	filters := models.NewListFilters(page, pageSize, defaultPageSize)
+
+	diveSites, pageData, err := app.diveSites.List(filters)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
@@ -336,6 +343,7 @@ func (app *app) diveSiteList(w http.ResponseWriter, r *http.Request) {
 
 	data := app.newTemplateData(r)
 	data.DiveSites = diveSites
+	data.PageData = pageData
 
 	app.render(w, r, http.StatusOK, "dive_site/list.tmpl", data)
 }

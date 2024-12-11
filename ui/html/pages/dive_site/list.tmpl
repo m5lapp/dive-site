@@ -6,7 +6,8 @@
   <section>
 
     {{if .DiveSites}}
-      {{/* include './paging_controls.html' %} */}}
+      {{pageControls "/log-book/dive-site" .PageData}}
+
       <div class="list-group">
         {{range .DiveSites}}
           <a class="list-group-item list-group-item-action"
@@ -30,22 +31,9 @@
         </li>
       {{end}}
     </ul>
-    {{/* include './paging_controls.html' */}}
-    <nav aria-label="Dive site page navigation">
-      <div class="row mt-3">
-        <ul class="pagination justify-content-center">
-          <li class="page-item disabled"><a class="page-link">First</a></li>
-          <li class="page-item disabled"><a class="page-link">Previous</a></li>
-          <li class="page-item active"><a class="page-link" href="#">1</a></li>
-          <li class="page-item"><a class="page-link" href="#">2</a></li>
-          <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
-          <li class="page-item"><a class="page-link" href="#">7</a></li>
-          <li class="page-item"><a class="page-link" href="#">8</a></li>
-          <li class="page-item"><a class="page-link" href="#">Next</a></li>
-          <li class="page-item"><a class="page-link" href="#">Last</a></li>
-        </ul>
-      </div>
-    </nav>
+
+    {{pageControls "/log-book/dive-site" .PageData}}
+
     {{else}}
       <p>
         No dive sites exist yet. Please feel free to
