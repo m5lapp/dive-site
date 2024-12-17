@@ -15,51 +15,13 @@
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
       <div class="row mb-4">
-        <div class="col-sm">
-          <label class="form-label" for="id_name">Name *</label>
-          <input {{template "form_field_common_attrs" "name"}}
-                 type="text" value="{{.Form.Name}}"
-                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.name}}"
-                 maxlength="256" required>
-          {{with .Form.FieldErrors.name}}
-            <div class="invalid-feedback" id="id_name_feedback">{{.}}</div>
-          {{end}}
-        </div>
-
-        <div class="col-sm">
-          <label class="form-label" for="id_alt_name">Alternative Name</label>
-          <input {{template "form_field_common_attrs" "alt_name"}}
-                 type="text" value="{{.Form.AltName}}"
-                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.alt_name}}"
-                 maxlength="256">
-          {{with .Form.FieldErrors.alt_name}}
-            <div class="invalid-feedback" id="id_alt_name_feedback">{{.}}</div>
-          {{end}}
-        </div>
+        {{bsTextField "text" "name" "Name" .Form.Name "256" true .Form.FieldErrors}}
+        {{bsTextField "text" "alt_name" "Alternative Name" .Form.AltName "256" false .Form.FieldErrors}}
       </div>
 
       <div class="row mb-4">
-        <div class="col-sm">
-          <label class="form-label" for="id_location">Location *</label>
-          <input {{template "form_field_common_attrs" "location"}}
-                 type="text"  value="{{.Form.Location}}"
-                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.location}}"
-                 maxlength="256" required>
-          {{with .Form.FieldErrors.location}}
-            <div class="invalid-feedback" id="id_location_feedback">{{.}}</div>
-          {{end}}
-        </div>
-
-        <div class="col-sm">
-          <label class="form-label" for="id_region">Region</label>
-          <input {{template "form_field_common_attrs" "region"}}
-                 type="text"  value="{{.Form.Region}}"
-                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.region}}"
-                 maxlength="256">
-          {{with .Form.FieldErrors.region}}
-            <div class="invalid-feedback" id="id_region_feedback">{{.}}</div>
-          {{end}}
-        </div>
+        {{bsTextField "text" "location" "" .Form.Location "256" true .Form.FieldErrors}}
+        {{bsTextField "text" "region" "" .Form.Region "256" false .Form.FieldErrors}}
 
         <div class="col-sm">
           <label class="form-label" for="id_rating">Rating</label>
@@ -68,8 +30,7 @@
             <option value="">---------</option>
             {{range $i := intRange 0 10}}
               <option value="{{$i}}"
-                {{/*{{if $.Form.Rating}}{{if eq (printf "%d" $i) $.Form.Rating}}selected{{end}}{{end}}>*/}}
-                {{with $.Form.Rating}}{{if eq (printf "%d" $i) .}}selected{{end}}{{end}}>
+                {{with $.Form.Rating}}{{if eq $i (derefInt .)}}selected{{end}}{{end}}>
                 {{$i}}
               </option>
             {{end}}
@@ -145,49 +106,10 @@
       <h2>Geography</h2>
 
       <div class="row mb-4">
-        <div class="col-sm">
-          <label class="form-label" for="id_latitude">Latitude</label>
-          <input {{template "form_field_common_attrs" "latitude"}}
-                 type="number" value="{{.Form.Latitude}}"
-                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.latitude}}"
-                 min="-90.0" max="90.0" step="0.000001">
-          {{with .Form.FieldErrors.latitude}}
-            <div class="invalid-feedback" id="id_latitude_feedback">{{.}}</div>
-          {{end}}
-        </div>
-
-        <div class="col-sm">
-          <label class="form-label" for="id_longitude">Longitude</label>
-          <input {{template "form_field_common_attrs" "longitude"}}
-                 type="number" value="{{.Form.Longitude}}"
-                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.longitude}}"
-                 min="-180.0" max="180.0" step="0.000001">
-          {{with .Form.FieldErrors.longitude}}
-            <div class="invalid-feedback" id="id_longitude_feedback">{{.}}</div>
-          {{end}}
-        </div>
-
-        <div class="col-sm">
-          <label class="form-label" for="id_altitude">Altitude (MAMSL) *</label>
-          <input {{template "form_field_common_attrs" "altitude"}}
-                 type="number" value="{{.Form.Altitude}}"
-                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.altitude}}"
-                 min="-422" max="7000" step="1" required>
-          {{with .Form.FieldErrors.altitude}}
-            <div class="invalid-feedback" id="id_altitude_feedback">{{.}}</div>
-          {{end}}
-        </div>
-
-        <div class="col-sm">
-          <label class="form-label" for="id_max_depth">Max Depth (m)</label>
-          <input {{template "form_field_common_attrs" "max_depth"}}
-                 type="number" value="{{.Form.MaxDepth}}"
-                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.max_depth}}"
-                 min="4.0" max="350.0" step="0.1">
-          {{with .Form.FieldErrors.max_depth}}
-            <div class="invalid-feedback" id="id_max_depth_feedback">{{.}}</div>
-          {{end}}
-        </div>
+        {{bsNumFieldF64Ptr "latitude" "" "-90.0" "90.0" "0.000001" .Form.Latitude false .Form.FieldErrors}}
+        {{bsNumFieldF64Ptr "longitude" "" "-180.0" "180.0" "0.000001" .Form.Longitude false .Form.FieldErrors}}
+        {{bsNumFieldInt    "altitude" "Altitude (MAMSL)" "-422" "7000" "1" .Form.Altitude true .Form.FieldErrors}}
+        {{bsNumFieldF64Ptr "max_depth" "Max Depth (m)" "4.0" "350.0" "0.1" .Form.MaxDepth false .Form.FieldErrors}}
       </div>
 
       <h2>Additional</h2>

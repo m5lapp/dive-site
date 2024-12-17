@@ -108,11 +108,19 @@ func intRange(start, stop int) chan int {
 	return stream
 }
 
+func deref[T comparable](v *T) T {
+	return *v
+}
+
 var functions = template.FuncMap{
-	"pageControls":      ui.PageControls,
+	"bsNumFieldF64Ptr":  ui.BSNumFieldPtr[float64],
+	"bsNumFieldInt":     ui.BSNumField[int],
+	"bsTextField":       ui.BSTextField,
+	"derefInt":          deref[int],
 	"getOSTimeZones":    getOSTimeZones,
 	"intRange":          intRange,
 	"isoCountryToEmoji": isoCountryToEmoji,
+	"pageControls":      ui.PageControls,
 	"stringsReplace":    strings.Replace,
 }
 
