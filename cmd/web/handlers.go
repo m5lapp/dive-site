@@ -24,7 +24,12 @@ func status(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *app) userCreateGET(w http.ResponseWriter, r *http.Request) {
-	data := app.newTemplateData(r)
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
 	data.Form = userRegistrationForm{}
 	app.render(w, r, http.StatusOK, "register.tmpl", data)
 }
@@ -57,8 +62,13 @@ func (app *app) userCreatePOST(w http.ResponseWriter, r *http.Request) {
 		"This field must match the password field",
 	)
 
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
 	if !form.Valid() {
-		data := app.newTemplateData(r)
 		data.Form = form
 		app.render(w, r, http.StatusUnprocessableEntity, "register.tmpl", data)
 		return
@@ -68,8 +78,6 @@ func (app *app) userCreatePOST(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, models.ErrDuplicateEmail) {
 			form.AddFieldError("email", "This email is already registered")
-
-			data := app.newTemplateData(r)
 			data.Form = form
 			app.render(w, r, http.StatusUnprocessableEntity, "register.tmpl", data)
 		} else {
@@ -89,7 +97,11 @@ type userLogInForm struct {
 }
 
 func (app *app) userLogInGET(w http.ResponseWriter, r *http.Request) {
-	data := app.newTemplateData(r)
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 	data.Form = userLogInForm{}
 
 	app.render(w, r, http.StatusOK, "log_in.tmpl", data)
@@ -112,8 +124,13 @@ func (app *app) userLogInPOST(w http.ResponseWriter, r *http.Request) {
 	)
 	form.CheckField(validator.NotBlank(form.Password), "password", "This field cannot be blank")
 
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
 	if !form.Valid() {
-		data := app.newTemplateData(r)
 		data.Form = form
 		app.render(w, r, http.StatusUnprocessableEntity, "log_in.tmpl", data)
 		return
@@ -123,8 +140,6 @@ func (app *app) userLogInPOST(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidCredentials) {
 			form.AddNonFieldError("Email or password is incorrect")
-
-			data := app.newTemplateData(r)
 			data.Form = form
 			app.render(w, r, http.StatusUnprocessableEntity, "log_in.tmpl", data)
 		} else {
@@ -169,7 +184,12 @@ func (app *app) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := app.newTemplateData(r)
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
 	err = ts.ExecuteTemplate(w, "base", data)
 	if err != nil {
 		app.serverError(w, r, err)
@@ -273,7 +293,12 @@ func (ds *diveSiteForm) Validate() {
 }
 
 func (app *app) diveSiteCreateGET(w http.ResponseWriter, r *http.Request) {
-	data := app.newTemplateData(r)
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
 	data.Form = diveSiteForm{
 		WaterBodyID: 1,
 		WaterTypeID: 1,
@@ -293,7 +318,11 @@ func (app *app) diveSiteCreatePOST(w http.ResponseWriter, r *http.Request) {
 
 	form.Validate()
 	if !form.Valid() {
-		data := app.newTemplateData(r)
+		data, err := app.newTemplateData(r)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
 		data.Form = form
 		app.render(w, r, http.StatusUnprocessableEntity, "dive_site/new.tmpl", data)
 		return
@@ -341,7 +370,11 @@ func (app *app) diveSiteList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := app.newTemplateData(r)
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 	data.DiveSites = diveSites
 	data.PageData = pageData
 
@@ -365,7 +398,11 @@ func (app *app) diveSiteGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := app.newTemplateData(r)
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 	data.DiveSite = diveSite
 
 	app.render(w, r, http.StatusOK, "dive_site/view.tmpl", data)

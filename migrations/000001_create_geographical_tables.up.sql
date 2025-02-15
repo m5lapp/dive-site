@@ -27,7 +27,7 @@ create table if not exists countries (
     capital       varchar(256) not null,
     capital_tz    varchar(64)  not null,
     area_km2      integer      not null,
-    currency_id   smallint     references currencies(id) on delete restrict,
+    currency_id   smallint     not null references currencies(id) on delete restrict,
     constraint country_area_check check ((area_km2 >= 0)),
     constraint country_e164_code_check check ((e164_code >= 0)),
     constraint country_geonameid_check check ((geonameid >= 0)),

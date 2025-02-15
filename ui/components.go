@@ -166,7 +166,7 @@ func BSNumFieldPtr[N float32 | float64 | int | uint | int8 | uint8 | int16 | uin
 // BSTextField takes a string type and returns a template.HTML string that
 // renders that value in a form using the HTML5 text input type.
 func BSTextField(
-	fieldType, name, dispName, value, maxlength string,
+	fieldType, name, dispName, value, minLength, maxLength string,
 	required bool,
 	fieldErrs map[string]string,
 ) (template.HTML, error) {
@@ -183,7 +183,8 @@ func BSTextField(
 			Name(name),
 			Aria("described-by", id(name)+"_feedback"),
 			c.Classes{"form-control": true, "is-invalid": fieldErr != ""},
-			MaxLength(maxlength),
+			MinLength(minLength),
+			MaxLength(maxLength),
 			g.If(required, Required()),
 		),
 		g.If(

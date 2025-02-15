@@ -15,53 +15,16 @@
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
       <div class="row mb-4">
-        <div class="col-sm">
-          <label class="form-label" for="id_name">Name</label>
-          <input {{template "form_field_common_attrs" "name"}}
-                 type="text"  value="{{.Form.Name}}"
-                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.name}}"
-                 minlength="2" maxlength="256" required>
-          {{with .Form.FieldErrors.name}}
-            <div class="invalid-feedback" id="id_name_feedback">{{.}}</div>
-          {{end}}
-        </div>
+        {{bsTextField "text" "name" "" .Form.Name "2" "256" true .Form.FieldErrors}}
       </div>
 
       <div class="row mb-4">
-        <div class="col-sm">
-          <label class="form-label" for="id_email">Email Address</label>
-          <input {{template "form_field_common_attrs" "email"}}
-                 type="email" value="{{.Form.Email}}"
-                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.email}}"
-                 minlength="6" maxlength="256" required>
-          {{with .Form.FieldErrors.email}}
-            <div class="invalid-feedback" id="id_email_feedback">{{.}}</div>
-          {{end}}
-        </div>
+        {{bsTextField "email" "email" "Email Address" .Form.Email "6" "256" true .Form.FieldErrors}}
       </div>
 
       <div class="row mb-4">
-        <div class="col-sm">
-          <label class="form-label" for="id_password">Password</label>
-          <input {{template "form_field_common_attrs" "password"}}
-                 type="password"
-                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.password}}"
-                 minlength="8" maxlength="1024" required>
-          {{with .Form.FieldErrors.password}}
-            <div class="invalid-feedback" id="id_password_feedback">{{.}}</div>
-          {{end}}
-        </div>
-
-        <div class="col-sm">
-          <label class="form-label" for="id_password_confirm">Confirm Password</label>
-          <input {{template "form_field_common_attrs" "password_confirm"}}
-                 type="password"
-                 class="{{template "bootstrap_form_field_class" .Form.FieldErrors.password_confirm}}"
-                 minlength="8" maxlength="1024" required>
-          {{with .Form.FieldErrors.password_confirm}}
-            <div class="invalid-feedback" id="id_password_confirm_feedback">{{.}}</div>
-          {{end}}
-        </div>
+        {{bsTextField "password" "password" "" "" "8" "1024" true .Form.FieldErrors}}
+        {{bsTextField "password" "password_confirm" "Confirm Password" "" "8" "1024" true .Form.FieldErrors}}
       </div>
 
       <div class="row mb-4">

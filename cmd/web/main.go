@@ -21,10 +21,13 @@ import (
 type app struct {
 	log            *slog.Logger
 	templateCache  map[string]*template.Template
+	countries      models.CountryModelInterface
 	diveSites      models.DiveSiteModelInterface
 	users          models.UserModelInterface
 	formDecoder    *form.Decoder
 	sessionManager *scs.SessionManager
+	waterBodies    models.WaterBodyModelInterface
+	waterTypes     models.WaterTypeModelInterface
 }
 
 func openDB(dsn string) (*sql.DB, error) {
@@ -74,10 +77,13 @@ func main() {
 	app := app{
 		log:            logger,
 		templateCache:  templateCache,
+		countries:      &models.CountryModel{DB: db},
 		diveSites:      &models.DiveSiteModel{DB: db},
 		users:          &models.UserModel{DB: db},
 		formDecoder:    formDecoder,
 		sessionManager: sessionManager,
+		waterBodies:    &models.WaterBodyModel{DB: db},
+		waterTypes:     &models.WaterTypeModel{DB: db},
 	}
 
 	tlsConfig := &tls.Config{

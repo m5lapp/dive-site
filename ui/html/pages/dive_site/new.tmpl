@@ -15,13 +15,13 @@
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
       <div class="row mb-4">
-        {{bsTextField "text" "name" "Name" .Form.Name "256" true .Form.FieldErrors}}
-        {{bsTextField "text" "alt_name" "Alternative Name" .Form.AltName "256" false .Form.FieldErrors}}
+        {{bsTextField "text" "name" "" .Form.Name "1" "256" true .Form.FieldErrors}}
+        {{bsTextField "text" "alt_name" "Alternative Name" .Form.AltName "0" "256" false .Form.FieldErrors}}
       </div>
 
       <div class="row mb-4">
-        {{bsTextField "text" "location" "" .Form.Location "256" true .Form.FieldErrors}}
-        {{bsTextField "text" "region" "" .Form.Region "256" false .Form.FieldErrors}}
+        {{bsTextField "text" "location" "" .Form.Location "1" "256" true .Form.FieldErrors}}
+        {{bsTextField "text" "region" "" .Form.Region "0" "256" false .Form.FieldErrors}}
 
         <div class="col-sm">
           <label class="form-label" for="id_rating">Rating</label>
@@ -46,13 +46,12 @@
           <label class="form-label" for="id_country">Country *</label>
           <select {{template "form_field_common_attrs" "country"}}
                   class="{{template "bootstrap_form_select_class" .Form.FieldErrors.country}}">
-            <option value="4"{{if eq 4 .Form.CountryID}} selected{{end}}>Afghanistan</option>
-            <option value="8"{{if eq 8 .Form.CountryID}} selected{{end}}>Albania</option>
-            <option value="12"{{if eq 12 .Form.CountryID}} selected{{end}}>Algeria</option>
-            <option value="16"{{if eq 16 .Form.CountryID}} selected{{end}}>American Samoa</option>
-            <option value="20"{{if eq 20 .Form.CountryID}} selected{{end}}>Andorra</option>
-            <option value="24"{{if eq 24 .Form.CountryID}} selected{{end}}>Angola</option>
-            <option value="660"{{if eq 660 .Form.CountryID}} selected{{end}}>Anguilla</option>
+            {{range .Countries}}
+              <option value="{{.ID}}"
+                      {{if eq .ID $.Form.CountryID}}selected{{end}}>
+                {{.Name}}
+              </option>
+            {{end}}
           </select>
           {{with .Form.FieldErrors.rating}}
             <div class="invalid-feedback" id="id_country_feedback">{{.}}</div>
@@ -82,8 +81,12 @@
           <label class="form-label" for="id_water_body">Water Body *</label>
           <select {{template "form_field_common_attrs" "water_body"}}
                   class="{{template "bootstrap_form_select_class" .Form.FieldErrors.water_body}}">
-            <option value="1">Artificial Lake</option>
-            <option value="2">Harbour</option>
+            {{range .WaterBodies}}
+              <option value="{{.ID}}"
+                      {{if eq .ID $.Form.WaterBodyID}}selected{{end}}>
+                {{.Name}}
+              </option>
+            {{end}}
           </select>
           {{with .Form.FieldErrors.water_body}}
             <div class="invalid-feedback" id="id_water_body_feedback">{{.}}</div>
@@ -94,8 +97,12 @@
           <label class="form-label" for="id_water_type">Water Type *</label>
           <select {{template "form_field_common_attrs" "water_type"}}
                   class="{{template "bootstrap_form_select_class" .Form.FieldErrors.water_type}}">
-            <option value="1">Fresh Water</option>
-            <option value="2" selected>Salt Water</option>
+            {{range .WaterTypes}}
+              <option value="{{.ID}}"
+                      {{if eq .ID $.Form.WaterTypeID}}selected{{end}}>
+                {{.Name}}
+              </option>
+            {{end}}
           </select>
           {{with .Form.FieldErrors.water_type}}
             <div class="invalid-feedback" id="id_water_type_feedback">{{.}}</div>

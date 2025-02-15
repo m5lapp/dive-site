@@ -128,6 +128,7 @@ type templateData struct {
 	CSRFToken       string
 	CurrentYear     int
 	DarkMode        bool
+	Countries       []models.Country
 	DiveSite        models.DiveSite
 	DiveSites       []models.DiveSite
 	Flash           string
@@ -135,6 +136,8 @@ type templateData struct {
 	IsAuthenticated bool
 	PageData        models.PageData
 	WasPosted       bool
+	WaterBodies     []models.WaterBody
+	WaterTypes      []models.WaterType
 }
 
 // https://stackoverflow.com/questions/26809484/how-to-use-double-star-glob-in-go

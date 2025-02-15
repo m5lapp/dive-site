@@ -61,15 +61,35 @@ func (app *app) isAuthenticated(r *http.Request) bool {
 	return isAuthenticated
 }
 
-func (app *app) newTemplateData(r *http.Request) templateData {
-	return templateData{
+func (app *app) newTemplateData(r *http.Request) (templateData, error) {
+	countries, err := app.countries.List()
+	if err != nil {
+		return templateData{}, fmt.Errorf("could not fetch country list for template: %w", err)
+	}
+
+	waterBodies, err := app.waterBodies.List()
+	if err != nil {
+		return templateData{}, fmt.Errorf("could not fetch water body list for template: %w", err)
+	}
+
+	waterTypes, err := app.waterTypes.List()
+	if err != nil {
+		return templateData{}, fmt.Errorf("could not fetch water type list for template: %w", err)
+	}
+
+	data := templateData{
 		CSRFToken:       nosurf.Token(r),
+		Countries:       countries,
 		CurrentYear:     time.Now().Year(),
 		DarkMode:        true,
 		Flash:           app.sessionManager.PopString(r.Context(), "flash"),
 		IsAuthenticated: app.isAuthenticated(r),
 		WasPosted:       r.Method == http.MethodPost,
+		WaterBodies:     waterBodies,
+		WaterTypes:      waterTypes,
 	}
+
+	return data, nil
 }
 
 func (app *app) readInt(qs url.Values, key string, defaultValue int) int {

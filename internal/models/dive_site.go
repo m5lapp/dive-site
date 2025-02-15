@@ -8,25 +8,6 @@ import (
 	"time"
 )
 
-type Currency struct {
-	ID        int
-	ISOAlpha  string
-	ISONumber int
-	Name      string
-	Exponent  int
-}
-
-type Country struct {
-	ID          int
-	Name        string
-	ISONumber   int
-	ISO2Code    string
-	ISO3Code    string
-	DialingCode string
-	Capital     string
-	Currency    Currency
-}
-
 type WaterType struct {
 	ID          int
 	Name        string
@@ -87,14 +68,13 @@ type DiveSiteModelInterface interface {
 }
 
 var diveSiteSelectQuery string = `
-    select
-            count(*) over(), ds.id, ds.version, ds.created_at, ds.updated_at,
-            ds.owner_id, ds.name, ds.alt_name, ds.location, ds.region,
-            ds.timezone, ds.latitude, ds.longitude, ds.altitude, ds.max_depth,
-            ds.notes, ds.rating, co.id, co.name, co.iso_number, co.iso2_code,
-            co.iso3_code, co.dialing_code, co.capital, cu.id, cu.iso_alpha,
-            cu.iso_number, cu.name, cu.exponent, wb.id, wb.name, wb.description,
-            wt.id, wt.name, wt.description, wt.density
+    select count(*) over(), ds.id, ds.version, ds.created_at, ds.updated_at,
+           ds.owner_id, ds.name, ds.alt_name, ds.location, ds.region,
+           ds.timezone, ds.latitude, ds.longitude, ds.altitude, ds.max_depth,
+           ds.notes, ds.rating, co.id, co.name, co.iso_number, co.iso2_code,
+           co.iso3_code, co.dialing_code, co.capital, cu.id, cu.iso_alpha,
+           cu.iso_number, cu.name, cu.exponent, wb.id, wb.name, wb.description,
+           wt.id, wt.name, wt.description, wt.density
       from dive_sites ds
  left join countries    co on ds.country_id = co.id
  left join currencies   cu on co.currency_id = cu.id
@@ -265,4 +245,110 @@ func (m *DiveSiteModel) List(filters ListFilters) ([]DiveSite, PageData, error) 
 	)
 
 	return diveSites, paginationData, nil
+}
+
+type WaterBodyModel struct {
+	DB *sql.DB
+}
+
+type WaterBodyModelInterface interface {
+	List() ([]WaterBody, error)
+}
+
+// waterBodyList stores a static, cached slice of WaterBody data so that
+// successive requests can bypass the database call.
+var waterBodyList []WaterBody
+var waterBodyListQuery string = `
+    select id, name, description
+      from water_bodies 
+  order by name
+`
+
+func (m *WaterBodyModel) List() ([]WaterBody, error) {
+	// If the list of water types has already been populated, then use it.
+	if len(waterBodyList) != 0 {
+		return waterBodyList, nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, waterBodyListQuery)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var waterBodies []WaterBody
+	for rows.Next() {
+		var waterBody WaterBody
+		err := rows.Scan(&waterBody.ID, &waterBody.Name, &waterBody.Description)
+		if err != nil {
+			return nil, err
+		}
+		waterBodies = append(waterBodies, waterBody)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the response for faster future calls.
+	waterBodyList = waterBodies
+
+	return waterBodies, nil
+}
+
+type WaterTypeModel struct {
+	DB *sql.DB
+}
+
+type WaterTypeModelInterface interface {
+	List() ([]WaterType, error)
+}
+
+// waterTypeList stores a static, cached slice of WaterType data so that
+// successive requests can bypass the database call.
+var waterTypeList []WaterType
+var waterTypeListQuery string = `
+    select id, name, description, density
+      from water_types
+  order by name
+`
+
+func (m *WaterTypeModel) List() ([]WaterType, error) {
+	// If the list of water types has already been populated, then use it.
+	if len(waterTypeList) != 0 {
+		return waterTypeList, nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, waterTypeListQuery)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var waterTypes []WaterType
+	for rows.Next() {
+		var waterType WaterType
+		err := rows.Scan(&waterType.ID, &waterType.Name, &waterType.Description, &waterType.Density)
+		if err != nil {
+			return nil, err
+		}
+		waterTypes = append(waterTypes, waterType)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the response for faster future calls.
+	waterTypeList = waterTypes
+
+	return waterTypes, nil
 }
