@@ -1,4 +1,4 @@
-set foreign_key_checks = 0;
+set constraints all deferred;
 
 --------------------------------------------------------------------------------
 
@@ -22,5 +22,5 @@ truncate table currencies restart identity;
 
 --------------------------------------------------------------------------------
 
-set foreign_key_checks = 1;
+set constraints all immediate;
 

@@ -11,7 +11,8 @@
     <h2>Enter Your Details</h2>
 
     <form method="post" action="/user/sign-up"
-          class="{{template "bootstrap_form_class" .}}">
+          class="{{template "bootstrap_form_class" .}}"
+          {{if .NoValidate}} novalidate{{end}}>
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
       <div class="row mb-4">
@@ -24,7 +25,54 @@
 
       <div class="row mb-4">
         {{bsTextField "password" "password" "" "" "8" "1024" true .Form.FieldErrors}}
-        {{bsTextField "password" "password_confirm" "Confirm Password" "" "8" "1024" true .Form.FieldErrors}}
+        {{bsTextField "password" "password_confirm" "" "" "8" "1024" true .Form.FieldErrors}}
+      </div>
+
+      <h2>Diving History</h2>
+
+      <div class="row mb-4">
+        {{bsDateField "diving_since" "" "1960-01-01" "now" "now" .Form.DivingSince true false .Form.FieldErrors}}
+        {{bsNumFieldInt "dive_number_offset" "" "0" "10000" "1" .Form.DiveNumberOffset true .Form.FieldErrors}}
+      </div>
+
+      <h2>User Preferences</h2>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_default_diving_country_id">Default Diving Country *</label>
+          <select {{template "form_field_common_attrs" "default_diving_country_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.default_diving_country_id}}">
+            {{range .Countries}}
+              <option value="{{.ID}}"
+                      {{if eq .ID $.Form.DefaultDivingCountryID}}selected{{end}}>
+                {{.Name}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.default_diving_country_id}}
+            <div class="invalid-feedback" id="id_default_diving_country_id_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        <div class="col-sm">
+          <label class="form-label" for="id_default_diving_tz">Default Diving Time Zone *</label>
+          <select {{template "form_field_common_attrs" "default_diving_tz"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.default_diving_tz}}">
+            {{$defaultDivingTZStr := print $.Form.DefaultDivingTZ}}
+            {{range $tz := getOSTimeZones}}
+              <option value="{{$tz}}"{{if eq $tz $defaultDivingTZStr}} selected{{end}}>
+                {{stringsReplace $tz "_" " " -1}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.default_diving_timezone}}
+            <div class="invalid-feedback" id="id_default_diving_time_zone_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        {{bsBoolField "dark_mode" "Use Dark Mode" "true" .Form.DarkMode false true .Form.FieldErrors}}
       </div>
 
       <div class="row mb-4">

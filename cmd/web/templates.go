@@ -112,7 +112,13 @@ func deref[T comparable](v *T) T {
 	return *v
 }
 
+func ref[T any](v T) *T {
+	return &v
+}
+
 var functions = template.FuncMap{
+	"bsBoolField":       ui.BSBoolField,
+	"bsDateField":       ui.BSDateField,
 	"bsNumFieldF64Ptr":  ui.BSNumFieldPtr[float64],
 	"bsNumFieldInt":     ui.BSNumField[int],
 	"bsTextField":       ui.BSTextField,
@@ -134,6 +140,7 @@ type templateData struct {
 	Flash           string
 	Form            any
 	IsAuthenticated bool
+	NoValidate      bool
 	PageData        models.PageData
 	WasPosted       bool
 	WaterBodies     []models.WaterBody

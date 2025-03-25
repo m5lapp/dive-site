@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
@@ -68,9 +69,9 @@ func id(name string) string {
 }
 
 // displayName returns a field name for displaying to an end-user, defaulting to
-// the field's internal name with the first character upper-cased if displayName
-// is empty. If required is true, then an asterisk will be added to the end of
-// the returned string.
+// the field's internal name with the first character upper-cased and
+// underscores replaces with spaces if displayName is empty. If required is
+// true, then an asterisk will be added to the end of the returned string.
 func displayName(displayName, name string, required bool) string {
 	if displayName == "" {
 		// Upper-case the first character of the internal field name.
@@ -80,6 +81,7 @@ func displayName(displayName, name string, required bool) string {
 		} else {
 			displayName = string(unicode.ToUpper(r)) + name[size:]
 		}
+		displayName = strings.ReplaceAll(displayName, "_", " ")
 	}
 
 	if required {
@@ -87,6 +89,122 @@ func displayName(displayName, name string, required bool) string {
 	}
 
 	return displayName
+}
+
+// BSBoolField returns a template.HTML string that renders a form element using
+// the HTML5 checkbox input type. The switchStyle parameter determines whether
+// or not the element is displayed as a Bootstrap switch-style element or as a
+// traditional checkbox.
+func BSBoolField(
+	name, dispName, value string,
+	checked, required, switchStyle bool,
+	fieldErrs map[string]string,
+) (template.HTML, error) {
+	var fieldErr string
+	fieldErr, _ = fieldErrs[name]
+
+	component := Div(
+		c.Classes{"col-sm": true},
+		Div(
+			c.Classes{"form-check": true, "form-switch": switchStyle},
+			Label(
+				Class("form-check-label"),
+				For(id(name)),
+				g.Text(displayName(dispName, name, required)),
+			),
+			Input(
+				Type("checkbox"),
+				ID(id(name)),
+				Name(name),
+				Value(value),
+				Aria("described-by", id(name)+"_feedback"),
+				c.Classes{
+					"form-control":     true,
+					"form-check-input": true,
+					"is-invalid":       fieldErr != "",
+				},
+				g.If(checked, Checked()),
+				g.If(required, Required()),
+				g.If(switchStyle, Role("switch")),
+			),
+			g.If(
+				fieldErr != "",
+				Div(Class("invalid-feedback"), ID(id(name)+"_feedback"), g.Text(fieldErr)),
+			),
+		),
+	)
+
+	return renderGomponent(component)
+}
+
+func strToTime(value string) (time.Time, error) {
+	if value == "" {
+		return time.Time{}, nil
+	} else if value == "now" {
+		return time.Now(), nil
+	} else if len(value) == 10 {
+		return time.Parse(time.DateOnly, value)
+	}
+
+	return time.Parse(time.DateTime, value)
+}
+
+// BSDateField takes a time.Time value and returns a template.HTML string that
+// renders that value in a form using the appropriate HTML5 input type; 'date'
+// if the withTime field is true, or datetime-local otherwise. The minVal and
+// maxVal and defaultVal parameters should be in the time.DateTime or
+// time.DateOnly format, or be be "now" or "" for the zero time value.
+func BSDateField(
+	name, dispName, minVal, maxVal, defaultVal string,
+	value time.Time,
+	required, withTime bool,
+	fieldErrs map[string]string,
+) (template.HTML, error) {
+	fieldErr, _ := fieldErrs[name]
+
+	inputFormat := time.DateOnly
+	inputType := "date"
+	if withTime {
+		inputFormat = time.DateTime
+		inputType = "datetime-local"
+	}
+
+	const parseErrorMsg = "failed to parse field %s (%s) for field %s: %w"
+	minTime, err := strToTime(minVal)
+	if err != nil {
+		return "", fmt.Errorf(parseErrorMsg, "minVal", minVal, name, err)
+	}
+	maxTime, err := strToTime(maxVal)
+	if err != nil {
+		return "", fmt.Errorf(parseErrorMsg, "maxVal", maxVal, name, err)
+	}
+	defaultTime, err := strToTime(defaultVal)
+	if err != nil {
+		return "", fmt.Errorf(parseErrorMsg, "defaultVal", defaultVal, name, err)
+	}
+
+	component := Div(
+		Class("col-sm"),
+		Label(Class("form-label"), For(id(name)), g.Text(displayName(dispName, name, required))),
+		Input(
+			Type(inputType),
+			ID(id(name)),
+			Name(name),
+			Aria("described-by", id(name)+"_feedback"),
+			c.Classes{"form-control": true, "is-invalid": fieldErr != ""},
+			g.If(required, Required()),
+			Min(minTime.Format(inputFormat)),
+			Max(maxTime.Format(inputFormat)),
+			g.If(value.IsZero() == true, Value(defaultTime.Format(inputFormat))),
+			g.If(value.IsZero() == false, Value(value.Format(inputFormat))),
+		),
+		g.If(
+			fieldErr != "",
+			Div(Class("invalid-feedback"), ID(id(name)+"_feedback"), g.Text(fieldErr)),
+		),
+	)
+
+	return renderGomponent(component)
 }
 
 func bsNumField(

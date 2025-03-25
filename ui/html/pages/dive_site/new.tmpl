@@ -11,7 +11,8 @@
     <h2>Main Details</h2>
 
     <form method="post" action="/log-book/dive-site/add"
-          class="{{template "bootstrap_form_class" .}}">
+          class="{{template "bootstrap_form_class" .}}"
+          {{if .NoValidate}} novalidate{{end}}>
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
       <div class="row mb-4">
@@ -53,7 +54,7 @@
               </option>
             {{end}}
           </select>
-          {{with .Form.FieldErrors.rating}}
+          {{with .Form.FieldErrors.country}}
             <div class="invalid-feedback" id="id_country_feedback">{{.}}</div>
           {{end}}
         </div>

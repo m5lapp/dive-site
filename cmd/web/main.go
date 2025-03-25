@@ -66,6 +66,8 @@ func main() {
 	defer db.Close()
 
 	formDecoder := form.NewDecoder()
+	FormDecoderRegisterTimeType(formDecoder, nil)
+	FormDecoderRegisterTimeLocationType(formDecoder)
 
 	sessionManager := scs.New()
 	sessionManager.Store = postgresstore.New(db)

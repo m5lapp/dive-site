@@ -9,15 +9,28 @@ import (
 )
 
 type User struct {
-	ID             int
-	Name           string
-	Email          string
-	HashedPassword []byte
-	Created        time.Time
+	ID                     int
+	Created                time.Time
+	Update                 time.Time
+	Name                   string
+	FriendlyName           string
+	Email                  string
+	HashedPassword         []byte
+	DivingSince            time.Time
+	DiveNumberOffset       int
+	DefaultDivingCountryID int
+	DefaultDivingTZ        TimeZone
+	DarkMode               bool
 }
 
 type UserModelInterface interface {
-	Insert(name, email, password string) error
+	Insert(
+		name, email, password string,
+		divingSince time.Time,
+		diveNumberOffset, defaultDivingCountryID int,
+		defaultDivingTZ TimeZone,
+		darkMode bool,
+	) error
 	Authenticate(email, password string) (int, error)
 	Exists(id int) (bool, error)
 }
@@ -26,14 +39,36 @@ type UserModel struct {
 	DB *sql.DB
 }
 
-func (m *UserModel) Insert(name, email, password string) error {
+func (m *UserModel) Insert(
+	name, email, password string,
+	divingSince time.Time,
+	diveNumberOffset, defaultDivingCountryID int,
+	defaultDivingTZ TimeZone,
+	darkMode bool,
+) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	if err != nil {
 		return err
 	}
 
-	stmt := "insert into users (name, email, hashed_password) values ($1, $2, $3)"
-	_, err = m.DB.Exec(stmt, name, email, hashedPassword)
+	stmt := `
+        insert into users (
+             name, friendly_name, email, hashed_password, dark_mode,
+             diving_since, dive_number_offset, default_diving_country_id,
+             default_diving_tz
+        ) values ($1, $1, $2, $3, $4, $5, $6, $7, $8)
+    `
+	_, err = m.DB.Exec(
+		stmt,
+		name,
+		email,
+		hashedPassword,
+		darkMode,
+		divingSince,
+		diveNumberOffset,
+		defaultDivingCountryID,
+		defaultDivingTZ,
+	)
 	if err != nil {
 		switch {
 		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:

@@ -6,17 +6,23 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/m5lapp/divesite-monolith/internal/models"
 	"github.com/m5lapp/divesite-monolith/internal/validator"
 )
 
 type userRegistrationForm struct {
-	Name                string `form:"name"`
-	Email               string `form:"email"`
-	Password            string `form:"password"`
-	PasswordConfirm     string `form:"password_confirm"`
-	validator.Validator `       form:"-"`
+	Name                   string          `form:"name"`
+	Email                  string          `form:"email"`
+	Password               string          `form:"password"`
+	PasswordConfirm        string          `form:"password_confirm"`
+	DivingSince            time.Time       `form:"diving_since"`
+	DiveNumberOffset       int             `form:"dive_number_offset"`
+	DefaultDivingCountryID int             `form:"default_diving_country_id"`
+	DefaultDivingTZ        models.TimeZone `form:"default_diving_tz"`
+	DarkMode               bool            `form:"dark_mode"`
+	validator.Validator    `form:"-"`
 }
 
 func status(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +36,10 @@ func (app *app) userCreateGET(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data.Form = userRegistrationForm{}
+	tz, _ := time.LoadLocation("Etc/UTC")
+	defaultTZ := models.TimeZone{Location: *tz}
+	data.Form = userRegistrationForm{DefaultDivingTZ: defaultTZ, DarkMode: true}
+
 	app.render(w, r, http.StatusOK, "register.tmpl", data)
 }
 
@@ -44,12 +53,14 @@ func (app *app) userCreatePOST(w http.ResponseWriter, r *http.Request) {
 	}
 
 	form.CheckField(validator.NotBlank(form.Name), "name", "This field cannot be blank")
+
 	form.CheckField(validator.NotBlank(form.Email), "email", "This field cannot be blank")
 	form.CheckField(
 		validator.Matches(form.Email, validator.EmailRX),
 		"email",
 		"This field must be a valid email address",
 	)
+
 	form.CheckField(validator.NotBlank(form.Password), "password", "This field cannot be blank")
 	form.CheckField(
 		validator.MinChars(form.Password, 8),
@@ -60,6 +71,20 @@ func (app *app) userCreatePOST(w http.ResponseWriter, r *http.Request) {
 		form.PasswordConfirm == form.Password,
 		"password_confirm",
 		"This field must match the password field",
+	)
+
+	earliestDivingSince := time.Date(1960, time.January, 1, 0, 0, 0, 0, time.UTC)
+	latestDivingSince := time.Now()
+	form.CheckField(
+		validator.TimeBetween(form.DivingSince, earliestDivingSince, latestDivingSince),
+		"diving_since",
+		"This field must be between 1960-01-01 and today",
+	)
+
+	form.CheckField(
+		validator.NumBetween[int](form.DiveNumberOffset, 0, 10_000),
+		"dive_number_offset",
+		"This field must be between 0 and 10,000 inclusive",
 	)
 
 	data, err := app.newTemplateData(r)
@@ -74,7 +99,16 @@ func (app *app) userCreatePOST(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = app.users.Insert(form.Name, form.Email, form.Password)
+	err = app.users.Insert(
+		form.Name,
+		form.Email,
+		form.Password,
+		form.DivingSince,
+		form.DiveNumberOffset,
+		form.DefaultDivingCountryID,
+		form.DefaultDivingTZ,
+		form.DarkMode,
+	)
 	if err != nil {
 		if errors.Is(err, models.ErrDuplicateEmail) {
 			form.AddFieldError("email", "This email is already registered")

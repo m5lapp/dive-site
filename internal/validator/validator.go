@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -59,4 +60,17 @@ func Matches(value string, rx *regexp.Regexp) bool {
 
 func PermittedValue[T comparable](value T, permittedValues ...T) bool {
 	return slices.Contains(permittedValues, value)
+}
+
+func TimeBetween(value, minT, maxT time.Time) bool {
+	valueGEMinT := value.Equal(minT) || value.After(minT)
+	valueLEMaxT := value.Equal(maxT) || value.Before(maxT)
+
+	return valueGEMinT && valueLEMaxT
+}
+
+func NumBetween[T float32 | float64 | int | uint | int8 | uint8 | int16 | uint16 | int32 | uint32 | int64 | uint64](
+	value, minVal, maxVal T,
+) bool {
+	return minVal <= value && value <= maxVal
 }

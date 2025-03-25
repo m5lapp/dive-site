@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"runtime/debug"
 	"strconv"
 	"time"
@@ -84,6 +85,7 @@ func (app *app) newTemplateData(r *http.Request) (templateData, error) {
 		DarkMode:        true,
 		Flash:           app.sessionManager.PopString(r.Context(), "flash"),
 		IsAuthenticated: app.isAuthenticated(r),
+		NoValidate:      os.Getenv("DIVESITE_NOVALIDATE") == "true",
 		WasPosted:       r.Method == http.MethodPost,
 		WaterBodies:     waterBodies,
 		WaterTypes:      waterTypes,
