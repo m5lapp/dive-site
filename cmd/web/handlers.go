@@ -36,8 +36,7 @@ func (app *app) userCreateGET(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tz, _ := time.LoadLocation("Etc/UTC")
-	defaultTZ := models.TimeZone{Location: *tz}
+	defaultTZ, _ := models.NewTimeZone("Etc/UTC")
 	data.Form = userRegistrationForm{DefaultDivingTZ: defaultTZ, DarkMode: true}
 
 	app.render(w, r, http.StatusOK, "register.tmpl", data)
@@ -231,21 +230,21 @@ func (app *app) home(w http.ResponseWriter, r *http.Request) {
 }
 
 type diveSiteForm struct {
-	Name                string   `form:"name"`
-	AltName             string   `form:"alt_name"`
-	Location            string   `form:"location"`
-	Region              string   `form:"region"`
-	CountryID           int      `form:"country"`
-	TimeZone            string   `form:"timezone"`
-	Latitude            *float64 `form:"latitude"`
-	Longitude           *float64 `form:"longitude"`
-	WaterBodyID         int      `form:"water_body"`
-	WaterTypeID         int      `form:"water_type"`
-	Altitude            int      `form:"altitude"`
-	MaxDepth            *float64 `form:"max_depth"`
-	Notes               string   `form:"notes"`
-	Rating              *int     `form:"rating"`
-	validator.Validator `         form:"-"`
+	Name                string          `form:"name"`
+	AltName             string          `form:"alt_name"`
+	Location            string          `form:"location"`
+	Region              string          `form:"region"`
+	CountryID           int             `form:"country"`
+	TimeZone            models.TimeZone `form:"timezone"`
+	Latitude            *float64        `form:"latitude"`
+	Longitude           *float64        `form:"longitude"`
+	WaterBodyID         int             `form:"water_body"`
+	WaterTypeID         int             `form:"water_type"`
+	Altitude            int             `form:"altitude"`
+	MaxDepth            *float64        `form:"max_depth"`
+	Notes               string          `form:"notes"`
+	Rating              *int            `form:"rating"`
+	validator.Validator `                form:"-"`
 }
 
 func (ds *diveSiteForm) Validate() {
@@ -273,13 +272,6 @@ func (ds *diveSiteForm) Validate() {
 		validator.MaxChars(ds.Region, 256),
 		"region",
 		"This field cannot be more than 256 characters long",
-	)
-
-	ds.CheckField(validator.NotBlank(ds.TimeZone), "timezone", "This field cannot be blank")
-	ds.CheckField(
-		validator.MaxChars(ds.TimeZone, 64),
-		"timezone",
-		"This field cannot be more than 64 characters long",
 	)
 
 	if ds.Latitude != nil {
@@ -333,7 +325,14 @@ func (app *app) diveSiteCreateGET(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: Get this from the User model.
+	userDefaultDivingTZ, err := models.NewTimeZone("Asia/Bangkok")
+	if err != nil {
+		app.serverError(w, r, err)
+	}
+
 	data.Form = diveSiteForm{
+		TimeZone:    userDefaultDivingTZ,
 		WaterBodyID: 1,
 		WaterTypeID: 1,
 	}

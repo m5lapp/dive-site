@@ -18,6 +18,15 @@ type TimeZone struct {
 	time.Location
 }
 
+func NewTimeZone(location string) (TimeZone, error) {
+	l, err := time.LoadLocation(location)
+	if err != nil {
+		return TimeZone{}, fmt.Errorf("could not create TimeZone instance: %w", err)
+	}
+
+	return TimeZone{Location: *l}, nil
+}
+
 // String implements the fmt.Stringer interface.
 func (tz TimeZone) String() string {
 	return fmt.Sprint(&tz.Location)

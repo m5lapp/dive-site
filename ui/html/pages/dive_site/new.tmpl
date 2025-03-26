@@ -63,8 +63,9 @@
           <label class="form-label" for="id_timezone">Timezone *</label>
           <select {{template "form_field_common_attrs" "timezone"}}
                   class="{{template "bootstrap_form_select_class" .Form.FieldErrors.timezone}}">
+            {{$defaultDivingTZStr := print $.Form.DefaultDivingTZ}}
             {{range $tz := getOSTimeZones}}
-              <option value="{{$tz}}"{{if eq $tz $.Form.TimeZone}} selected{{end}}>
+              <option value="{{$tz}}"{{if eq $tz $defaultDivingTZStr}} selected{{end}}>
                 {{stringsReplace $tz "_" " " -1}}
               </option>
             {{end}}

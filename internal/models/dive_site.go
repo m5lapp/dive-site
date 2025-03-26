@@ -32,7 +32,7 @@ type DiveSite struct {
 	Location  string
 	Region    string
 	Country   Country
-	TimeZone  string
+	TimeZone  TimeZone
 	Latitude  *float64
 	Longitude *float64
 	WaterBody WaterBody
@@ -51,7 +51,7 @@ type DiveSiteModelInterface interface {
 		location string,
 		region string,
 		countryID int,
-		timeZone string,
+		timeZone TimeZone,
 		latitude *float64,
 		longitude *float64,
 		waterBodyID int,
@@ -135,7 +135,7 @@ func (m *DiveSiteModel) Insert(
 	location string,
 	region string,
 	countryID int,
-	timeZone string,
+	timeZone TimeZone,
 	latitude *float64,
 	longitude *float64,
 	waterBodyID int,
