@@ -1,3 +1,17 @@
+create table if not exists currencies (
+    id         smallint     primary key generated always as identity,
+    iso_alpha  char(3)      not null unique,
+    iso_number smallint     not null unique,
+    name       varchar(256) not null unique,
+    exponent   smallint     not null,
+    constraint currency_exponent_check check ((exponent >= 0)),
+    constraint currency_iso_number_check check ((iso_number >= 0))
+);
+
+create index if not exists currency_iso_alpha_idx on currencies(iso_alpha);
+
+--------------------------------------------------------------------------------
+
 insert into currencies (iso_alpha, iso_number, name, exponent) values
     ('AED', 784, 'United Arab Emirates Dirham', 2),
     ('AFN', 971, 'Afghan Afghani', 2),
@@ -151,6 +165,34 @@ insert into currencies (iso_alpha, iso_number, name, exponent) values
     ('TWD', 901, 'New Taiwan Dollar', 2),
     ('BTN', 64, 'Bhutanese Ngultrum', 2),
     ('BYN', 933, 'New Belarusian Ruble', 2);
+
+--------------------------------------------------------------------------------
+
+create table if not exists countries (
+    id            smallint     primary key generated always as identity,
+    name          text         not null unique,
+    iso_number    smallint     not null unique,
+    iso2_code     char(2)      not null unique,
+    iso3_code     char(3)      not null unique,
+    fips_code     char(2)      not null,
+    geonameid     integer,
+    e164_code     smallint     not null,
+    tld           char(2)      not null,
+    dialing_code  varchar(32)  not null,
+    continent     varchar(16)  not null,
+    capital       varchar(256) not null,
+    capital_tz    varchar(64)  not null,
+    area_km2      integer      not null,
+    currency_id   smallint     not null references currencies(id) on delete restrict,
+    constraint country_area_check check ((area_km2 >= 0)),
+    constraint country_e164_code_check check ((e164_code >= 0)),
+    constraint country_geonameid_check check ((geonameid >= 0)),
+    constraint country_iso_number_check check ((iso_number >= 0))
+);
+
+create index if not exists country_iso_number_idx on countries (iso_number);
+create index if not exists country_iso2_code_idx  on countries (iso2_code);
+create index if not exists country_iso3_code_idx  on countries (iso3_code);
 
 --------------------------------------------------------------------------------
 
@@ -399,20 +441,4 @@ insert into countries
     ('Yemen', 887, 'YE', 'YEM', 'YM', 69543, 967, 'ye', '967', 'Asia', 'Sanaa', 'Asia/Aden', 527970, 143),
     ('Zambia', 894, 'ZM', 'ZMB', 'ZA', 895949, 260, 'zm', '260', 'Africa', 'Lusaka', 'Africa/Lusaka', 752614, 145),
     ('Zimbabwe', 716, 'ZW', 'ZWE', 'ZI', 878675, 263, 'zw', '263', 'Africa', 'Harare', 'Africa/Harare', 390580, 146);
-
---------------------------------------------------------------------------------
-
-insert into water_types (name, description, density) values
-    ('Fresh Water', 'Water with low concentrations of dissolved salts and other dissolved solids', 1.000),
-    ('Salt Water', 'Water from a sea or ocean', 1.025);
-
---------------------------------------------------------------------------------
-
-insert into water_bodies (name, description) values
-    ('Artificial Lake', 'A man-made lake'),
-    ('Harbour', 'An artificial or naturally occurring body of water where ships are stored or may shelter from the ocean''s weather and currents'),
-    ('Lake', 'A relatively large body of water contained on a body of land'),
-    ('Ocean', 'A major body of salty water'),
-    ('River', 'A natural waterway that flows from higher ground to lower ground'),
-    ('Quarry', 'A dive in an old quarry');
 

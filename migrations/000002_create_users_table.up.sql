@@ -6,6 +6,8 @@ create table if not exists users (
     friendly_name   varchar(256) not null,
     email           varchar(256) not null unique,
     hashed_password char(60)     not null,
+    suspended       bool         not null default false,
+    deleted         bool         not null default false,
     dark_mode       boolean      not null default true,
     diving_since    date         not null default '0001-01-01'::date,
     dive_number_offset smallint  not null default 0,
@@ -14,4 +16,14 @@ create table if not exists users (
 );
 
 create index if not exists user_email_idx on users (email);
+
+--------------------------------------------------------------------------------
+
+create table if not exists sessions (
+    token  text      primary key,
+    data   bytea     not null,
+    expiry timestamp with time zone not null
+);
+
+create index sessions_expiry_idx on sessions(expiry);
 
