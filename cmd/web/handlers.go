@@ -325,14 +325,11 @@ func (app *app) diveSiteCreateGET(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Get this from the User model.
-	userDefaultDivingTZ, err := models.NewTimeZone("Asia/Bangkok")
-	if err != nil {
-		app.serverError(w, r, err)
-	}
+	user := app.contextGetUser(r)
 
 	data.Form = diveSiteForm{
-		TimeZone:    userDefaultDivingTZ,
+		CountryID:   user.DefaultDivingCountryID,
+		TimeZone:    user.DefaultDivingTZ,
 		WaterBodyID: 1,
 		WaterTypeID: 1,
 	}
@@ -362,7 +359,7 @@ func (app *app) diveSiteCreatePOST(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id, err := app.diveSites.Insert(
-		"abc123",
+		app.contextGetUser(r).ID,
 		form.Name,
 		form.AltName,
 		form.Location,

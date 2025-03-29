@@ -26,7 +26,7 @@ type DiveSite struct {
 	Version   int
 	Created   time.Time
 	Updated   time.Time
-	OwnerId   string
+	OwnerId   int
 	Name      string
 	AltName   string
 	Location  string
@@ -45,7 +45,7 @@ type DiveSite struct {
 
 type DiveSiteModelInterface interface {
 	Insert(
-		ownerId string,
+		ownerId int,
 		name string,
 		altName string,
 		location string,
@@ -80,7 +80,6 @@ var diveSiteSelectQuery string = `
  left join currencies   cu on co.currency_id = cu.id
  left join water_bodies wb on ds.water_body_id = wb.id
  left join water_types  wt on ds.water_type_id = wt.id
-     where ds.owner_id = $1
 `
 
 func diveSiteFromDBRow(rs RowScanner, totalRecords *int, ds *DiveSite) error {
@@ -129,7 +128,7 @@ type DiveSiteModel struct {
 }
 
 func (m *DiveSiteModel) Insert(
-	ownerId string,
+	ownerId int,
 	name string,
 	altName string,
 	location string,
@@ -189,13 +188,13 @@ func (m *DiveSiteModel) Insert(
 }
 
 func (m *DiveSiteModel) GetOneByID(id int) (DiveSite, error) {
-	stmt := fmt.Sprintf("%s and ds.id = $2", diveSiteSelectQuery)
+	stmt := fmt.Sprintf("%s where ds.id = $1", diveSiteSelectQuery)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	var totalRecords int
 	var diveSite DiveSite
-	row := m.DB.QueryRowContext(ctx, stmt, "abc123", id)
+	row := m.DB.QueryRowContext(ctx, stmt, id)
 	err := diveSiteFromDBRow(row, &totalRecords, &diveSite)
 
 	if err != nil {
@@ -212,11 +211,11 @@ func (m *DiveSiteModel) GetOneByID(id int) (DiveSite, error) {
 func (m *DiveSiteModel) List(filters ListFilters) ([]DiveSite, PageData, error) {
 	limit := filters.limit()
 	offset := filters.offset()
-	stmt := fmt.Sprintf("%s limit $2 offset $3", diveSiteSelectQuery)
+	stmt := fmt.Sprintf("%s limit $1 offset $2", diveSiteSelectQuery)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, stmt, "abc123", limit, offset)
+	rows, err := m.DB.QueryContext(ctx, stmt, limit, offset)
 	if err != nil {
 		return nil, PageData{}, err
 	}

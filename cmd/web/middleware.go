@@ -1,30 +1,42 @@
 package main
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/justinas/nosurf"
+	"github.com/m5lapp/divesite-monolith/internal/models"
 )
 
+// authenticate checks if a user has previosuly authenticated and therefore has
+// an "authenticatedUserID" value in their session. A boolean "isAuthenticated"
+// value will then be added to the request Context, along with their models.User
+// struct if isAuthenticated is true.
 func (app *app) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := app.sessionManager.GetInt(r.Context(), "authenticatedUserID")
 		if id == 0 {
+			r = app.contextSetIsAuthenticated(r, false)
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		exists, err := app.users.Exists(id)
-		if err != nil {
-			app.serverError(w, r, err)
+		// If a non-zero user ID has been provided in the sessionManager, then
+		// the user has authenticated previously and so a valid user account
+		// should be guarenteed to be returned.
+		user, err := app.users.GetByID(id)
+		if err != nil && !errors.Is(err, models.ErrNoRecord) {
+			app.serverError(w, r, fmt.Errorf("failed to fetch user with id %d: %w", id, err))
 			return
 		}
 
-		if exists {
-			ctx := context.WithValue(r.Context(), isAuthenticatedContextKey, true)
-			r = r.WithContext(ctx)
+		// err will not be nil if it's a models.ErrNoRecord, i.e. the user could
+		// not be found.
+		isAuthenticated := err == nil
+		r = app.contextSetIsAuthenticated(r, isAuthenticated)
+		if isAuthenticated {
+			r = app.contextSetUser(r, &user)
 		}
 
 		next.ServeHTTP(w, r)

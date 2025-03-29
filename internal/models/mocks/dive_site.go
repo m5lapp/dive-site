@@ -43,7 +43,7 @@ var mockDiveSite = models.DiveSite{
 	Version:   1,
 	Created:   time.Now(),
 	Updated:   time.Now(),
-	OwnerId:   "abc123",
+	OwnerId:   1,
 	Name:      "Sail Rock",
 	AltName:   "",
 	Location:  "Koh Tao",
