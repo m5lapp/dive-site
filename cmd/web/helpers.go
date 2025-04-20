@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-playground/form/v4"
 	"github.com/justinas/nosurf"
+	"github.com/m5lapp/divesite-monolith/internal/models"
 )
 
 func (app *app) clientError(w http.ResponseWriter, status int) {
@@ -68,6 +69,24 @@ func (app *app) newTemplateData(r *http.Request) (templateData, error) {
 		return templateData{}, fmt.Errorf("could not fetch country list for template: %w", err)
 	}
 
+	operators, err := app.operators.ListAll()
+	if err != nil {
+		return templateData{}, fmt.Errorf("could not fetch operator list for template: %w", err)
+	}
+
+	operatorTypes, err := app.operatorTypes.List()
+	if err != nil {
+		return templateData{}, fmt.Errorf(
+			"could not fetch operator type list for template: %w",
+			err,
+		)
+	}
+
+	user := models.AnonymousUser
+	if app.contextGetIsAuthenticated(r) {
+		user = app.contextGetUser(r)
+	}
+
 	waterBodies, err := app.waterBodies.List()
 	if err != nil {
 		return templateData{}, fmt.Errorf("could not fetch water body list for template: %w", err)
@@ -86,6 +105,9 @@ func (app *app) newTemplateData(r *http.Request) (templateData, error) {
 		Flash:           app.sessionManager.PopString(r.Context(), "flash"),
 		IsAuthenticated: app.isAuthenticated(r),
 		NoValidate:      os.Getenv("DIVESITE_NOVALIDATE") == "true",
+		Operators:       operators,
+		OperatorTypes:   operatorTypes,
+		User:            *user,
 		WasPosted:       r.Method == http.MethodPost,
 		WaterBodies:     waterBodies,
 		WaterTypes:      waterTypes,

@@ -43,11 +43,11 @@ func FormDecoderRegisterTimeLocationType(fd *form.Decoder) {
 		locationStr := vals[0]
 		location, err := time.LoadLocation(locationStr)
 
-		if err == nil {
-			return *location, nil
+		if err != nil {
+			msg := "failed to decode time location value '%s' from form: %w"
+			return time.Location{}, fmt.Errorf(msg, locationStr, err)
 		}
 
-		msg := "failed to decode time location value '%s' from form: %w"
-		return *location, fmt.Errorf(msg, locationStr, err)
+		return *location, nil
 	}, time.Location{})
 }

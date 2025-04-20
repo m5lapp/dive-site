@@ -244,7 +244,7 @@ type diveSiteForm struct {
 	MaxDepth            *float64        `form:"max_depth"`
 	Notes               string          `form:"notes"`
 	Rating              *int            `form:"rating"`
-	validator.Validator `                form:"-"`
+	validator.Validator `form:"-"`
 }
 
 func (ds *diveSiteForm) Validate() {
@@ -436,4 +436,146 @@ func (app *app) diveSiteGet(w http.ResponseWriter, r *http.Request) {
 	data.DiveSite = diveSite
 
 	app.render(w, r, http.StatusOK, "dive_site/view.tmpl", data)
+}
+
+type operatorForm struct {
+	Name                string `form:"name"`
+	OperatorTypeID      int    `form:"operator_type_id"`
+	Street              string `form:"street"`
+	Suburb              string `form:"suburb"`
+	State               string `form:"state"`
+	Postcode            string `form:"postcode"`
+	CountryID           int    `form:"country"`
+	WebsiteURL          string `form:"website_url"`
+	EmailAddress        string `form:"email_address"`
+	PhoneNumber         string `form:"phone_number"`
+	Comments            string `form:"comments"`
+	validator.Validator `       form:"-"`
+}
+
+func (app *app) operatorCreateGET(w http.ResponseWriter, r *http.Request) {
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data.Form = operatorForm{}
+	app.render(w, r, http.StatusOK, "operator/new.tmpl", data)
+}
+
+func (app *app) operatorCreatePOST(w http.ResponseWriter, r *http.Request) {
+	form := &operatorForm{}
+	err := app.decodePOSTForm(r, form)
+	if err != nil {
+		app.log.Error("Error whilst decoding operator form input", "error", err.Error())
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	maxCharsErrMsg := "This field cannot be more than %d characters long"
+
+	form.CheckField(validator.NotBlank(form.Name), "name", "This field cannot be blank")
+
+	form.CheckField(form.OperatorTypeID > 0, "operator_type_id", "This field must be selected")
+
+	form.CheckField(
+		validator.MaxChars(form.Street, 256),
+		"street",
+		fmt.Sprintf(maxCharsErrMsg, 256),
+	)
+
+	form.CheckField(
+		validator.MaxChars(form.Suburb, 256),
+		"suburb",
+		fmt.Sprintf(maxCharsErrMsg, 256),
+	)
+
+	form.CheckField(
+		validator.MaxChars(form.Street, 256),
+		"street",
+		fmt.Sprintf(maxCharsErrMsg, 256),
+	)
+
+	form.CheckField(
+		validator.MaxChars(form.Postcode, 16),
+		"postcode",
+		fmt.Sprintf(maxCharsErrMsg, 16),
+	)
+
+	form.CheckField(form.CountryID > 0, "country_id", "This field must be selected")
+
+	form.CheckField(
+		form.WebsiteURL == "" || validator.IsHTTPURL(form.WebsiteURL),
+		"website_url",
+		"This field must be a valid HTTP or HTTPS URL",
+	)
+	form.CheckField(
+		validator.MaxChars(form.WebsiteURL, 2048),
+		"website_url",
+		fmt.Sprintf(maxCharsErrMsg, 2048),
+	)
+
+	form.CheckField(
+		validator.MaxChars(form.EmailAddress, 254),
+		"email_address",
+		fmt.Sprintf(maxCharsErrMsg, 254),
+	)
+	form.CheckField(
+		form.EmailAddress == "" || validator.Matches(form.EmailAddress, validator.EmailRX),
+		"email_address",
+		"This field must be a valid email address",
+	)
+
+	form.CheckField(
+		validator.MaxChars(form.PhoneNumber, 32),
+		"phone_number",
+		fmt.Sprintf(maxCharsErrMsg, 32),
+	)
+
+	form.CheckField(
+		validator.MaxChars(form.Comments, 4096),
+		"comments",
+		fmt.Sprintf(maxCharsErrMsg, 4096),
+	)
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	if !form.Valid() {
+		data.Form = form
+		app.render(w, r, http.StatusUnprocessableEntity, "operator/new.tmpl", data)
+		return
+	}
+
+	_, err = app.operators.Insert(
+		app.contextGetUser(r).ID,
+		form.OperatorTypeID,
+		form.Name,
+		form.Street,
+		form.Suburb,
+		form.State,
+		form.Postcode,
+		form.CountryID,
+		form.WebsiteURL,
+		form.EmailAddress,
+		form.PhoneNumber,
+		form.Comments,
+	)
+	if err != nil {
+		if errors.Is(err, models.ErrDuplicateEmail) {
+			form.AddFieldError("email", "This operator already exists")
+			data.Form = form
+			app.render(w, r, http.StatusUnprocessableEntity, "operator/new.tmpl", data)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Dive operator added successfully.")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

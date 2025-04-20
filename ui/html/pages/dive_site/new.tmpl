@@ -60,7 +60,7 @@
         </div>
 
         <div class="col-sm">
-          <label class="form-label" for="id_timezone">Timezone *</label>
+          <label class="form-label" for="id_timezone">Time Zone *</label>
           <select {{template "form_field_common_attrs" "timezone"}}
                   class="{{template "bootstrap_form_select_class" .Form.FieldErrors.timezone}}">
             {{$tzStr := print $.Form.TimeZone}}

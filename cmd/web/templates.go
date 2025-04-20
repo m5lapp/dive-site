@@ -141,7 +141,10 @@ type templateData struct {
 	Form            any
 	IsAuthenticated bool
 	NoValidate      bool
+	Operators       []models.Operator
+	OperatorTypes   []models.OperatorType
 	PageData        models.PageData
+	User            models.User
 	WasPosted       bool
 	WaterBodies     []models.WaterBody
 	WaterTypes      []models.WaterType

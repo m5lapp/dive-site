@@ -23,6 +23,8 @@ type app struct {
 	templateCache  map[string]*template.Template
 	countries      models.CountryModelInterface
 	diveSites      models.DiveSiteModelInterface
+	operators      models.OperatorModelInterface
+	operatorTypes  models.OperatorTypeModelInterface
 	users          models.UserModelInterface
 	formDecoder    *form.Decoder
 	sessionManager *scs.SessionManager
@@ -83,6 +85,8 @@ func main() {
 		diveSites:      &models.DiveSiteModel{DB: db},
 		users:          &models.UserModel{DB: db},
 		formDecoder:    formDecoder,
+		operators:      &models.OperatorModel{DB: db},
+		operatorTypes:  &models.OperatorTypeModel{DB: db},
 		sessionManager: sessionManager,
 		waterBodies:    &models.WaterBodyModel{DB: db},
 		waterTypes:     &models.WaterTypeModel{DB: db},

@@ -69,19 +69,22 @@ func id(name string) string {
 }
 
 // displayName returns a field name for displaying to an end-user, defaulting to
-// the field's internal name with the first character upper-cased and
-// underscores replaces with spaces if displayName is empty. If required is
+// the field's internal name with the first character of each word upper-cased
+// and underscores replaced with spaces if displayName is empty. If required is
 // true, then an asterisk will be added to the end of the returned string.
 func displayName(displayName, name string, required bool) string {
 	if displayName == "" {
-		// Upper-case the first character of the internal field name.
-		r, size := utf8.DecodeRuneInString(name)
-		if r == utf8.RuneError {
-			displayName = name
-		} else {
-			displayName = string(unicode.ToUpper(r)) + name[size:]
+		// Upper-case the first character of each component of the field name.
+		nameParts := strings.Split(name, "_")
+
+		for i, part := range nameParts {
+			r, size := utf8.DecodeRuneInString(part)
+			if r != utf8.RuneError {
+				nameParts[i] = string(unicode.ToUpper(r)) + part[size:]
+			}
 		}
-		displayName = strings.ReplaceAll(displayName, "_", " ")
+
+		displayName = strings.Join(nameParts, " ")
 	}
 
 	if required {

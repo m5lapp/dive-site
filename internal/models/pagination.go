@@ -5,6 +5,9 @@ type ListFilters struct {
 	pageSize int
 }
 
+// NewListFilters returns a new ListFilters struct. The pageSize parameter is
+// the size of the page requested by the user; if it's outside of the allowed
+// range, then the defaultPageSize will be used instead.
 func NewListFilters(page, pageSize, defaultPageSize int) ListFilters {
 	if page < 1 || page > 10_000_000 {
 		page = 1

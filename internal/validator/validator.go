@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -73,4 +74,13 @@ func NumBetween[T float32 | float64 | int | uint | int8 | uint8 | int16 | uint16
 	value, minVal, maxVal T,
 ) bool {
 	return minVal <= value && value <= maxVal
+}
+
+func IsHTTPURL(value string) bool {
+	u, err := url.Parse(value)
+
+	validScheme := u.Scheme != "" && u.Host != ""
+	isHTTP := u.Scheme == "http" || u.Scheme == "https"
+
+	return err == nil && validScheme && isHTTP
 }
