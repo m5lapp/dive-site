@@ -108,7 +108,10 @@ func intRange(start, stop int) chan int {
 	return stream
 }
 
-func deref[T comparable](v *T) T {
+func deref[T comparable](v *T, nilVal T) T {
+	if v == nil {
+		return nilVal
+	}
 	return *v
 }
 
@@ -131,6 +134,9 @@ var functions = template.FuncMap{
 }
 
 type templateData struct {
+	Agencies        []models.Agency
+	Buddies         []models.Buddy
+	BuddyRoles      []models.BuddyRole
 	CSRFToken       string
 	CurrentYear     int
 	DarkMode        bool

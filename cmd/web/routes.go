@@ -35,6 +35,9 @@ func (app *app) routes() http.Handler {
 	mux.Handle("GET  /operator/add", protected.ThenFunc(app.operatorCreateGET))
 	mux.Handle("POST /operator/add", protected.ThenFunc(app.operatorCreatePOST))
 
+	mux.Handle("GET  /buddy/add", protected.ThenFunc(app.buddyCreateGET))
+	mux.Handle("POST /buddy/add", protected.ThenFunc(app.buddyCreatePOST))
+
 	standard := alice.New(app.recoverPanic, app.logRequest, commonHeaders)
 	return standard.Then(mux)
 }

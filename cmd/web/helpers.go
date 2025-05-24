@@ -64,6 +64,16 @@ func (app *app) isAuthenticated(r *http.Request) bool {
 }
 
 func (app *app) newTemplateData(r *http.Request) (templateData, error) {
+	agencies, err := app.agencies.List()
+	if err != nil {
+		return templateData{}, fmt.Errorf("could not fetch agency list for template: %w", err)
+	}
+
+	buddyRoles, err := app.buddyRoles.List()
+	if err != nil {
+		return templateData{}, fmt.Errorf("could not fetch buddy role list for template: %w", err)
+	}
+
 	countries, err := app.countries.List()
 	if err != nil {
 		return templateData{}, fmt.Errorf("could not fetch country list for template: %w", err)
@@ -99,6 +109,8 @@ func (app *app) newTemplateData(r *http.Request) (templateData, error) {
 
 	data := templateData{
 		CSRFToken:       nosurf.Token(r),
+		Agencies:        agencies,
+		BuddyRoles:      buddyRoles,
 		Countries:       countries,
 		CurrentYear:     time.Now().Year(),
 		DarkMode:        true,

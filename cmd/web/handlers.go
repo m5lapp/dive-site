@@ -579,3 +579,105 @@ func (app *app) operatorCreatePOST(w http.ResponseWriter, r *http.Request) {
 	app.sessionManager.Put(r.Context(), "flash", "Dive operator added successfully.")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
+
+type buddyForm struct {
+	Name                string `form:"name"`
+	EmailAddress        string `form:"email_address"`
+	PhoneNumber         string `form:"phone_number"`
+	AgencyID            *int   `form:"agency_id"`
+	AgencyMemberNum     string `form:"agency_member_num"`
+	Notes               string `form:"notes"`
+	validator.Validator `       form:"-"`
+}
+
+func (app *app) buddyCreateGET(w http.ResponseWriter, r *http.Request) {
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data.Form = buddyForm{}
+	app.render(w, r, http.StatusOK, "buddy/new.tmpl", data)
+}
+
+func (app *app) buddyCreatePOST(w http.ResponseWriter, r *http.Request) {
+	form := &buddyForm{}
+	err := app.decodePOSTForm(r, form)
+	if err != nil {
+		app.log.Error("Error whilst decoding buddy form input", "error", err.Error())
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	maxCharsErrMsg := "This field cannot be more than %d characters long"
+
+	form.CheckField(validator.NotBlank(form.Name), "name", "This field cannot be blank")
+	form.CheckField(
+		validator.MaxChars(form.Name, 256),
+		"name",
+		fmt.Sprintf(maxCharsErrMsg, 256),
+	)
+
+	form.CheckField(
+		validator.MaxChars(form.EmailAddress, 254),
+		"email_address",
+		fmt.Sprintf(maxCharsErrMsg, 254),
+	)
+	form.CheckField(
+		form.EmailAddress == "" || validator.Matches(form.EmailAddress, validator.EmailRX),
+		"email_address",
+		"This field must be a valid email address",
+	)
+
+	form.CheckField(
+		validator.MaxChars(form.PhoneNumber, 32),
+		"phone_number",
+		fmt.Sprintf(maxCharsErrMsg, 32),
+	)
+
+	if form.AgencyID != nil {
+		form.CheckField(*form.AgencyID > 0, "agency_id", "This field must be selected")
+	}
+
+	form.CheckField(
+		validator.MaxChars(form.AgencyMemberNum, 16),
+		"agency_member_num",
+		fmt.Sprintf(maxCharsErrMsg, 16),
+	)
+
+	form.CheckField(
+		validator.MaxChars(form.Notes, 4096),
+		"notes",
+		fmt.Sprintf(maxCharsErrMsg, 4096),
+	)
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	if !form.Valid() {
+		data.Form = form
+		app.render(w, r, http.StatusUnprocessableEntity, "buddy/new.tmpl", data)
+		return
+	}
+
+	_, err = app.buddies.Insert(
+		app.contextGetUser(r).ID,
+		form.Name,
+		form.EmailAddress,
+		form.PhoneNumber,
+		form.AgencyID,
+		form.AgencyMemberNum,
+		form.Notes,
+	)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Dive buddy added successfully.")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}

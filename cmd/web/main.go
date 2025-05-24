@@ -21,6 +21,9 @@ import (
 type app struct {
 	log            *slog.Logger
 	templateCache  map[string]*template.Template
+	agencies       models.AgencyModelInterface
+	buddies        models.BuddyModelInterface
+	buddyRoles     models.BuddyRoleModelInterface
 	countries      models.CountryModelInterface
 	diveSites      models.DiveSiteModelInterface
 	operators      models.OperatorModelInterface
@@ -81,6 +84,9 @@ func main() {
 	app := app{
 		log:            logger,
 		templateCache:  templateCache,
+		agencies:       &models.AgencyModel{DB: db},
+		buddies:        &models.BuddyModel{DB: db},
+		buddyRoles:     &models.BuddyRoleModel{DB: db},
 		countries:      &models.CountryModel{DB: db},
 		diveSites:      &models.DiveSiteModel{DB: db},
 		users:          &models.UserModel{DB: db},

@@ -1,0 +1,79 @@
+{{define "title"}}Add a new Dive Buddy{{end}}
+
+{{define "heading"}}Add a new Dive Buddy, Leader or Instructor{{end}}
+
+{{define "main"}}
+  <section>
+    {{template "form_non_field_errors" .}}
+
+    <p>
+        Add the details for a new dive buddy such to the system. A buddy can be
+        someone you dived with that fulfilled any role such as a divemaster, an
+        instructor or just a friend.
+    </p>
+
+    <h2>Main Details</h2>
+
+    <form method="post" action="/buddy/add"
+          class="{{template "bootstrap_form_class" .}}"
+          {{if .NoValidate}} novalidate{{end}}>
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+      <div class="row mb-4">
+        {{bsTextField "text" "name" "" .Form.Name "1" "256" true .Form.FieldErrors}}
+        {{bsTextField "email" "email_address" "" .Form.EmailAddress "0" "254" false .Form.FieldErrors}}
+        {{bsTextField "text" "phone_number" "" .Form.PhoneNumber "0" "32" false .Form.FieldErrors}}
+      </div>
+
+      <h2>Certification Agency</h2>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_agency_id">Certifying Agency</label>
+          <select {{template "form_field_common_attrs" "agency_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.agency_id}}">
+            <option value="">---------</option>
+            {{range .Agencies}}
+              <option value="{{.ID}}"
+                      {{with $.Form.AgencyID}}
+                        {{if eq .ID (derefInt $.Form.AgencyID 0)}}selected{{end}}
+                      {{end}}>
+                {{.FullName}} ({{.Acronym}})
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.agency_id}}
+            <div class="invalid-feedback" id="id_buddy_type_id_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        {{bsTextField "text" "agency_member_num" "Membership Number" .Form.AgencyMemberNum "0" "16" false .Form.FieldErrors}}
+      </div>
+
+      <h2>Additional Information</h2>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_notes">Notes</label>
+          <textarea {{template "form_field_common_attrs" "notes"}}
+                    maxlength="4096" rows="16"
+                    class="{{template "bootstrap_form_field_class" .Form.FieldErrors.notes}}">
+            {{- .Form.Notes -}}
+          </textarea>
+          {{with .Form.FieldErrors.notes}}
+            <div class="invalid-feedback" id="id_notes_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <button class="btn btn-primary me-2" type="submit">Add Dive Buddy</button>
+          <button class="btn btn-outline-danger" type="reset">Reset</button>
+        </div>
+      </div>
+
+    </form>
+  </section>
+{{end}}
+
