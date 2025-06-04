@@ -1,0 +1,119 @@
+{{define "title"}}Add a new Dive Trip{{end}}
+
+{{define "heading"}}Add a new Dive Trip{{end}}
+
+{{define "main"}}
+  <section>
+    {{template "form_non_field_errors" .}}
+
+    <p>
+        Add the details for a new dive trip or liveaboard to the system.
+    </p>
+
+    <h2>Main Details</h2>
+
+    <form method="post" action="/trip/add"
+          class="{{template "bootstrap_form_class" .}}"
+          {{if .NoValidate}} novalidate{{end}}>
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+      <div class="row mb-4">
+        {{bsTextField "text" "name" "" .Form.Name "1" "256" true .Form.FieldErrors}}
+        {{bsDateField "start_date" "" "1960-01-01" "now" "now" .Form.StartDate true false .Form.FieldErrors}}
+        {{bsDateField "end_date" "" "1960-01-01" "now" "now" .Form.EndDate true false .Form.FieldErrors}}
+      </div>
+
+      <div class="row mb-4">
+        {{bsTextField "text" "description" "" .Form.Description "0" "1024" false .Form.FieldErrors}}
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_agency_id">Trip Operator</label>
+          <select {{template "form_field_common_attrs" "operator_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.operator_id}}">
+            <option value="">---------</option>
+            {{range .Operators}}
+              <option value="{{.ID}}"
+                      {{$operatorID := .ID}}
+                      {{with $.Form.OperatorID}}
+                        {{if eq $operatorID (derefInt . 0)}}selected{{end}}
+                      {{end}}>
+                {{.String}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.operator_id}}
+            <div class="invalid-feedback" id="id_operator_id_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        <div class="col-sm">
+          <label class="form-label" for="id_rating">Rating</label>
+          <select {{template "form_field_common_attrs" "rating"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.rating}}">
+            <option value="">---------</option>
+            {{range $i := intRange 0 10}}
+              <option value="{{$i}}"
+                {{with $.Form.Rating}}{{if eq $i (derefInt . -1)}}selected{{end}}{{end}}>
+                {{$i}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.rating}}
+            <div class="invalid-feedback" id="id_rating_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        {{bsNumFieldF64Ptr "price" "" "0.0" "9999999999.99" "0.01" .Form.PriceAmount false .Form.FieldErrors}}
+
+        <div class="col-sm">
+          <label class="form-label" for="id_currency_id">Currency</label>
+          <select {{template "form_field_common_attrs" "currency_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.currency_id}}">
+            <option value="">---------</option>
+            {{range .Currencies}}
+              <option value="{{.ID}}"
+                      {{$currencyID := .ID}}
+                      {{with $.Form.CurrencyID}}
+                        {{if eq $currencyID (derefInt . 0)}}selected{{end}}
+                      {{end}}>
+                {{.Name}} ({{.ISOAlpha}})
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.currency_id}}
+            <div class="invalid-feedback" id="id_currency_id_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <h2>Additional Information</h2>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_notes">Notes</label>
+          <textarea {{template "form_field_common_attrs" "notes"}}
+                    maxlength="4096" rows="16"
+                    class="{{template "bootstrap_form_field_class" .Form.FieldErrors.notes}}">
+            {{- .Form.Notes -}}
+          </textarea>
+          {{with .Form.FieldErrors.notes}}
+            <div class="invalid-feedback" id="id_notes_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <button class="btn btn-primary me-2" type="submit">Add Dive Trip</button>
+          <button class="btn btn-outline-danger" type="reset">Reset</button>
+        </div>
+      </div>
+
+    </form>
+  </section>
+{{end}}
+

@@ -79,6 +79,11 @@ func (app *app) newTemplateData(r *http.Request) (templateData, error) {
 		return templateData{}, fmt.Errorf("could not fetch country list for template: %w", err)
 	}
 
+	currencies, err := app.currencies.List()
+	if err != nil {
+		return templateData{}, fmt.Errorf("could not fetch currency list for template: %w", err)
+	}
+
 	operators, err := app.operators.ListAll()
 	if err != nil {
 		return templateData{}, fmt.Errorf("could not fetch operator list for template: %w", err)
@@ -112,6 +117,7 @@ func (app *app) newTemplateData(r *http.Request) (templateData, error) {
 		Agencies:        agencies,
 		BuddyRoles:      buddyRoles,
 		Countries:       countries,
+		Currencies:      currencies,
 		CurrentYear:     time.Now().Year(),
 		DarkMode:        true,
 		Flash:           app.sessionManager.PopString(r.Context(), "flash"),

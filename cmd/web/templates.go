@@ -141,6 +141,7 @@ type templateData struct {
 	CurrentYear     int
 	DarkMode        bool
 	Countries       []models.Country
+	Currencies      []models.Currency
 	DiveSite        models.DiveSite
 	DiveSites       []models.DiveSite
 	Flash           string

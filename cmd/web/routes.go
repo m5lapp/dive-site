@@ -32,11 +32,14 @@ func (app *app) routes() http.Handler {
 	mux.Handle("GET  /log-book/dive-site", protected.ThenFunc(app.diveSiteList))
 	mux.Handle("GET  /log-book/dive-site/view/{id}", protected.ThenFunc(app.diveSiteGet))
 
+	mux.Handle("GET  /buddy/add", protected.ThenFunc(app.buddyCreateGET))
+	mux.Handle("POST /buddy/add", protected.ThenFunc(app.buddyCreatePOST))
+
 	mux.Handle("GET  /operator/add", protected.ThenFunc(app.operatorCreateGET))
 	mux.Handle("POST /operator/add", protected.ThenFunc(app.operatorCreatePOST))
 
-	mux.Handle("GET  /buddy/add", protected.ThenFunc(app.buddyCreateGET))
-	mux.Handle("POST /buddy/add", protected.ThenFunc(app.buddyCreatePOST))
+	mux.Handle("GET  /trip/add", protected.ThenFunc(app.tripCreateGET))
+	mux.Handle("POST /trip/add", protected.ThenFunc(app.tripCreatePOST))
 
 	standard := alice.New(app.recoverPanic, app.logRequest, commonHeaders)
 	return standard.Then(mux)

@@ -312,7 +312,7 @@ func (ds *diveSiteForm) Validate() {
 	if ds.Rating != nil {
 		ds.CheckField(
 			*ds.Rating >= 0 && *ds.Rating <= 10,
-			"max_depth",
+			"rating",
 			"This field must be between 0 and 10 inclusive",
 		)
 	}
@@ -679,5 +679,152 @@ func (app *app) buddyCreatePOST(w http.ResponseWriter, r *http.Request) {
 	}
 
 	app.sessionManager.Put(r.Context(), "flash", "Dive buddy added successfully.")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+type tripForm struct {
+	Name                string    `form:"name"`
+	StartDate           time.Time `form:"start_date"`
+	EndDate             time.Time `form:"end_date"`
+	Description         string    `form:"description"`
+	Rating              *int      `form:"rating"`
+	OperatorID          *int      `form:"operator_id"`
+	PriceAmount         *float64  `form:"price"`
+	CurrencyID          *int      `form:"currency_id"`
+	Notes               string    `form:"notes"`
+	validator.Validator `form:"-"`
+}
+
+func (app *app) tripCreateGET(w http.ResponseWriter, r *http.Request) {
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data.Form = tripForm{}
+	app.render(w, r, http.StatusOK, "trip/new.tmpl", data)
+}
+
+func (app *app) tripCreatePOST(w http.ResponseWriter, r *http.Request) {
+	form := &tripForm{}
+	err := app.decodePOSTForm(r, form)
+	if err != nil {
+		app.log.Error("Error whilst decoding trip form input", "error", err.Error())
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	maxCharsErrMsg := "This field cannot be more than %d characters long"
+
+	form.CheckField(validator.NotBlank(form.Name), "name", "This field cannot be blank")
+	form.CheckField(
+		validator.MaxChars(form.Name, 256),
+		"name",
+		fmt.Sprintf(maxCharsErrMsg, 256),
+	)
+
+	earliestDate := time.Date(1960, time.January, 1, 0, 0, 0, 0, time.UTC)
+	latestDate := time.Now().Add(365 * 24 * time.Hour)
+	dateErrorMsg := "This field must be between %s and %s"
+	form.CheckField(
+		validator.TimeBetween(form.StartDate, earliestDate, latestDate),
+		"start_date",
+		fmt.Sprintf(
+			dateErrorMsg,
+			earliestDate.Format(time.DateOnly),
+			latestDate.Format(time.DateOnly),
+		),
+	)
+	form.CheckField(
+		validator.TimeBetween(form.EndDate, earliestDate, latestDate),
+		"end_date",
+		fmt.Sprintf(
+			dateErrorMsg,
+			earliestDate.Format(time.DateOnly),
+			latestDate.Format(time.DateOnly),
+		),
+	)
+	if form.EndDate.Before(form.StartDate) {
+		form.AddNonFieldError("The trip start date must be before the end date")
+	}
+
+	form.CheckField(
+		validator.MaxChars(form.Description, 1024),
+		"description",
+		fmt.Sprintf(maxCharsErrMsg, 256),
+	)
+
+	if form.Rating != nil {
+		form.CheckField(
+			validator.NumBetween[int](*form.Rating, 0, 10),
+			"rating",
+			"This field must be between 0 and 10 inclusive",
+		)
+	}
+
+	if form.OperatorID != nil {
+		form.CheckField(*form.OperatorID > 0, "operator_id", "Select a valid operator")
+	}
+
+	if form.PriceAmount != nil {
+		form.CheckField(
+			validator.NumBetween[float64](*form.PriceAmount, 0.0, 9_999_999_999.999),
+			"price",
+			"This field must be between 0.0 and 9,999,999,999.99 inclusive",
+		)
+
+		if form.CurrencyID == nil {
+			form.AddFieldError("currency_id", "A currency must be selected for the price")
+		}
+	}
+
+	if form.CurrencyID != nil {
+		form.CheckField(*form.CurrencyID > 0, "currency_id", "Select a valid currency")
+
+		if form.PriceAmount == nil {
+			form.AddFieldError(
+				"price",
+				"A price must be entered for the currency",
+			)
+		}
+	}
+
+	form.CheckField(
+		validator.MaxChars(form.Notes, 4096),
+		"notes",
+		fmt.Sprintf(maxCharsErrMsg, 4096),
+	)
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	if !form.Valid() {
+		data.Form = form
+		app.render(w, r, http.StatusUnprocessableEntity, "trip/new.tmpl", data)
+		return
+	}
+
+	_, err = app.trips.Insert(
+		app.contextGetUser(r).ID,
+		form.Name,
+		form.StartDate,
+		form.EndDate,
+		form.Description,
+		form.Rating,
+		form.OperatorID,
+		form.PriceAmount,
+		form.CurrencyID,
+		form.Notes,
+	)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Dive trip added successfully.")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

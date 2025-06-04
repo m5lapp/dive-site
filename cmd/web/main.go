@@ -25,9 +25,11 @@ type app struct {
 	buddies        models.BuddyModelInterface
 	buddyRoles     models.BuddyRoleModelInterface
 	countries      models.CountryModelInterface
+	currencies     models.CurrencyModelInterface
 	diveSites      models.DiveSiteModelInterface
 	operators      models.OperatorModelInterface
 	operatorTypes  models.OperatorTypeModelInterface
+	trips          models.TripModelInterface
 	users          models.UserModelInterface
 	formDecoder    *form.Decoder
 	sessionManager *scs.SessionManager
@@ -88,12 +90,14 @@ func main() {
 		buddies:        &models.BuddyModel{DB: db},
 		buddyRoles:     &models.BuddyRoleModel{DB: db},
 		countries:      &models.CountryModel{DB: db},
+		currencies:     &models.CurrencyModel{DB: db},
 		diveSites:      &models.DiveSiteModel{DB: db},
 		users:          &models.UserModel{DB: db},
 		formDecoder:    formDecoder,
 		operators:      &models.OperatorModel{DB: db},
 		operatorTypes:  &models.OperatorTypeModel{DB: db},
 		sessionManager: sessionManager,
+		trips:          &models.TripModel{DB: db},
 		waterBodies:    &models.WaterBodyModel{DB: db},
 		waterTypes:     &models.WaterTypeModel{DB: db},
 	}

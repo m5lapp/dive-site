@@ -35,15 +35,16 @@
             <option value="">---------</option>
             {{range .Agencies}}
               <option value="{{.ID}}"
+                      {{$agencyID := .ID}}
                       {{with $.Form.AgencyID}}
-                        {{if eq .ID (derefInt $.Form.AgencyID 0)}}selected{{end}}
+                        {{if eq $agencyID (derefInt . 0)}}selected{{end}}
                       {{end}}>
                 {{.FullName}} ({{.Acronym}})
               </option>
             {{end}}
           </select>
           {{with .Form.FieldErrors.agency_id}}
-            <div class="invalid-feedback" id="id_buddy_type_id_feedback">{{.}}</div>
+            <div class="invalid-feedback" id="id_agency_id_feedback">{{.}}</div>
           {{end}}
         </div>
 

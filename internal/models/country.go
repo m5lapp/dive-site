@@ -6,12 +6,12 @@ import (
 	"time"
 )
 
-type CountryModel struct {
+type CurrencyModel struct {
 	DB *sql.DB
 }
 
-type CountryModelInterface interface {
-	List() ([]Country, error)
+type CurrencyModelInterface interface {
+	List() ([]Currency, error)
 }
 
 type Currency struct {
@@ -20,6 +20,90 @@ type Currency struct {
 	ISONumber int
 	Name      string
 	Exponent  int
+}
+
+// nullCurrency represents a Currency returned from a database that may or may
+// not be null.
+type nullCurrency struct {
+	ID        *int
+	ISOAlpha  *string
+	ISONumber *int
+	Name      *string
+	Exponent  *int
+}
+
+func (nc nullCurrency) ToCurrency() *Currency {
+	if nc.ID == nil {
+		return nil
+	}
+
+	return &Currency{
+		ID:        *nc.ID,
+		ISOAlpha:  *nc.Name,
+		ISONumber: *nc.ISONumber,
+		Name:      *nc.Name,
+		Exponent:  *nc.Exponent,
+	}
+}
+
+// currencyList stores a static, cached slice of Currency data so that
+// successive requests can bypass the database call.
+var currencyList []Currency
+
+var currencyListQuery string = `
+     select cu.id, cu.iso_alpha, cu.iso_number, cu.name, cu.exponent
+       from currencies cu
+   order by cu.name
+`
+
+func (m *CurrencyModel) List() ([]Currency, error) {
+	// If the list of currencies has already been populated, then use it.
+	if len(currencyList) != 0 {
+		return currencyList, nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, currencyListQuery)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var records []Currency
+	for rows.Next() {
+		var record Currency
+		err := rows.Scan(
+			&record.ID,
+			&record.ISOAlpha,
+			&record.ISONumber,
+			&record.Name,
+			&record.Exponent,
+		)
+		if err != nil {
+			return nil, err
+		}
+		records = append(records, record)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the response for faster future calls.
+	currencyList = records
+
+	return records, nil
+}
+
+type CountryModel struct {
+	DB *sql.DB
+}
+
+type CountryModelInterface interface {
+	List() ([]Country, error)
 }
 
 type Country struct {
@@ -31,6 +115,36 @@ type Country struct {
 	DialingCode string
 	Capital     string
 	Currency    Currency
+}
+
+// nullCountry represents a Country returned from a database that may or may
+// not be null.
+type nullCountry struct {
+	ID          *int
+	Name        *string
+	ISONumber   *int
+	ISO2Code    *string
+	ISO3Code    *string
+	DialingCode *string
+	Capital     *string
+	Currency    nullCurrency
+}
+
+func (nc nullCountry) ToCountry() *Country {
+	if nc.ID == nil || nc.Currency.ID == nil {
+		return nil
+	}
+
+	return &Country{
+		ID:          *nc.ID,
+		Name:        *nc.Name,
+		ISONumber:   *nc.ISONumber,
+		ISO2Code:    *nc.ISO2Code,
+		ISO3Code:    *nc.ISO3Code,
+		DialingCode: *nc.DialingCode,
+		Capital:     *nc.Capital,
+		Currency:    *nc.Currency.ToCurrency(),
+	}
 }
 
 // countryList stores a static, cached slice of Country data so that successive

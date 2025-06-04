@@ -13,6 +13,26 @@ type OperatorType struct {
 	Description string
 }
 
+// nullOperatorType represents an OperatorType returned from a database that may
+// or may not be null.
+type nullOperatorType struct {
+	ID          *int
+	Name        *string
+	Description *string
+}
+
+func (no nullOperatorType) ToOperatorType() *OperatorType {
+	if no.ID == nil {
+		return nil
+	}
+
+	return &OperatorType{
+		ID:          *no.ID,
+		Name:        *no.Name,
+		Description: *no.Description,
+	}
+}
+
 type Operator struct {
 	ID           int
 	Created      time.Time
@@ -29,6 +49,58 @@ type Operator struct {
 	EmailAddress string
 	PhoneNumber  string
 	Comments     string
+}
+
+func (op *Operator) String() string {
+	if op.Suburb == "" {
+		return fmt.Sprintf("%s, %s", op.Name, op.Country.ISO2Code)
+	}
+
+	return fmt.Sprintf("%s, %s, %s", op.Name, op.Suburb, op.Country.ISO2Code)
+}
+
+// nullOperator represents an Operator returned from a database that may or may
+// not be null.
+type nullOperator struct {
+	ID           *int
+	Created      *time.Time
+	Updated      *time.Time
+	OwnerID      *int
+	OperatorType nullOperatorType
+	Name         *string
+	Street       *string
+	Suburb       *string
+	State        *string
+	Postcode     *string
+	Country      nullCountry
+	WebsiteURL   *string
+	EmailAddress *string
+	PhoneNumber  *string
+	Comments     *string
+}
+
+func (no nullOperator) ToOperator() *Operator {
+	if no.ID == nil {
+		return nil
+	}
+
+	return &Operator{
+		ID:           *no.ID,
+		Created:      *no.Updated,
+		Updated:      *no.Created,
+		OwnerID:      *no.OwnerID,
+		OperatorType: *no.OperatorType.ToOperatorType(),
+		Name:         *no.Name,
+		Street:       *no.State,
+		Suburb:       *no.Suburb,
+		State:        *no.State,
+		Postcode:     *no.Postcode,
+		Country:      *no.Country.ToCountry(),
+		WebsiteURL:   *no.WebsiteURL,
+		EmailAddress: *no.EmailAddress,
+		PhoneNumber:  *no.PhoneNumber,
+		Comments:     *no.Comments,
+	}
 }
 
 type OperatorModelInterface interface {
