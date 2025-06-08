@@ -135,6 +135,7 @@ var functions = template.FuncMap{
 
 type templateData struct {
 	Agencies        []models.Agency
+	AgencyCourses   []models.AgencyCourse
 	Buddies         []models.Buddy
 	BuddyRoles      []models.BuddyRole
 	CSRFToken       string

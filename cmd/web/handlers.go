@@ -636,7 +636,11 @@ func (app *app) buddyCreatePOST(w http.ResponseWriter, r *http.Request) {
 		fmt.Sprintf(maxCharsErrMsg, 32),
 	)
 
-	if form.AgencyID != nil {
+	if form.AgencyID == nil {
+		if form.AgencyMemberNum != "" {
+			form.AddNonFieldError("Please choose an agency for the agency membership number")
+		}
+	} else {
 		form.CheckField(*form.AgencyID > 0, "agency_id", "This field must be selected")
 	}
 
@@ -826,5 +830,141 @@ func (app *app) tripCreatePOST(w http.ResponseWriter, r *http.Request) {
 	}
 
 	app.sessionManager.Put(r.Context(), "flash", "Dive trip added successfully.")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+type certificationForm struct {
+	CourseID            int       `form:"course_id"`
+	StartDate           time.Time `form:"start_date"`
+	EndDate             time.Time `form:"end_date"`
+	OperatorID          int       `form:"operator_id"`
+	InstructorID        int       `form:"instructor_id"`
+	PriceAmount         *float64  `form:"price"`
+	CurrencyID          *int      `form:"currency_id"`
+	Rating              *int      `form:"rating"`
+	Notes               string    `form:"notes"`
+	validator.Validator `form:"-"`
+}
+
+func (app *app) certificationCreateGET(w http.ResponseWriter, r *http.Request) {
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data.Form = certificationForm{}
+	app.render(w, r, http.StatusOK, "certification/new.tmpl", data)
+}
+
+func (app *app) certificationCreatePOST(w http.ResponseWriter, r *http.Request) {
+	form := &certificationForm{}
+	err := app.decodePOSTForm(r, form)
+	if err != nil {
+		app.log.Error("Error whilst decoding certification form input", "error", err.Error())
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	maxCharsErrMsg := "This field cannot be more than %d characters long"
+
+	form.CheckField(form.CourseID > 0, "course_id", "Select a valid course")
+
+	earliestDate := time.Date(1960, time.January, 1, 0, 0, 0, 0, time.UTC)
+	latestDate := time.Now().Add(365 * 24 * time.Hour)
+	dateErrorMsg := "This field must be between %s and %s"
+	form.CheckField(
+		validator.TimeBetween(form.StartDate, earliestDate, latestDate),
+		"start_date",
+		fmt.Sprintf(
+			dateErrorMsg,
+			earliestDate.Format(time.DateOnly),
+			latestDate.Format(time.DateOnly),
+		),
+	)
+	form.CheckField(
+		validator.TimeBetween(form.EndDate, earliestDate, latestDate),
+		"end_date",
+		fmt.Sprintf(
+			dateErrorMsg,
+			earliestDate.Format(time.DateOnly),
+			latestDate.Format(time.DateOnly),
+		),
+	)
+	if form.EndDate.Before(form.StartDate) {
+		form.AddNonFieldError("The certification start date must be before the end date")
+	}
+
+	form.CheckField(form.OperatorID > 0, "operator_id", "Select a valid operator")
+
+	form.CheckField(form.InstructorID > 0, "instructor_id", "Select a valid instructor")
+
+	if form.PriceAmount != nil {
+		form.CheckField(
+			validator.NumBetween[float64](*form.PriceAmount, 0.0, 9_999_999_999.999),
+			"price",
+			"This field must be between 0.0 and 9,999,999,999.99 inclusive",
+		)
+
+		if form.CurrencyID == nil {
+			form.AddFieldError("currency_id", "A currency must be selected for the price")
+		}
+	}
+
+	if form.CurrencyID != nil {
+		form.CheckField(*form.CurrencyID > 0, "currency_id", "Select a valid currency")
+
+		if form.PriceAmount == nil {
+			form.AddFieldError(
+				"price",
+				"A price must be entered for the currency",
+			)
+		}
+	}
+
+	if form.Rating != nil {
+		form.CheckField(
+			validator.NumBetween[int](*form.Rating, 0, 10),
+			"rating",
+			"This field must be between 0 and 10 inclusive",
+		)
+	}
+
+	form.CheckField(
+		validator.MaxChars(form.Notes, 4096),
+		"notes",
+		fmt.Sprintf(maxCharsErrMsg, 4096),
+	)
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	if !form.Valid() {
+		data.Form = form
+		app.render(w, r, http.StatusUnprocessableEntity, "certification/new.tmpl", data)
+		return
+	}
+
+	_, err = app.certifications.Insert(
+		app.contextGetUser(r).ID,
+		form.CourseID,
+		form.StartDate,
+		form.EndDate,
+		form.OperatorID,
+		form.InstructorID,
+		form.PriceAmount,
+		form.CurrencyID,
+		form.Rating,
+		form.Notes,
+	)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	app.sessionManager.Put(r.Context(), "flash", "Dive certification added successfully.")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

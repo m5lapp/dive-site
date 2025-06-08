@@ -143,9 +143,21 @@ func BSBoolField(
 func strToTime(value string) (time.Time, error) {
 	if value == "" {
 		return time.Time{}, nil
-	} else if value == "now" {
+	}
+
+	if value == "now" {
 		return time.Now(), nil
-	} else if len(value) == 10 {
+	}
+
+	if strings.HasPrefix(value, "now") {
+		duration, err := time.ParseDuration(value[3:])
+		if err != nil {
+			return time.Time{}, err
+		}
+		return time.Now().Add(duration), nil
+	}
+
+	if len(value) == 10 {
 		return time.Parse(time.DateOnly, value)
 	}
 

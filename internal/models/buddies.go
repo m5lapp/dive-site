@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -19,6 +20,21 @@ type Buddy struct {
 	Agency          *Agency
 	AgencyMemberNum string
 	Notes           string
+}
+
+func (bu Buddy) String() string {
+	var str strings.Builder
+	str.WriteString(bu.Name)
+
+	if bu.Agency != nil {
+		str.WriteString(" (" + bu.Agency.Acronym)
+		if bu.AgencyMemberNum != "" {
+			str.WriteString("#" + bu.AgencyMemberNum)
+		}
+		str.WriteString(")")
+	}
+
+	return str.String()
 }
 
 type BuddyModelInterface interface {
@@ -39,7 +55,7 @@ var buddySelectQuery string = `
     select count(*) over(),
            bu.id, bu.version, bu.created_at, bu.updated_at, bu.owner_id,
            bu.name, bu.email, bu.phone_number,
-           bu.agency_id, ag.common_name, ag.full_name, ag.acronym, ag.url
+           bu.agency_id, ag.common_name, ag.full_name, ag.acronym, ag.url,
            bu.agency_member_num, bu.notes
       from buddies bu
  left join agencies ag on bu.agency_id = ag.id

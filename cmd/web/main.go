@@ -22,8 +22,10 @@ type app struct {
 	log            *slog.Logger
 	templateCache  map[string]*template.Template
 	agencies       models.AgencyModelInterface
+	agencyCourses  models.AgencyCourseModelInterface
 	buddies        models.BuddyModelInterface
 	buddyRoles     models.BuddyRoleModelInterface
+	certifications models.CertificationModelInterface
 	countries      models.CountryModelInterface
 	currencies     models.CurrencyModelInterface
 	diveSites      models.DiveSiteModelInterface
@@ -87,17 +89,19 @@ func main() {
 		log:            logger,
 		templateCache:  templateCache,
 		agencies:       &models.AgencyModel{DB: db},
+		agencyCourses:  &models.AgencyCourseModel{DB: db},
 		buddies:        &models.BuddyModel{DB: db},
 		buddyRoles:     &models.BuddyRoleModel{DB: db},
+		certifications: &models.CertificationModel{DB: db},
 		countries:      &models.CountryModel{DB: db},
 		currencies:     &models.CurrencyModel{DB: db},
 		diveSites:      &models.DiveSiteModel{DB: db},
-		users:          &models.UserModel{DB: db},
 		formDecoder:    formDecoder,
 		operators:      &models.OperatorModel{DB: db},
 		operatorTypes:  &models.OperatorTypeModel{DB: db},
 		sessionManager: sessionManager,
 		trips:          &models.TripModel{DB: db},
+		users:          &models.UserModel{DB: db},
 		waterBodies:    &models.WaterBodyModel{DB: db},
 		waterTypes:     &models.WaterTypeModel{DB: db},
 	}

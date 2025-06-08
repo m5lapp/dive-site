@@ -1,38 +1,68 @@
-{{define "title"}}Add a new Dive Trip{{end}}
+{{define "title"}}Add a new Dive Certification{{end}}
 
-{{define "heading"}}Add a new Dive Trip{{end}}
+{{define "heading"}}Add a new Dive Certification{{end}}
 
 {{define "main"}}
   <section>
     {{template "form_non_field_errors" .}}
 
-    <p>
-        Add the details for a new dive trip or liveaboard to the system.
-    </p>
+    <p>Add the details for a dive certification you have achieved.</p>
 
     <h2>Main Details</h2>
 
-    <form method="post" action="/trip/add"
+    <form method="post" action="/certification/add"
           class="{{template "bootstrap_form_class" .}}"
           {{if .NoValidate}} novalidate{{end}}>
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
       <div class="row mb-4">
-        {{bsTextField "text" "name" "" .Form.Name "1" "256" true .Form.FieldErrors}}
-        {{bsDateField "start_date" "" "1960-01-01" "now+8760h" "now" .Form.StartDate true false .Form.FieldErrors}}
-        {{bsDateField "end_date" "" "1960-01-01" "now+8760h" "now+168h" .Form.EndDate true false .Form.FieldErrors}}
+        <div class="col-sm">
+          <label class="form-label" for="id_course_id">Course *</label>
+          <select {{template "form_field_common_attrs" "course_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.course_id}}">
+            {{range .AgencyCourses}}
+              <option value="{{.ID}}"
+                      {{$courseID := .ID}}
+                      {{with $.Form.CourseID}}
+                        {{if eq $courseID (derefInt . 0)}}selected{{end}}
+                      {{end}}>
+                {{.String}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.course_id}}
+            <div class="invalid-feedback" id="id_course_id_feedback">{{.}}</div>
+          {{end}}
+        </div>
       </div>
 
       <div class="row mb-4">
-        {{bsTextField "text" "description" "" .Form.Description "0" "1024" false .Form.FieldErrors}}
+        {{bsDateField "start_date" "" "1960-01-01" "now+8760h" "now" .Form.StartDate true false .Form.FieldErrors}}
+        {{bsDateField "end_date" "" "1960-01-01" "now+8760h" "now+168h" .Form.EndDate true false .Form.FieldErrors}}
+
+        <div class="col-sm">
+          <label class="form-label" for="id_rating">Rating</label>
+          <select {{template "form_field_common_attrs" "rating"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.rating}}">
+            <option value="">---------</option>
+            {{range $i := intRange 0 10}}
+              <option value="{{$i}}"
+                {{with $.Form.Rating}}{{if eq $i (derefInt . -1)}}selected{{end}}{{end}}>
+                {{$i}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.rating}}
+            <div class="invalid-feedback" id="id_rating_feedback">{{.}}</div>
+          {{end}}
+        </div>
       </div>
 
       <div class="row mb-4">
         <div class="col-sm">
-          <label class="form-label" for="id_operator_id">Trip Operator</label>
+          <label class="form-label" for="id_operator_id">Operator *</label>
           <select {{template "form_field_common_attrs" "operator_id"}}
                   class="{{template "bootstrap_form_select_class" .Form.FieldErrors.operator_id}}">
-            <option value="">---------</option>
             {{range .Operators}}
               <option value="{{.ID}}"
                       {{$operatorID := .ID}}
@@ -49,19 +79,18 @@
         </div>
 
         <div class="col-sm">
-          <label class="form-label" for="id_rating">Rating</label>
-          <select {{template "form_field_common_attrs" "rating"}}
-                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.rating}}">
-            <option value="">---------</option>
-            {{range $i := intRange 0 10}}
-              <option value="{{$i}}"
-                {{with $.Form.Rating}}{{if eq $i (derefInt . -1)}}selected{{end}}{{end}}>
-                {{$i}}
+          <label class="form-label" for="id_instructor_id">Instructor *</label>
+          <select {{template "form_field_common_attrs" "instructor_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.instructor_id}}">
+            {{range .Buddies}}
+              <option value="{{.ID}}"
+                        {{if eq .ID $.Form.InstructorID}}selected{{end}}>
+                {{.String}}
               </option>
             {{end}}
           </select>
-          {{with .Form.FieldErrors.rating}}
-            <div class="invalid-feedback" id="id_rating_feedback">{{.}}</div>
+          {{with .Form.FieldErrors.instructor_id}}
+            <div class="invalid-feedback" id="id_instructor_id_feedback">{{.}}</div>
           {{end}}
         </div>
       </div>
@@ -108,7 +137,7 @@
 
       <div class="row mb-4">
         <div class="col-sm">
-          <button class="btn btn-primary me-2" type="submit">Add Dive Trip</button>
+          <button class="btn btn-primary me-2" type="submit">Add Dive Certification</button>
           <button class="btn btn-outline-danger" type="reset">Reset</button>
         </div>
       </div>

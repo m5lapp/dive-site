@@ -64,9 +64,19 @@ func (app *app) isAuthenticated(r *http.Request) bool {
 }
 
 func (app *app) newTemplateData(r *http.Request) (templateData, error) {
+	user := models.AnonymousUser
+	if app.contextGetIsAuthenticated(r) {
+		user = app.contextGetUser(r)
+	}
+
 	agencies, err := app.agencies.List()
 	if err != nil {
 		return templateData{}, fmt.Errorf("could not fetch agency list for template: %w", err)
+	}
+
+	buddies, err := app.buddies.ListAll(user.ID)
+	if err != nil {
+		return templateData{}, fmt.Errorf("could not fetch buddy list for template: %w", err)
 	}
 
 	buddyRoles, err := app.buddyRoles.List()
@@ -77,6 +87,14 @@ func (app *app) newTemplateData(r *http.Request) (templateData, error) {
 	countries, err := app.countries.List()
 	if err != nil {
 		return templateData{}, fmt.Errorf("could not fetch country list for template: %w", err)
+	}
+
+	agencyCourses, err := app.agencyCourses.List()
+	if err != nil {
+		return templateData{}, fmt.Errorf(
+			"could not fetch agency course list for template: %w",
+			err,
+		)
 	}
 
 	currencies, err := app.currencies.List()
@@ -97,11 +115,6 @@ func (app *app) newTemplateData(r *http.Request) (templateData, error) {
 		)
 	}
 
-	user := models.AnonymousUser
-	if app.contextGetIsAuthenticated(r) {
-		user = app.contextGetUser(r)
-	}
-
 	waterBodies, err := app.waterBodies.List()
 	if err != nil {
 		return templateData{}, fmt.Errorf("could not fetch water body list for template: %w", err)
@@ -115,6 +128,8 @@ func (app *app) newTemplateData(r *http.Request) (templateData, error) {
 	data := templateData{
 		CSRFToken:       nosurf.Token(r),
 		Agencies:        agencies,
+		AgencyCourses:   agencyCourses,
+		Buddies:         buddies,
 		BuddyRoles:      buddyRoles,
 		Countries:       countries,
 		Currencies:      currencies,
