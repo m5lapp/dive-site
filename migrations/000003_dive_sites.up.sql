@@ -1,33 +1,33 @@
 create table if not exists water_types (
-    id          integer      primary key generated always as identity,
+    id          smallint     primary key generated always as identity,
+    sort        smallint     not null unique,
+    is_default  boolean      not null default false,
     name        varchar(32)  not null unique,
-    description varchar(256) not null default '',
-    density     numeric(4,3) not null
+    description varchar(256) not null
 );
 
---------------------------------------------------------------------------------
-
-insert into water_types (name, description, density) values
-    ('Fresh Water', 'Water with low concentrations of dissolved salts and other dissolved solids', 1.000),
-    ('Salt Water', 'Water from a sea or ocean', 1.025);
+insert into water_types (sort, is_default, name, description) values
+    (10, false, 'Fresh Water', 'Water with low concentrations of dissolved salts and other dissolved solids'),
+    (20, true,  'Salt Water', 'Water from a sea or ocean');
 
 --------------------------------------------------------------------------------
 
 create table if not exists water_bodies (
-    id          integer      primary key generated always as identity,
+    id          smallint     primary key generated always as identity,
+    sort        smallint     not null unique,
+    is_default  boolean      not null default false,
     name        varchar(32)  not null unique,
-    description varchar(256) not null default ''
+    description varchar(256) not null
 );
 
---------------------------------------------------------------------------------
-
-insert into water_bodies (name, description) values
-    ('Artificial Lake', 'A man-made lake'),
-    ('Harbour', 'An artificial or naturally occurring body of water where ships are stored or may shelter from the ocean''s weather and currents'),
-    ('Lake', 'A relatively large body of water contained on a body of land'),
-    ('Ocean', 'A major body of salty water'),
-    ('River', 'A natural waterway that flows from higher ground to lower ground'),
-    ('Quarry', 'A dive in an old quarry');
+insert into water_bodies (sort, is_default, name, description) values
+    (10, false, 'Artificial Lake', 'A man-made lake'),
+    (20, false, 'Harbour', 'An artificial or naturally occurring body of water where ships are stored or may shelter from the ocean''s weather and currents'),
+    (30, false, 'Lake', 'A relatively large body of water contained on a body of land'),
+    (40, false, 'Ocean', 'An immense, continuous expanse of salt water with continents acting as islands within it'),
+    (50, false, 'River', 'A natural waterway that flows from higher ground to lower ground'),
+    (40, false, 'Sea', 'A large body of saltwater that partially borders a landmass'),
+    (60, false, 'Quarry', 'A dive in an old quarry');
 
 --------------------------------------------------------------------------------
 
@@ -53,6 +53,10 @@ create table if not exists dive_sites (
     rating        smallint,
     constraint dive_site_rating_check check ((rating >= 0))
 );
+
+create trigger update_updated_at_timestamp
+before update on dive_sites
+for each row execute function update_updated_at_timestamp();
 
 create index if not exists dive_site_name_idx
     on countries using gin (to_tsvector('simple', name));

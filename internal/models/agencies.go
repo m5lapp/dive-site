@@ -19,9 +19,9 @@ type Agency struct {
 	URL        string
 }
 
-// nullAgency represents an Agency returned from a database that may or may not
-// be null.
-type nullAgency struct {
+// nullableAgency represents an Agency returned from a database that may or may
+// not be null.
+type nullableAgency struct {
 	ID         *int
 	CommonName *string
 	FullName   *string
@@ -33,7 +33,7 @@ type AgencyModel struct {
 	DB *sql.DB
 }
 
-func (na nullAgency) ToAgency() *Agency {
+func (na nullableAgency) ToStruct() *Agency {
 	if na.ID == nil {
 		return nil
 	}
@@ -118,6 +118,32 @@ type AgencyCourse struct {
 
 func (ac AgencyCourse) String() string {
 	return fmt.Sprintf("%s - %s", ac.Agency.CommonName, ac.Name)
+}
+
+type nullableAgencyCourse struct {
+	ID                *int
+	Agency            nullableAgency
+	Name              *string
+	URL               *string
+	IsSpecialtyCourse *bool
+	IsTechCourse      *bool
+	IsProCourse       *bool
+}
+
+func (na nullableAgencyCourse) ToStruct() *AgencyCourse {
+	if na.ID == nil {
+		return nil
+	}
+
+	return &AgencyCourse{
+		ID:                *na.ID,
+		Agency:            *na.Agency.ToStruct(),
+		Name:              *na.Name,
+		URL:               *na.URL,
+		IsSpecialtyCourse: *na.IsSpecialtyCourse,
+		IsTechCourse:      *na.IsTechCourse,
+		IsProCourse:       *na.IsProCourse,
+	}
 }
 
 // agencyCourseList stores a static, cached slice of agency data so that

@@ -968,3 +968,135 @@ func (app *app) certificationCreatePOST(w http.ResponseWriter, r *http.Request) 
 	app.sessionManager.Put(r.Context(), "flash", "Dive certification added successfully.")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
+
+type diveForm struct {
+	Number              int       `form:"number"`
+	Activity            string    `form:"activity"`
+	DiveSiteID          int       `form:"dive_site_id"`
+	OperatorID          *int      `form:"operator_id"`
+	PriceAmount         *float64  `form:"price_amount"`
+	CurrencyID          *int      `form:"currency_id"`
+	TripID              *int      `form:"trip_id"`
+	CertificationID     *int      `form:"certification_id"`
+	DateTimeIn          time.Time `form:"date_time_in"`
+	MaxDepth            float64   `form:"max_depth"`
+	AvgDepth            *float64  `form:"avg_depth"`
+	BottomTime          int       `form:"bottom_time"`
+	SafetyStop          *int      `form:"safety_stop"`
+	WaterTemp           *int      `form:"water_temp"`
+	AirTemp             *int      `form:"air_temp"`
+	Visibility          *float64  `form:"visibility"`
+	CurrentID           *int      `form:"current_id"`
+	WavesID             *int      `form:"waves_id"`
+	BuddyID             *int      `form:"buddy_id"`
+	BuddyRoleID         *int      `form:"buddy_role_id"`
+	Weight              *float64  `form:"weight"`
+	WeightNotes         string    `form:"weight_notes"`
+	EquipmentIDs        []int     `form:"equipment_ids"`
+	EquipmentNotes      string    `form:"equipment_notes"`
+	TankConfigurationID int       `form:"tank_configuration_id"`
+	TankMaterialID      int       `form:"tank_material_id"`
+	TankVolume          float64   `form:"tank_volume"`
+	GasMixID            int       `form:"gas_mix_id"`
+	FO2                 float64   `form:"fo2"`
+	PressureIn          *int      `form:"pressure_in"`
+	PressureOut         *int      `form:"pressure_out"`
+	GasMixNotes         string    `form:"gas_mix_notes"`
+	EntryPointID        int       `form:"entry_point_id"`
+	Rating              *int      `form:"rating"`
+	PropertyIDs         []int     `form:"property_ids"`
+	Notes               string    `form:"notes"`
+	validator.Validator `          form:"-"`
+}
+
+func (app *app) addStaticdataToDiveForm(r *http.Request, data *templateData) error {
+	user := models.AnonymousUser
+	if app.contextGetIsAuthenticated(r) {
+		user = app.contextGetUser(r)
+	}
+
+	certifications, err := app.certifications.ListAll(user.ID)
+	if err != nil {
+		return fmt.Errorf("could not fetch certifications list: %w", err)
+	}
+	data.Certifications = certifications
+
+	currents, err := app.currents.List(false)
+	if err != nil {
+		return fmt.Errorf("could not fetch currents list: %w", err)
+	}
+	data.Currents = currents
+
+	diveSites, err := app.diveSites.ListAll()
+	if err != nil {
+		return fmt.Errorf("could not fetch dive sites list: %w", err)
+	}
+	data.DiveSites = diveSites
+
+	diveProperties, err := app.diveProperties.List(true)
+	if err != nil {
+		return fmt.Errorf("could not fetch dive properties list: %w", err)
+	}
+	data.DiveProperties = diveProperties
+
+	entryPoints, err := app.entryPoints.List(false)
+	if err != nil {
+		return fmt.Errorf("could not fetch entry points list: %w", err)
+	}
+	data.EntryPoints = entryPoints
+
+	equipment, err := app.equipment.List(false)
+	if err != nil {
+		return fmt.Errorf("could not fetch equipment list: %w", err)
+	}
+	data.Equipment = equipment
+
+	gasMixes, err := app.gasMixes.List(false)
+	if err != nil {
+		return fmt.Errorf("could not fetch gas mixes list: %w", err)
+	}
+	data.GasMixes = gasMixes
+
+	tankConfigurations, err := app.tankConfigurations.List(false)
+	if err != nil {
+		return fmt.Errorf("could not fetch tank configurations list: %w", err)
+	}
+	data.TankConfigurations = tankConfigurations
+
+	tankMaterials, err := app.tankMaterials.List(false)
+	if err != nil {
+		return fmt.Errorf("could not fetch tank materials list: %w", err)
+	}
+	data.TankMaterials = tankMaterials
+
+	trips, err := app.trips.ListAll(user.ID)
+	if err != nil {
+		return fmt.Errorf("could not fetch trips list: %w", err)
+	}
+	data.Trips = trips
+
+	waves, err := app.waves.List(false)
+	if err != nil {
+		return fmt.Errorf("could not fetch waves list: %w", err)
+	}
+	data.Waves = waves
+
+	return nil
+}
+
+func (app *app) diveCreateGET(w http.ResponseWriter, r *http.Request) {
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data.Form = diveForm{MaxDepth: 5.0, BottomTime: 10, FO2: 0.21, TankVolume: 11.0}
+
+	err = app.addStaticdataToDiveForm(r, &data)
+	if err != nil {
+		app.serverError(w, r, fmt.Errorf("failed to load dive form static data: %w", err))
+	}
+
+	app.render(w, r, http.StatusOK, "dive/form.tmpl", data)
+}

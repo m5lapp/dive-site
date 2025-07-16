@@ -122,8 +122,10 @@ func ref[T any](v T) *T {
 var functions = template.FuncMap{
 	"bsBoolField":       ui.BSBoolField,
 	"bsDateField":       ui.BSDateField,
+	"bsNumFieldF64":     ui.BSNumField[float64],
 	"bsNumFieldF64Ptr":  ui.BSNumFieldPtr[float64],
 	"bsNumFieldInt":     ui.BSNumField[int],
+	"bsNumFieldIntPtr":  ui.BSNumFieldPtr[int],
 	"bsTextField":       ui.BSTextField,
 	"derefInt":          deref[int],
 	"getOSTimeZones":    getOSTimeZones,
@@ -134,28 +136,38 @@ var functions = template.FuncMap{
 }
 
 type templateData struct {
-	Agencies        []models.Agency
-	AgencyCourses   []models.AgencyCourse
-	Buddies         []models.Buddy
-	BuddyRoles      []models.BuddyRole
-	CSRFToken       string
-	CurrentYear     int
-	DarkMode        bool
-	Countries       []models.Country
-	Currencies      []models.Currency
-	DiveSite        models.DiveSite
-	DiveSites       []models.DiveSite
-	Flash           string
-	Form            any
-	IsAuthenticated bool
-	NoValidate      bool
-	Operators       []models.Operator
-	OperatorTypes   []models.OperatorType
-	PageData        models.PageData
-	User            models.User
-	WasPosted       bool
-	WaterBodies     []models.WaterBody
-	WaterTypes      []models.WaterType
+	Agencies           []models.Agency
+	AgencyCourses      []models.AgencyCourse
+	Buddies            []models.Buddy
+	BuddyRoles         []models.BuddyRole
+	CSRFToken          string
+	Certifications     []models.Certification
+	Countries          []models.Country
+	Currencies         []models.Currency
+	Currents           []models.Current
+	CurrentYear        int
+	DarkMode           bool
+	DiveProperties     []models.DiveProperty
+	DiveSite           models.DiveSite
+	DiveSites          []models.DiveSite
+	EntryPoints        []models.EntryPoint
+	Equipment          []models.Equipment
+	Flash              string
+	Form               any
+	GasMixes           []models.GasMix
+	IsAuthenticated    bool
+	NoValidate         bool
+	Operators          []models.Operator
+	OperatorTypes      []models.OperatorType
+	PageData           models.PageData
+	TankConfigurations []models.TankConfiguration
+	TankMaterials      []models.TankMaterial
+	Trips              []models.Trip
+	User               models.User
+	WasPosted          bool
+	WaterBodies        []models.WaterBody
+	WaterTypes         []models.WaterType
+	Waves              []models.Waves
 }
 
 // https://stackoverflow.com/questions/26809484/how-to-use-double-star-glob-in-go

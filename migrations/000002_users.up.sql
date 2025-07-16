@@ -1,3 +1,13 @@
+create or replace function update_updated_at_timestamp()
+returns trigger as $$
+begin
+    new.updated_at = now();
+    return new;
+end;
+$$ language 'plpgsql';
+
+--------------------------------------------------------------------------------
+
 create table if not exists users (
     id              bigint       primary key generated always as identity,
     created_at      timestamp(8) with time zone not null default now(),
@@ -14,6 +24,10 @@ create table if not exists users (
     default_diving_country_id integer not null references countries(id) on delete restrict,
     default_diving_tz varchar(64) not null default 'Etc/UTC'
 );
+
+create trigger update_updated_at_timestamp
+before update on users
+for each row execute function update_updated_at_timestamp();
 
 create index if not exists user_email_idx on users (email);
 

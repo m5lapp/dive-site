@@ -12,21 +12,21 @@ type Price struct {
 	Currency Currency
 }
 
-// nullPrice represents a Price returned from a database that may or may not be
-// null.
-type nullPrice struct {
+// nullablePrice represents a Price returned from a database that may or may not
+// be null.
+type nullablePrice struct {
 	Amount   *float64
-	Currency nullCurrency
+	Currency nullableCurrency
 }
 
-func (np nullPrice) ToPrice() *Price {
+func (np nullablePrice) ToStruct() *Price {
 	if np.Amount == nil || np.Currency.ID == nil {
 		return nil
 	}
 
 	return &Price{
 		Amount:   *np.Amount,
-		Currency: *np.Currency.ToCurrency(),
+		Currency: *np.Currency.ToStruct(),
 	}
 }
 
@@ -43,6 +43,51 @@ type Trip struct {
 	Operator    *Operator
 	Price       *Price
 	Notes       string
+}
+
+func (tr Trip) String() string {
+	return fmt.Sprintf(
+		"%s (%s to %s)",
+		tr.Name,
+		tr.StartDate.Format(time.DateOnly),
+		tr.EndDate.Format(time.DateOnly),
+	)
+}
+
+type nullableTrip struct {
+	ID          *int
+	Created     *time.Time
+	Updated     *time.Time
+	OwnerID     *int
+	Name        *string
+	StartDate   *time.Time
+	EndDate     *time.Time
+	Description *string
+	Rating      *int
+	Operator    nullableOperator
+	Price       nullablePrice
+	Notes       *string
+}
+
+func (nt nullableTrip) ToStruct() *Trip {
+	if nt.ID == nil {
+		return nil
+	}
+
+	return &Trip{
+		ID:          *nt.ID,
+		Created:     *nt.Created,
+		Updated:     *nt.Updated,
+		OwnerID:     *nt.OwnerID,
+		Name:        *nt.Name,
+		StartDate:   *nt.StartDate,
+		EndDate:     *nt.EndDate,
+		Description: *nt.Description,
+		Rating:      nt.Rating,
+		Operator:    nt.Operator.ToStruct(),
+		Price:       nt.Price.ToStruct(),
+		Notes:       *nt.Notes,
+	}
 }
 
 type TripModelInterface interface {
@@ -65,20 +110,20 @@ type TripModelInterface interface {
 var tripSelectQuery string = `
     select count(*) over(),
            tr.id, tr.created_at, tr.updated_at, tr.owner_id, tr.name,
-           tr.start_date, tr.end_date, tr.description, tr.rating
+           tr.start_date, tr.end_date, tr.description, tr.rating,
            op.id, op.created_at, op.updated_at, op.owner_id,
            ot.id, ot.name, ot.description,
            op.name, op.street, op.suburb, op.state, op.postcode,
            oc.id, oc.name, oc.iso_number, oc.iso2_code,
            oc.iso3_code, oc.dialing_code, oc.capital,
            ou.id, ou.iso_alpha, ou.iso_number, ou.name, ou.exponent,
-           op.website_url, op.email_address, op.phone_number, op.comments
+           op.website_url, op.email_address, op.phone_number, op.comments,
            tr.price,
            cu.id, cu.iso_alpha, cu.iso_number, cu.name, cu.exponent,
            tr.notes
       from trips tr
  left join operators      op on tr.operator_id = op.id
- left join operator_types ot on op.operator_type_id = op.id
+ left join operator_types ot on op.operator_type_id = ot.id
  left join countries      oc on op.country_id = oc.id
  left join currencies     ou on oc.currency_id = ou.id
  left join currencies     cu on tr.currency_id = cu.id
@@ -86,8 +131,8 @@ var tripSelectQuery string = `
 `
 
 func tripFromDBRow(rs RowScanner, totalRecords *int, tr *Trip) error {
-	op := &nullOperator{}
-	pr := &nullPrice{}
+	op := &nullableOperator{}
+	pr := &nullablePrice{}
 
 	err := rs.Scan(
 		totalRecords,
@@ -124,6 +169,10 @@ func tripFromDBRow(rs RowScanner, totalRecords *int, tr *Trip) error {
 		&op.Country.Currency.ISONumber,
 		&op.Country.Currency.Name,
 		&op.Country.Currency.Exponent,
+		&op.WebsiteURL,
+		&op.EmailAddress,
+		&op.PhoneNumber,
+		&op.Comments,
 		&pr.Amount,
 		&pr.Currency.ID,
 		&pr.Currency.ISOAlpha,
@@ -137,8 +186,8 @@ func tripFromDBRow(rs RowScanner, totalRecords *int, tr *Trip) error {
 		return err
 	}
 
-	tr.Operator = op.ToOperator()
-	tr.Price = pr.ToPrice()
+	tr.Operator = op.ToStruct()
+	tr.Price = pr.ToStruct()
 
 	return nil
 }

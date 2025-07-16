@@ -14,6 +14,10 @@ create table if not exists trips (
     notes       text          not null default ''
 );
 
+create trigger update_updated_at_timestamp
+before update on trips
+for each row execute function update_updated_at_timestamp();
+
 create index if not exists trips_owner_id_idx on trips (owner_id);
 
 --------------------------------------------------------------------------------
@@ -33,6 +37,10 @@ create table if not exists certifications (
     rating        smallint,
     notes         text          not null default ''
 );
+
+create trigger update_updated_at_timestamp
+before update on certifications
+for each row execute function update_updated_at_timestamp();
 
 create index if not exists courses_owner_id_idx on certifications (owner_id);
 

@@ -43,6 +43,10 @@ type DiveSite struct {
 	Rating    *int
 }
 
+func (ds DiveSite) String() string {
+	return fmt.Sprintf("%s, %s, %s", ds.Country.Name, ds.Location, ds.Name)
+}
+
 type DiveSiteModelInterface interface {
 	Insert(
 		ownerId int,
@@ -65,6 +69,10 @@ type DiveSiteModelInterface interface {
 	GetOneByID(id int) (DiveSite, error)
 
 	List(ListControls ListFilters) ([]DiveSite, PageData, error)
+
+	ListAll() ([]DiveSite, error)
+
+	Exists(id int) (bool, error)
 }
 
 var diveSiteSelectQuery string = `
@@ -81,6 +89,7 @@ var diveSiteSelectQuery string = `
  left join water_bodies wb on ds.water_body_id = wb.id
  left join water_types  wt on ds.water_type_id = wt.id
 `
+var diveSiteOrderBy string = "order by co.name, ds.region, ds.location, ds.name"
 
 func diveSiteFromDBRow(rs RowScanner, totalRecords *int, ds *DiveSite) error {
 	return rs.Scan(
@@ -211,7 +220,7 @@ func (m *DiveSiteModel) GetOneByID(id int) (DiveSite, error) {
 func (m *DiveSiteModel) List(filters ListFilters) ([]DiveSite, PageData, error) {
 	limit := filters.limit()
 	offset := filters.offset()
-	stmt := fmt.Sprintf("%s limit $1 offset $2", diveSiteSelectQuery)
+	stmt := fmt.Sprintf("%s %s limit $1 offset $2", diveSiteSelectQuery, diveSiteOrderBy)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
@@ -244,6 +253,40 @@ func (m *DiveSiteModel) List(filters ListFilters) ([]DiveSite, PageData, error) 
 	)
 
 	return diveSites, paginationData, nil
+}
+
+func (m *DiveSiteModel) ListAll() ([]DiveSite, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	stmt := fmt.Sprintf("%s %s", diveSiteSelectQuery, diveSiteOrderBy)
+	rows, err := m.DB.QueryContext(ctx, stmt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var totalRecords int
+	var records []DiveSite
+	for rows.Next() {
+		var record DiveSite
+		err := diveSiteFromDBRow(rows, &totalRecords, &record)
+		if err != nil {
+			return nil, err
+		}
+		records = append(records, record)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return records, nil
+}
+
+func (m *DiveSiteModel) Exists(id int) (bool, error) {
+	return idExistsInTable(m.DB, id, "dive_sites", "id")
 }
 
 type WaterBodyModel struct {

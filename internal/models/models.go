@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"database/sql/driver"
 	"fmt"
 	"time"
@@ -64,4 +65,25 @@ func (tz *TimeZone) Scan(value any) error {
 func (tz TimeZone) Value() (driver.Value, error) {
 	strValue := fmt.Sprint(&tz.Location)
 	return []byte(strValue), nil
+}
+
+// idExistsInTable is a helper function that is intended to be used by any Model
+// struct to efficiently check if a given integer ID exists in a given table
+// using the given ID column name.
+func idExistsInTable(db *sql.DB, id int, tableName, idColumn string) (bool, error) {
+	stmt := fmt.Sprintf("select exists(select true from %s where %s = $1)", tableName, idColumn)
+
+	var exists bool
+	err := db.QueryRow(stmt, id).Scan(&exists)
+	if err != nil {
+		err = fmt.Errorf(
+			"failed to check if id %d exists in %s.%s: %w",
+			id,
+			tableName,
+			idColumn,
+			err,
+		)
+	}
+
+	return exists, err
 }

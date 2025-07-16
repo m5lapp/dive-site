@@ -13,15 +13,15 @@ type OperatorType struct {
 	Description string
 }
 
-// nullOperatorType represents an OperatorType returned from a database that may
-// or may not be null.
-type nullOperatorType struct {
+// nullableOperatorType represents an OperatorType returned from a database that
+// may or may not be null.
+type nullableOperatorType struct {
 	ID          *int
 	Name        *string
 	Description *string
 }
 
-func (no nullOperatorType) ToOperatorType() *OperatorType {
+func (no nullableOperatorType) ToStruct() *OperatorType {
 	if no.ID == nil {
 		return nil
 	}
@@ -59,27 +59,27 @@ func (op *Operator) String() string {
 	return fmt.Sprintf("%s, %s, %s", op.Name, op.Suburb, op.Country.ISO2Code)
 }
 
-// nullOperator represents an Operator returned from a database that may or may
-// not be null.
-type nullOperator struct {
+// nullableOperator represents an Operator returned from a database that may or
+// may not be null.
+type nullableOperator struct {
 	ID           *int
 	Created      *time.Time
 	Updated      *time.Time
 	OwnerID      *int
-	OperatorType nullOperatorType
+	OperatorType nullableOperatorType
 	Name         *string
 	Street       *string
 	Suburb       *string
 	State        *string
 	Postcode     *string
-	Country      nullCountry
+	Country      nullableCountry
 	WebsiteURL   *string
 	EmailAddress *string
 	PhoneNumber  *string
 	Comments     *string
 }
 
-func (no nullOperator) ToOperator() *Operator {
+func (no nullableOperator) ToStruct() *Operator {
 	if no.ID == nil {
 		return nil
 	}
@@ -89,13 +89,13 @@ func (no nullOperator) ToOperator() *Operator {
 		Created:      *no.Updated,
 		Updated:      *no.Created,
 		OwnerID:      *no.OwnerID,
-		OperatorType: *no.OperatorType.ToOperatorType(),
+		OperatorType: *no.OperatorType.ToStruct(),
 		Name:         *no.Name,
 		Street:       *no.State,
 		Suburb:       *no.Suburb,
 		State:        *no.State,
 		Postcode:     *no.Postcode,
-		Country:      *no.Country.ToCountry(),
+		Country:      *no.Country.ToStruct(),
 		WebsiteURL:   *no.WebsiteURL,
 		EmailAddress: *no.EmailAddress,
 		PhoneNumber:  *no.PhoneNumber,

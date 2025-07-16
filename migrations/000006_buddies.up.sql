@@ -16,6 +16,10 @@ create table if not exists buddies (
     unique(owner_id, buddy_user_id)
 );
 
+create trigger update_updated_at_timestamp
+before update on buddies
+for each row execute function update_updated_at_timestamp();
+
 create index if not exists buddies_owner_id_idx on buddies (owner_id);
 
 --------------------------------------------------------------------------------

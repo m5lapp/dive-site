@@ -22,6 +22,51 @@ type Certification struct {
 	Notes      string
 }
 
+func (c Certification) String() string {
+	return fmt.Sprintf(
+		"%s (%s to %s)",
+		c.Course.Name,
+		c.StartDate.Format(time.DateOnly),
+		c.EndDate.Format(time.DateOnly),
+	)
+}
+
+type nullableCertification struct {
+	ID         *int
+	Created    *time.Time
+	Updated    *time.Time
+	OwnerID    *int
+	Course     nullableAgencyCourse
+	StartDate  *time.Time
+	EndDate    *time.Time
+	Operator   nullableOperator
+	Instructor nullableBuddy
+	Price      nullablePrice
+	Rating     *int
+	Notes      *string
+}
+
+func (nc nullableCertification) ToStruct() *Certification {
+	if nc.ID == nil {
+		return nil
+	}
+
+	return &Certification{
+		ID:         *nc.ID,
+		Created:    *nc.Created,
+		Updated:    *nc.Updated,
+		OwnerID:    *nc.OwnerID,
+		Course:     *nc.Course.ToStruct(),
+		StartDate:  *nc.StartDate,
+		EndDate:    *nc.EndDate,
+		Operator:   *nc.Operator.ToStruct(),
+		Instructor: *nc.Instructor.ToStruct(),
+		Price:      nc.Price.ToStruct(),
+		Rating:     nc.Rating,
+		Notes:      *nc.Notes,
+	}
+}
+
 type CertificationModelInterface interface {
 	Insert(
 		ownerID int,
@@ -53,29 +98,30 @@ var certificationSelectQuery string = `
            oc.id, oc.name, oc.iso_number, oc.iso2_code,
            oc.iso3_code, oc.dialing_code, oc.capital,
            ou.id, ou.iso_alpha, ou.iso_number, ou.name, ou.exponent,
-           op.website_url, op.email_address, op.phone_number, op.comments
+           op.website_url, op.email_address, op.phone_number, op.comments,
            bu.id, bu.version, bu.created_at, bu.updated_at, bu.owner_id,
            bu.name, bu.email, bu.phone_number,
-           bu.agency_id, ba.common_name, ba.full_name, ba.acronym, ba.url
-           bu.agency_member_num, bu.notes
+           bu.agency_id, ba.common_name, ba.full_name, ba.acronym, ba.url,
+           bu.agency_member_num, bu.notes,
            ce.price,
            cu.id, cu.iso_alpha, cu.iso_number, cu.name, cu.exponent,
            ce.rating, ce.notes
       from certifications ce
  left join agency_courses ac on ce.course_id = ac.id
  left join agencies       ag on ac.agency_id = ag.id
- left join operators      op on tr.operator_id = op.id
- left join operator_types ot on op.operator_type_id = op.id
+ left join operators      op on ce.operator_id = op.id
+ left join operator_types ot on op.operator_type_id = ot.id
  left join countries      oc on op.country_id = oc.id
  left join currencies     ou on oc.currency_id = ou.id
  left join buddies        bu on ce.instructor_id = bu.id
  left join agencies       ba on bu.agency_id = ba.id
- left join currencies     cu on tr.currency_id = cu.id
+ left join currencies     cu on ce.currency_id = cu.id
      where ce.owner_id = $1
 `
 
 func certificationFromDBRow(rs RowScanner, totalRecords *int, ce *Certification) error {
-	pr := &nullPrice{}
+	pr := &nullablePrice{}
+	ia := &nullableAgency{}
 
 	err := rs.Scan(
 		totalRecords,
@@ -132,11 +178,11 @@ func certificationFromDBRow(rs RowScanner, totalRecords *int, ce *Certification)
 		&ce.Instructor.Name,
 		&ce.Instructor.Email,
 		&ce.Instructor.PhoneNumber,
-		&ce.Instructor.Agency.ID,
-		&ce.Instructor.Agency.CommonName,
-		&ce.Instructor.Agency.FullName,
-		&ce.Instructor.Agency.Acronym,
-		&ce.Instructor.Agency.URL,
+		&ia.ID,
+		&ia.CommonName,
+		&ia.FullName,
+		&ia.Acronym,
+		&ia.URL,
 		&ce.Instructor.AgencyMemberNum,
 		&ce.Instructor.Notes,
 		&pr.Amount,
@@ -153,7 +199,8 @@ func certificationFromDBRow(rs RowScanner, totalRecords *int, ce *Certification)
 		return err
 	}
 
-	ce.Price = pr.ToPrice()
+	ce.Price = pr.ToStruct()
+	ce.Instructor.Agency = ia.ToStruct()
 
 	return nil
 }

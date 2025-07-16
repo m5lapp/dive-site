@@ -1,0 +1,466 @@
+{{define "title"}}Log a new SCUBA Dive{{end}}
+
+{{define "heading"}}Log a new SCUBA Dive{{end}}
+
+{{define "main"}}
+  <section>
+    {{template "form_non_field_errors" .}}
+
+    <p>
+        Add the details for a dive you have undertaken to add it to your Log
+        book.
+    </p>
+
+    <h2>Main Details</h2>
+
+    <form method="post" action="/dive/add"
+          class="{{template "bootstrap_form_class" .}}"
+          {{if .NoValidate}} novalidate{{end}}>
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+      <div class="row mb-4">
+        {{bsNumFieldInt "number" "" "1" "100000" "1" .Form.Number true .Form.FieldErrors}}
+
+        {{bsDateField "date_time_in" "Date and Time" "1960-01-01" "now" "now" .Form.DateTimeIn true true .Form.FieldErrors}}
+
+        <div class="col-sm">
+          <label class="form-label" for="id_rating">Rating</label>
+          <select {{template "form_field_common_attrs" "rating"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.rating}}">
+            <option value="">---------</option>
+            {{range $i := intRange 0 10}}
+              <option value="{{$i}}"
+                {{with $.Form.Rating}}{{if eq $i (derefInt . -1)}}selected{{end}}{{end}}>
+                {{$i}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.rating}}
+            <div class="invalid-feedback" id="id_rating_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        {{bsTextField "text" "activity" "" .Form.Activity "1" "256" true .Form.FieldErrors}}
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_operator_id">Operator</label>
+          <select {{template "form_field_common_attrs" "operator_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.operator_id}}">
+            <option value="">---------</option>
+            {{range .Operators}}
+              <option value="{{.ID}}"
+                      {{$operatorID := .ID}}
+                      {{with $.Form.OperatorID}}
+                        {{if eq $operatorID (derefInt . 0)}}selected{{end}}
+                      {{end}}>
+                {{.String}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.operator_id}}
+            <div class="invalid-feedback" id="id_operator_id_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        {{bsNumFieldF64Ptr "price" "" "0.0" "9999999999.99" "0.01" .Form.PriceAmount false .Form.FieldErrors}}
+
+        <div class="col-sm">
+          <label class="form-label" for="id_currency_id">Currency</label>
+          <select {{template "form_field_common_attrs" "currency_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.currency_id}}">
+            <option value="">---------</option>
+            {{range .Currencies}}
+              <option value="{{.ID}}"
+                      {{$currencyID := .ID}}
+                      {{with $.Form.CurrencyID}}
+                        {{if eq $currencyID (derefInt . 0)}}selected{{end}}
+                      {{end}}>
+                {{.Name}} ({{.ISOAlpha}})
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.currency_id}}
+            <div class="invalid-feedback" id="id_currency_id_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_trip_id">Trip</label>
+          <select {{template "form_field_common_attrs" "trip_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.trip_id}}">
+            <option value="">---------</option>
+            {{range .Trips}}
+              <option value="{{.ID}}"
+                      {{$tripID := .ID}}
+                      {{with $.Form.TripID}}
+                        {{if eq $tripID (derefInt . 0)}}selected{{end}}
+                      {{end}}>
+                {{.String}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.trip_id}}
+            <div class="invalid-feedback" id="id_trip_id_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        <div class="col-sm">
+          <label class="form-label" for="id_course_id">Certification</label>
+          <select {{template "form_field_common_attrs" "certification_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.certification_id}}">
+            <option value="">---------</option>
+            {{range .Certifications}}
+              <option value="{{.ID}}"
+                      {{$certificationID := .ID}}
+                      {{with $.Form.CertificationID}}
+                        {{if eq $certificationID (derefInt . 0)}}selected{{end}}
+                      {{end}}>
+                {{.String}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.certification_id}}
+            <div class="invalid-feedback" id="id_certification_id_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <h2>Location</h2>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_dive_site_id">Dive Site *</label>
+          <select {{template "form_field_common_attrs" "dive_site_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.dive_site_id}}">
+            {{range .DiveSites}}
+              <option value="{{.ID}}"
+                      {{$diveSiteID := .ID}}
+                      {{with $.Form.DiveSiteID}}
+                        {{if eq $diveSiteID (derefInt . 0)}}selected{{end}}
+                      {{end}}>
+                {{isoCountryToEmoji .Country.ISO2Code}} {{.String}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.dive_site_id}}
+            <div class="invalid-feedback" id="id_dive_site_id_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <h2>Dive Profile</h2>
+
+      <div class="row mb-4">
+        {{bsNumFieldF64 "max_depth" "Max Depth (m)" "4.0" "350.0" "0.1" .Form.MaxDepth true .Form.FieldErrors}}
+
+        {{bsNumFieldF64Ptr "avg_depth" "Average Depth (m)" "4.0" "350.0" "0.1" .Form.AvgDepth false .Form.FieldErrors}}
+
+        {{bsNumFieldInt "bottom_time" "Bottom Time (mins)" "10" "1440" "1" .Form.BottomTime true .Form.FieldErrors}}
+
+        <div class="col-sm">
+          <label class="form-label" for="id_safety_stop">Safety Stop</label>
+          <select {{template "form_field_common_attrs" "safety_stop"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.safety_stop}}">
+            <option value="">---------</option>
+            {{range $i := intRange 0 6}}
+              <option value="{{$i}}"
+                {{with $.Form.SafetyStop}}{{if eq $i (derefInt . -1)}}selected{{end}}{{end}}>
+                {{$i}} minutes
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.safety_stop}}
+            <div class="invalid-feedback" id="id_safety_stop_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <h2>Environmental Conditions</h2>
+
+      <div class="row mb-4">
+        {{bsNumFieldIntPtr "air_temp" "Air Temp (°C)" "-90" "60" "1" .Form.AirTemp false .Form.FieldErrors}}
+
+        {{bsNumFieldIntPtr "water_temp" "Water Temp (°C)" "-3" "50" "1" .Form.WaterTemp false .Form.FieldErrors}}
+
+        {{bsNumFieldF64Ptr "visibility" "Visibility (m)" "0.0" "80.0" "0.1" .Form.Visibility false .Form.FieldErrors}}
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_current_id">Current</label>
+          <select {{template "form_field_common_attrs" "current_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.current_id}}">
+            <option value="">---------</option>
+            {{range .Currents}}
+              <option value="{{.ID}}"
+                      {{$currentID := .ID}}
+                      {{with $.Form.CurrentID}}
+                        {{if eq $currentID (derefInt . 0)}}selected{{end}}
+                      {{end}}>
+                {{.Name}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.current_id}}
+            <div class="invalid-feedback" id="id_current_id_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        <div class="col-sm">
+          <label class="form-label" for="id_waves_id">Waves</label>
+          <select {{template "form_field_common_attrs" "waves_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.waves_id}}">
+            <option value="">---------</option>
+            {{range .Waves}}
+              <option value="{{.ID}}"
+                      {{$wavesID := .ID}}
+                      {{with $.Form.WavesID}}
+                        {{if eq $wavesID (derefInt . 0)}}selected{{end}}
+                      {{end}}>
+                {{.Name}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.waves_id}}
+            <div class="invalid-feedback" id="id_waves_id_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <h2>Equipment</h2>
+
+      <div class="row mb-4">
+        {{bsNumFieldF64Ptr "weight" "Weight (kg)" "0.0" "99.99" "0.01" .Form.Weight false .Form.FieldErrors}}
+
+        {{bsTextField "text" "weight_notes" "" .Form.WeightNotes "0" "1024" false .Form.FieldErrors}}
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_equipment_ids">Equipment</label>
+          <select {{template "form_field_common_attrs" "equipment_ids"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.equipment_ids}}"
+                  multiple>
+            {{range .Equipment}}
+              <option value="{{.ID}}"
+                      {{$equipmentID := .ID}}
+                      {{with $.Form.EquipmentIDs}}
+                        {{range $.Form.EquipmentIDs}}
+                          {{if eq $equipmentID (derefInt . 0)}}selected{{break}}{{end}}
+                        {{end}}
+                      {{end}}>
+                {{.Name}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.equipment_ids}}
+            <div class="invalid-feedback" id="id_equipment_ids_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        {{bsTextField "text" "equipment_notes" "" .Form.EquipmentNotes "0" "1024" false .Form.FieldErrors}}
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_tank_configuration_id">Tank Configuration *</label>
+          <select {{template "form_field_common_attrs" "tank_configuration_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.tank_configuration_id}}">
+            {{range .TankConfigurations}}
+              <option value="{{.ID}}"
+                      {{$tankConfiguration := .}}
+                      {{with $.Form.TankConfigurationID}}
+                        {{if eq $tankConfiguration.ID .}}selected{{end}}
+                      {{else}}
+                        {{if $tankConfiguration.IsDefault}}selected{{end}}
+                      {{end}}>
+                {{.Name}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.tank_configuration_id}}
+            <div class="invalid-feedback" id="id_tank_configuration_id_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        <div class="col-sm">
+          <label class="form-label" for="id_tank_material_id">Tank Material *</label>
+          <select {{template "form_field_common_attrs" "tank_material_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.tank_material_id}}">
+            {{range .TankMaterials}}
+              <option value="{{.ID}}"
+                      {{$tankMaterial := .}}
+                      {{with $.Form.TankMaterialID}}
+                        {{if eq $tankMaterial.ID .}}selected{{end}}
+                      {{else}}
+                        {{if $tankMaterial.IsDefault}}selected{{end}}
+                      {{end}}>
+                {{.Name}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.tank_material_id}}
+            <div class="invalid-feedback" id="id_tank_material_id_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        {{bsNumFieldF64 "tank_volume" "Tank Volume (l)" "2.0" "22.0" "0.01" .Form.TankVolume true .Form.FieldErrors}}
+      </div>
+
+      <h2>Breathing Gas</h2>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_breathing_gas_id">Breathing Gas *</label>
+          <select {{template "form_field_common_attrs" "breathing_gas_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.breathing_gas_id}}">
+            {{range .GasMixes}}
+              <option value="{{.ID}}"
+                      {{$gasMix := .}}
+                      {{with $.Form.GasMixID }}
+                        {{if eq $gasMix.ID .}}selected{{end}}
+                      {{else}}
+                        {{if $gasMix.IsDefault}}selected{{end}}
+                      {{end}}>
+                {{.Name}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.breathing_gas_id}}
+            <div class="invalid-feedback" id="id_breathing_gas_id_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        {{bsNumFieldF64 "fo2" "FO2" "0.04" "1.0" "0.001" .Form.FO2 true .Form.FieldErrors}}
+      </div>
+
+      <div class="row mb-4">
+        {{bsNumFieldIntPtr "pressure_in" "Start Pressure (bar)" "150" "1000" "1" .Form.PressureIn false .Form.FieldErrors}}
+
+        {{bsNumFieldIntPtr "pressure_out" "End Pressure (bar)" "0" "1000" "1" .Form.PressureOut false .Form.FieldErrors}}
+      </div>
+
+      <div class="row mb-4">
+        {{bsTextField "text" "gas_mix_notes" "" .Form.GasMixNotes "0" "1024" false .Form.FieldErrors}}
+      </div>
+
+      <h2>Dive Properties</h2>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_property_ids">Properties</label>
+          <select {{template "form_field_common_attrs" "property_ids"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.property_ids}}"
+                  multiple>
+            {{range .DiveProperties}}
+              <option value="{{.ID}}"
+                      {{$diveProperty := .}}
+                      {{with $.Form.PropertyIDs}}
+                        {{range $.Form.PropertyIDs}}
+                          {{if eq $diveProperty.ID (derefInt . 0)}}selected{{break}}{{end}}
+                        {{end}}
+                      {{end}}>
+                {{.Name}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.property_ids}}
+            <div class="invalid-feedback" id="id_property_ids_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        <div class="col-sm">
+          <label class="form-label" for="id_breathing_gas_id">Entry Point *</label>
+          <select {{template "form_field_common_attrs" "entry_point_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.entry_point_id}}">
+            {{range .EntryPoints}}
+              <option value="{{.ID}}"
+                      {{$entryPoint := .}}
+                      {{with $.Form.EntryPointID }}
+                        {{if eq $entryPoint.ID .}}selected{{end}}
+                      {{else}}
+                        {{if $entryPoint.IsDefault}}selected{{end}}
+                      {{end}}>
+                {{.Name}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.entry_point_id}}
+            <div class="invalid-feedback" id="id_entry_point_id_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <h2>Additional Information</h2>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_notes">Notes</label>
+          <textarea {{template "form_field_common_attrs" "notes"}}
+                    maxlength="1024000" rows="16"
+                    class="{{template "bootstrap_form_field_class" .Form.FieldErrors.notes}}">
+            {{- .Form.Notes -}}
+          </textarea>
+          {{with .Form.FieldErrors.notes}}
+            <div class="invalid-feedback" id="id_notes_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <h2>Signature</h2>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_buddy_id">Buddy</label>
+          <select {{template "form_field_common_attrs" "buddy_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.buddy_id}}">
+            <option value="">---------</option>
+            {{range .Buddies}}
+              <option value="{{.ID}}"
+                      {{with $.Form.BuddyID}}
+                        {{if eq .ID (derefInt $.Form.BuddyID -1)}}selected{{end}}
+                      {{end}}>
+                {{.String}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.buddy_id}}
+            <div class="invalid-feedback" id="id_buddy_id_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        <div class="col-sm">
+          <label class="form-label" for="id_buddy_id">Buddy Role</label>
+          <select {{template "form_field_common_attrs" "buddy_role_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.buddy_role_id}}">
+            <option value="">---------</option>
+            {{range .BuddyRoles}}
+              <option value="{{.ID}}"
+                      {{with $.Form.BuddyRoleID}}
+                        {{if eq .ID (derefInt $.Form.BuddyRoleID -1)}}selected{{end}}
+                      {{end}}>
+                {{.Name}}
+              </option>
+            {{end}}
+          </select>
+          {{with .Form.FieldErrors.buddy_role_id}}
+            <div class="invalid-feedback" id="id_buddy_role_id_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <button class="btn btn-primary me-2" type="submit">Log Dive</button>
+          <button class="btn btn-outline-danger" type="reset">Reset</button>
+        </div>
+      </div>
+
+    </form>
+  </section>
+{{end}}
+

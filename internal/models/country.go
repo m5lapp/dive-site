@@ -22,9 +22,9 @@ type Currency struct {
 	Exponent  int
 }
 
-// nullCurrency represents a Currency returned from a database that may or may
-// not be null.
-type nullCurrency struct {
+// nullableCurrency represents a Currency returned from a database that may or
+// may not be null.
+type nullableCurrency struct {
 	ID        *int
 	ISOAlpha  *string
 	ISONumber *int
@@ -32,7 +32,7 @@ type nullCurrency struct {
 	Exponent  *int
 }
 
-func (nc nullCurrency) ToCurrency() *Currency {
+func (nc nullableCurrency) ToStruct() *Currency {
 	if nc.ID == nil {
 		return nil
 	}
@@ -117,9 +117,9 @@ type Country struct {
 	Currency    Currency
 }
 
-// nullCountry represents a Country returned from a database that may or may
+// nullableCountry represents a Country returned from a database that may or may
 // not be null.
-type nullCountry struct {
+type nullableCountry struct {
 	ID          *int
 	Name        *string
 	ISONumber   *int
@@ -127,10 +127,10 @@ type nullCountry struct {
 	ISO3Code    *string
 	DialingCode *string
 	Capital     *string
-	Currency    nullCurrency
+	Currency    nullableCurrency
 }
 
-func (nc nullCountry) ToCountry() *Country {
+func (nc nullableCountry) ToStruct() *Country {
 	if nc.ID == nil || nc.Currency.ID == nil {
 		return nil
 	}
@@ -143,7 +143,7 @@ func (nc nullCountry) ToCountry() *Country {
 		ISO3Code:    *nc.ISO3Code,
 		DialingCode: *nc.DialingCode,
 		Capital:     *nc.Capital,
-		Currency:    *nc.Currency.ToCurrency(),
+		Currency:    *nc.Currency.ToStruct(),
 	}
 }
 

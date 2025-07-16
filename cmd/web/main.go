@@ -19,24 +19,32 @@ import (
 )
 
 type app struct {
-	log            *slog.Logger
-	templateCache  map[string]*template.Template
-	agencies       models.AgencyModelInterface
-	agencyCourses  models.AgencyCourseModelInterface
-	buddies        models.BuddyModelInterface
-	buddyRoles     models.BuddyRoleModelInterface
-	certifications models.CertificationModelInterface
-	countries      models.CountryModelInterface
-	currencies     models.CurrencyModelInterface
-	diveSites      models.DiveSiteModelInterface
-	operators      models.OperatorModelInterface
-	operatorTypes  models.OperatorTypeModelInterface
-	trips          models.TripModelInterface
-	users          models.UserModelInterface
-	formDecoder    *form.Decoder
-	sessionManager *scs.SessionManager
-	waterBodies    models.WaterBodyModelInterface
-	waterTypes     models.WaterTypeModelInterface
+	agencies           models.AgencyModelInterface
+	agencyCourses      models.AgencyCourseModelInterface
+	buddies            models.BuddyModelInterface
+	buddyRoles         models.BuddyRoleModelInterface
+	certifications     models.CertificationModelInterface
+	countries          models.CountryModelInterface
+	currencies         models.CurrencyModelInterface
+	currents           models.CurrentModelInterface
+	diveProperties     models.DivePropertyModelInterface
+	diveSites          models.DiveSiteModelInterface
+	entryPoints        models.EntryPointModelInterface
+	equipment          models.EquipmentModelInterface
+	formDecoder        *form.Decoder
+	gasMixes           models.GasMixModelInterface
+	log                *slog.Logger
+	operators          models.OperatorModelInterface
+	operatorTypes      models.OperatorTypeModelInterface
+	tankConfigurations models.TankConfigurationModelInterface
+	tankMaterials      models.TankMaterialModelInterface
+	templateCache      map[string]*template.Template
+	trips              models.TripModelInterface
+	users              models.UserModelInterface
+	sessionManager     *scs.SessionManager
+	waterBodies        models.WaterBodyModelInterface
+	waterTypes         models.WaterTypeModelInterface
+	waves              models.WavesModelInterface
 }
 
 func openDB(dsn string) (*sql.DB, error) {
@@ -86,24 +94,32 @@ func main() {
 	sessionManager.Cookie.Secure = true
 
 	app := app{
-		log:            logger,
-		templateCache:  templateCache,
-		agencies:       &models.AgencyModel{DB: db},
-		agencyCourses:  &models.AgencyCourseModel{DB: db},
-		buddies:        &models.BuddyModel{DB: db},
-		buddyRoles:     &models.BuddyRoleModel{DB: db},
-		certifications: &models.CertificationModel{DB: db},
-		countries:      &models.CountryModel{DB: db},
-		currencies:     &models.CurrencyModel{DB: db},
-		diveSites:      &models.DiveSiteModel{DB: db},
-		formDecoder:    formDecoder,
-		operators:      &models.OperatorModel{DB: db},
-		operatorTypes:  &models.OperatorTypeModel{DB: db},
-		sessionManager: sessionManager,
-		trips:          &models.TripModel{DB: db},
-		users:          &models.UserModel{DB: db},
-		waterBodies:    &models.WaterBodyModel{DB: db},
-		waterTypes:     &models.WaterTypeModel{DB: db},
+		log:                logger,
+		templateCache:      templateCache,
+		agencies:           &models.AgencyModel{DB: db},
+		agencyCourses:      &models.AgencyCourseModel{DB: db},
+		buddies:            &models.BuddyModel{DB: db},
+		buddyRoles:         &models.BuddyRoleModel{DB: db},
+		certifications:     &models.CertificationModel{DB: db},
+		countries:          &models.CountryModel{DB: db},
+		currencies:         &models.CurrencyModel{DB: db},
+		currents:           models.NewStaticDataService[models.Current](db),
+		diveProperties:     models.NewStaticDataService[models.DiveProperty](db),
+		diveSites:          &models.DiveSiteModel{DB: db},
+		entryPoints:        models.NewStaticDataService[models.EntryPoint](db),
+		equipment:          models.NewStaticDataService[models.Equipment](db),
+		gasMixes:           models.NewStaticDataService[models.GasMix](db),
+		formDecoder:        formDecoder,
+		operators:          &models.OperatorModel{DB: db},
+		operatorTypes:      &models.OperatorTypeModel{DB: db},
+		tankConfigurations: models.NewStaticDataService[models.TankConfiguration](db),
+		tankMaterials:      models.NewStaticDataService[models.TankMaterial](db),
+		sessionManager:     sessionManager,
+		trips:              &models.TripModel{DB: db},
+		users:              &models.UserModel{DB: db},
+		waterBodies:        &models.WaterBodyModel{DB: db},
+		waterTypes:         &models.WaterTypeModel{DB: db},
+		waves:              models.NewStaticDataService[models.Waves](db),
 	}
 
 	tlsConfig := &tls.Config{

@@ -37,6 +37,40 @@ func (bu Buddy) String() string {
 	return str.String()
 }
 
+type nullableBuddy struct {
+	ID              *int
+	Version         *int
+	Created         *time.Time
+	Updated         *time.Time
+	OwnerID         *int
+	Name            *string
+	Email           *string
+	PhoneNumber     *string
+	Agency          nullableAgency
+	AgencyMemberNum *string
+	Notes           *string
+}
+
+func (nb nullableBuddy) ToStruct() *Buddy {
+	if nb.ID == nil {
+		return nil
+	}
+
+	return &Buddy{
+		ID:              *nb.ID,
+		Version:         *nb.Version,
+		Created:         *nb.Created,
+		Updated:         *nb.Updated,
+		OwnerID:         *nb.OwnerID,
+		Name:            *nb.Name,
+		Email:           *nb.Email,
+		PhoneNumber:     *nb.PhoneNumber,
+		Agency:          nb.Agency.ToStruct(),
+		AgencyMemberNum: *nb.AgencyMemberNum,
+		Notes:           *nb.Notes,
+	}
+}
+
 type BuddyModelInterface interface {
 	Insert(
 		ownerID int,
@@ -63,7 +97,7 @@ var buddySelectQuery string = `
 `
 
 func buddyFromDBRow(rs RowScanner, totalRecords *int, bu *Buddy) error {
-	ag := &nullAgency{}
+	ag := &nullableAgency{}
 
 	err := rs.Scan(
 		totalRecords,
@@ -88,7 +122,7 @@ func buddyFromDBRow(rs RowScanner, totalRecords *int, bu *Buddy) error {
 		return err
 	}
 
-	bu.Agency = ag.ToAgency()
+	bu.Agency = ag.ToStruct()
 	return nil
 }
 
@@ -210,6 +244,24 @@ type BuddyRole struct {
 	ID          int
 	Name        string
 	Description string
+}
+
+type nullableBuddyRole struct {
+	ID          *int
+	Name        *string
+	Description *string
+}
+
+func (nb nullableBuddyRole) ToStruct() *BuddyRole {
+	if nb.ID == nil {
+		return nil
+	}
+
+	return &BuddyRole{
+		ID:          *nb.ID,
+		Name:        *nb.Name,
+		Description: *nb.Description,
+	}
 }
 
 type BuddyRoleModel struct {
