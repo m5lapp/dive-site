@@ -104,6 +104,7 @@ func (no nullableOperator) ToStruct() *Operator {
 }
 
 type OperatorModelInterface interface {
+	Exists(id int) (bool, error)
 	Insert(
 		ownerID int,
 		operatorTypeID int,
@@ -172,6 +173,10 @@ func operatorFromDBRow(rs RowScanner, totalRecords *int, op *Operator) error {
 
 type OperatorModel struct {
 	DB *sql.DB
+}
+
+func (m *OperatorModel) Exists(id int) (bool, error) {
+	return idExistsInTable(m.DB, id, "operators", "id")
 }
 
 func (m *OperatorModel) Insert(
@@ -299,6 +304,7 @@ type OperatorTypeModel struct {
 }
 
 type OperatorTypeModelInterface interface {
+	Exists(id int) (bool, error)
 	List() ([]OperatorType, error)
 }
 
@@ -310,6 +316,10 @@ var operatorTypeListQuery string = `
       from operator_types 
   order by name
 `
+
+func (m *OperatorTypeModel) Exists(id int) (bool, error) {
+	return idExistsInTable(m.DB, id, "operator_types", "id")
+}
 
 func (m *OperatorTypeModel) List() ([]OperatorType, error) {
 	// If the list of operator types has already been populated, then use it.

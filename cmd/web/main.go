@@ -28,6 +28,7 @@ type app struct {
 	currencies         models.CurrencyModelInterface
 	currents           models.CurrentModelInterface
 	diveProperties     models.DivePropertyModelInterface
+	dives              models.DiveModelInterface
 	diveSites          models.DiveSiteModelInterface
 	entryPoints        models.EntryPointModelInterface
 	equipment          models.EquipmentModelInterface
@@ -105,6 +106,7 @@ func main() {
 		currencies:         &models.CurrencyModel{DB: db},
 		currents:           models.NewStaticDataService[models.Current](db),
 		diveProperties:     models.NewStaticDataService[models.DiveProperty](db),
+		dives:              &models.DiveModel{DB: db},
 		diveSites:          &models.DiveSiteModel{DB: db},
 		entryPoints:        models.NewStaticDataService[models.EntryPoint](db),
 		equipment:          models.NewStaticDataService[models.Equipment](db),

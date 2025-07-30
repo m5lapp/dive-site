@@ -1,9 +1,11 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -86,4 +88,111 @@ func idExistsInTable(db *sql.DB, id int, tableName, idColumn string) (bool, erro
 	}
 
 	return exists, err
+}
+
+// bindVarList returns a string of `count` comma-separated bind variable
+// placeholders starting at `start` suitable for use in a PostgreSQL query. It
+// returns the empty string if count is less than 1.
+func bindVarList(start, count int) (string, error) {
+	if count < 1 {
+		return "", nil
+	}
+
+	if start < 1 {
+		msg := "cannot use %d as start index for bind variables, must start from at least 1"
+		return "", fmt.Errorf(msg, start)
+	}
+
+	var s strings.Builder
+	fmt.Fprintf(&s, "$%d", start)
+	for i := start + 1; i < start+count; i++ {
+		fmt.Fprintf(&s, ", $%d", i)
+	}
+
+	return s.String(), nil
+}
+
+func buildManyToManyInsert(
+	intermediateTable, parentCol, childCol string,
+	rowCount int,
+) (string, error) {
+	if rowCount < 1 {
+		msg := "cannot create insert query for %s with %d rows, needs at least 1"
+		return "", fmt.Errorf(msg, intermediateTable, rowCount)
+	}
+
+	var stmt strings.Builder
+	_, err := fmt.Fprintf(
+		&stmt,
+		"insert into %s (%s, %s) values",
+		intermediateTable,
+		parentCol,
+		childCol,
+	)
+
+	if err != nil {
+		return "", err
+	}
+
+	for i := range rowCount {
+		fmt.Fprintf(&stmt, " ($1, $%d),", i+2)
+	}
+
+	// Strip off the trailing comma.
+	return strings.TrimRight(stmt.String(), ","), nil
+}
+
+func sliceToAnySlice[T any](values []T) []any {
+	var result []any = make([]any, len(values))
+
+	if values == nil {
+		return result
+	}
+
+	for i, value := range values {
+		result[i] = value
+	}
+
+	return result
+}
+
+// sqlExecer is implemented by all three of sql.Conn, sql.DB and sql.Tx.
+type sqlExecer interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
+type sqlID interface {
+	int | int8 | int32 | int64 | uint | uint8 | uint32 | uint64 | string
+}
+
+func insertManyToManyIDs[T sqlID](
+	ctx context.Context,
+	db sqlExecer,
+	tableName, parentField, childField string,
+	parentID T,
+	childIDs []T,
+) error {
+	if len(childIDs) == 0 {
+		return nil
+	}
+
+	stmt, err := buildManyToManyInsert(tableName, parentField, childField, len(childIDs))
+	if err != nil {
+		errMsg := "failed to build insert query for %s: %w"
+		return fmt.Errorf(errMsg, tableName, err)
+	}
+
+	// In order to unpack the variadic parameters into the query function,
+	// we need to first combine them all into a single []any slice.
+	args := make([]any, 0, len(childIDs)+1)
+	args = append(args, parentID)
+	args = append(args, sliceToAnySlice(childIDs)...)
+
+	_, err = db.ExecContext(ctx, stmt, args...)
+	if err != nil {
+		errMsg := "failed to insert many-to-many ids (%v, %v) for %s: %w"
+		return fmt.Errorf(errMsg, parentID, childIDs, tableName, err)
+	}
+
+	return nil
 }

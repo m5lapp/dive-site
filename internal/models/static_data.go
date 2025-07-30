@@ -6,12 +6,16 @@ import (
 	"fmt"
 	"reflect"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 type staticDataInterface interface {
 	getValuesFromDBRow(
 		rs RowScanner,
 	) (id, sort int, isDefault bool, name, description string, err error)
+
+	id() int
 
 	setValues(id, sort int, isDefault bool, name, description string)
 
@@ -28,6 +32,10 @@ type staticDataItem struct {
 
 func (sd staticDataItem) String() string {
 	return fmt.Sprintf("%s - %s", sd.Name, sd.Description)
+}
+
+func (sd staticDataItem) id() int {
+	return sd.ID
 }
 
 func (sd staticDataItem) getValuesFromDBRow(
@@ -143,12 +151,78 @@ var staticDataItemSelectQuery string = `
   order by %s
 `
 
+// As staticDataItems are cached locally, it's likely more efficient to fetch
+// the list ourselves and search for the given ID manually than to query the
+// database directly.
+func (m *StaticDataService[T]) Exists(id int) (bool, error) {
+	items, err := m.List(false)
+	if err != nil {
+		msg := "failed to check if %T with id %d exists: %w"
+		return false, fmt.Errorf(msg, *new(T), id, err)
+	}
+
+	for _, item := range items {
+		if item.id() == id {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func (m *StaticDataService[T]) AllExist(ids []int) (bool, error) {
+	if len(ids) == 0 {
+		return true, nil
+	}
+
+	// We need this to be able to get the tableName value for the type T.
+	var tempT T
+	tableName := tempT.tableName()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	stmt := `
+        select count(id) = $1 as all_exist
+          from ` + tableName + `
+         where id = any($2)
+    `
+
+	var allExist bool
+	err := m.DB.QueryRowContext(ctx, stmt, len(ids), pq.Array(ids)).Scan(&allExist)
+	if err != nil {
+		msg := "failed to scan result of all ids (%v) exist check in %s: %w"
+		return false, fmt.Errorf(msg, ids, tableName, err)
+	}
+
+	return allExist, nil
+}
+
+func (m *StaticDataService[T]) GetOneByID(id int) (T, error) {
+	var emptyT T
+
+	items, err := m.List(false)
+	if err != nil {
+		msg := "failed to fetch %T with id %d: %w"
+		return emptyT, fmt.Errorf(msg, emptyT, id, err)
+	}
+
+	for _, item := range items {
+		if item.id() == id {
+			return item, nil
+		}
+	}
+
+	return emptyT, ErrNoRecord
+}
+
 func (m *StaticDataService[T]) List(sortByName bool) ([]T, error) {
 	// We need this to be able to get the tableName value for the type T.
 	var tempT T
 	tableName := tempT.tableName()
 
 	// If the list of static data items has already been populated, then use it.
+	// Otherwise, if there was an error, we don't really care and will try to
+	// load the values from the database.
 	data, err := getCachedStaticData[T]()
 	if err == nil && len(data) >= 0 {
 		return data, nil
@@ -172,9 +246,7 @@ func (m *StaticDataService[T]) List(sortByName bool) ([]T, error) {
 	records := []T{}
 	for rows.Next() {
 		var record T
-		// err := record.fromDBRow(rows)
 		id, sort, isDefault, name, description, err := record.getValuesFromDBRow(rows)
-		// record.setValues(id, sort, isDefault, name, description)
 		if err != nil {
 			return nil, fmt.Errorf(
 				"failed to scan static data row from table %s: %w",
@@ -250,6 +322,7 @@ func (m *StaticDataService[T]) List(sortByName bool) ([]T, error) {
 
 // Current.
 type CurrentModelInterface interface {
+	Exists(id int) (bool, error)
 	List(sortByName bool) ([]Current, error)
 }
 
@@ -263,6 +336,8 @@ func (_ Current) tableName() string {
 
 // DiveProperty.
 type DivePropertyModelInterface interface {
+	AllExist(ids []int) (bool, error)
+	Exists(id int) (bool, error)
 	List(sortByName bool) ([]DiveProperty, error)
 }
 
@@ -276,6 +351,7 @@ func (_ DiveProperty) tableName() string {
 
 // Entry point.
 type EntryPointModelInterface interface {
+	Exists(id int) (bool, error)
 	List(sortByName bool) ([]EntryPoint, error)
 }
 
@@ -289,6 +365,8 @@ func (_ EntryPoint) tableName() string {
 
 // Equipment.
 type EquipmentModelInterface interface {
+	AllExist(ids []int) (bool, error)
+	Exists(id int) (bool, error)
 	List(sortByName bool) ([]Equipment, error)
 }
 
@@ -302,6 +380,8 @@ func (_ Equipment) tableName() string {
 
 // Gas mix.
 type GasMixModelInterface interface {
+	Exists(id int) (bool, error)
+	GetOneByID(id int) (GasMix, error)
 	List(sortByName bool) ([]GasMix, error)
 }
 
@@ -315,6 +395,7 @@ func (_ GasMix) tableName() string {
 
 // Tank configuration.
 type TankConfigurationModelInterface interface {
+	Exists(id int) (bool, error)
 	List(sortByName bool) ([]TankConfiguration, error)
 }
 
@@ -328,6 +409,7 @@ func (_ TankConfiguration) tableName() string {
 
 // Tank material.
 type TankMaterialModelInterface interface {
+	Exists(id int) (bool, error)
 	List(sortByName bool) ([]TankMaterial, error)
 }
 
@@ -341,6 +423,7 @@ func (_ TankMaterial) tableName() string {
 
 // Waves.
 type WavesModelInterface interface {
+	Exists(id int) (bool, error)
 	List(sortByName bool) ([]Waves, error)
 }
 

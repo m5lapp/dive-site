@@ -1006,7 +1006,7 @@ type diveForm struct {
 	Rating              *int      `form:"rating"`
 	PropertyIDs         []int     `form:"property_ids"`
 	Notes               string    `form:"notes"`
-	validator.Validator `          form:"-"`
+	validator.Validator `form:"-"`
 }
 
 func (app *app) addStaticdataToDiveForm(r *http.Request, data *templateData) error {
@@ -1051,7 +1051,7 @@ func (app *app) addStaticdataToDiveForm(r *http.Request, data *templateData) err
 	}
 	data.Equipment = equipment
 
-	gasMixes, err := app.gasMixes.List(false)
+	gasMixes, err := app.gasMixes.List(true)
 	if err != nil {
 		return fmt.Errorf("could not fetch gas mixes list: %w", err)
 	}
@@ -1084,6 +1084,317 @@ func (app *app) addStaticdataToDiveForm(r *http.Request, data *templateData) err
 	return nil
 }
 
+func (app *app) validateDiveForm(f *diveForm) error {
+	f.CheckField(
+		f.Number >= 1 && f.Number <= 100_000,
+		"number",
+		"This field must be between 1 and 100,000 inclusive",
+	)
+
+	f.CheckField(validator.NotBlank(f.Activity), "activity", "This field cannot be blank")
+	f.CheckField(
+		validator.MaxChars(f.Activity, 256),
+		"activity",
+		"This field cannot be more than 256 characters long",
+	)
+
+	exists, err := app.diveSites.Exists(f.DiveSiteID)
+	if err != nil {
+		return err
+	}
+	f.CheckField(exists, "dive_site_id", "You must select a valid dive site")
+
+	if f.OperatorID != nil {
+		exists, err := app.operators.Exists(*f.OperatorID)
+		if err != nil {
+			return err
+		}
+		f.CheckField(exists, "operator_id", "Invalid dive operator selected")
+	}
+
+	if f.PriceAmount != nil {
+		f.CheckField(
+			validator.NumBetween(*f.PriceAmount, 0.0, 9_999_999_999.999),
+			"price_amount",
+			"This field must be between 0.0 and 9,999,999,999.99 inclusive",
+		)
+
+		if f.CurrencyID == nil {
+			f.AddFieldError("currency_id", "A currency must be selected for the price")
+		}
+	}
+
+	if f.CurrencyID != nil {
+		f.CheckField(*f.CurrencyID > 0, "currency_id", "Select a valid currency")
+
+		if f.PriceAmount == nil {
+			f.AddFieldError("price", "A price must be entered for the currency")
+		}
+	}
+
+	if f.TripID != nil {
+		exists, err := app.trips.Exists(*f.TripID)
+		if err != nil {
+			return err
+		}
+		f.CheckField(exists, "trip_id", "Invalid dive trip selected")
+	}
+
+	if f.CertificationID != nil {
+		exists, err := app.certifications.Exists(*f.CertificationID)
+		if err != nil {
+			return err
+		}
+		f.CheckField(exists, "certification_id", "Invalid certification course selected")
+	}
+
+	earliestDiveDate := time.Date(1960, time.January, 1, 0, 0, 0, 0, time.UTC)
+	latestDiveDate := time.Now().Add(24 * time.Hour)
+	f.CheckField(
+		validator.TimeBetween(f.DateTimeIn, earliestDiveDate, latestDiveDate),
+		"date_time_in",
+		"This field must be between 1960-01-01 and today",
+	)
+
+	f.CheckField(
+		f.MaxDepth >= 4.0 && f.MaxDepth <= 350.0,
+		"max_depth",
+		"This field must be between 4 and 350 inclusive",
+	)
+
+	if f.AvgDepth != nil {
+		f.CheckField(
+			validator.NumBetween(*f.AvgDepth, 4.0, 350.0),
+			"avg_depth",
+			"This field must be between 4 and 350 inclusive",
+		)
+
+		f.CheckField(
+			f.MaxDepth > *f.AvgDepth,
+			"avg_depth",
+			"Average depth must be less than the max depth",
+		)
+	}
+
+	f.CheckField(
+		f.BottomTime >= 10 && f.BottomTime <= 1440,
+		"bottom_time",
+		"This field must be between 10 and 1,440 minutes inclusive",
+	)
+
+	if f.SafetyStop != nil {
+		f.CheckField(
+			*f.SafetyStop >= 0 && *f.SafetyStop <= 6,
+			"safety_stop",
+			"This field must be between 0 and 6 minutes inclusive",
+		)
+	}
+
+	if f.WaterTemp != nil {
+		f.CheckField(
+			*f.WaterTemp >= -3 && *f.WaterTemp <= 50,
+			"water_temp",
+			"This field must be between -3°C and 50°C inclusive",
+		)
+	}
+
+	if f.AirTemp != nil {
+		f.CheckField(
+			*f.AirTemp >= -90 && *f.AirTemp <= 60,
+			"air_temp",
+			"This field must be between -90°C and 60°C inclusive",
+		)
+	}
+
+	if f.Visibility != nil {
+		f.CheckField(
+			*f.Visibility >= 0.0 && *f.Visibility <= 80.0,
+			"visibility",
+			"This field must be between 0 and 80 metres inclusive",
+		)
+	}
+
+	if f.CurrentID != nil {
+		exists, err := app.currents.Exists(*f.CurrentID)
+		if err != nil {
+			return err
+		}
+		f.CheckField(exists, "current_id", "Invalid current type selected")
+	}
+
+	if f.WavesID != nil {
+		exists, err := app.waves.Exists(*f.WavesID)
+		if err != nil {
+			return err
+		}
+		f.CheckField(exists, "waves_id", "Invalid wave type selected")
+	}
+
+	if f.BuddyID != nil {
+		exists, err := app.buddies.Exists(*f.BuddyID)
+		if err != nil {
+			return err
+		}
+		f.CheckField(exists, "buddy_id", "Invalid dive buddy selected")
+	}
+
+	if f.BuddyRoleID != nil {
+		exists, err := app.buddyRoles.Exists(*f.BuddyRoleID)
+		if err != nil {
+			return err
+		}
+		f.CheckField(exists, "buddy_role_id", "Invalid buddy role selected")
+
+		f.CheckField(
+			f.BuddyID != nil,
+			"buddy_role_id",
+			"A buddy must be selected when this field is selected",
+		)
+	}
+
+	if f.Weight != nil {
+		f.CheckField(
+			*f.Weight >= 0.0 && *f.Weight <= 99.99,
+			"weight",
+			"This field must be between 0 and 99.99kg inclusive",
+		)
+	}
+
+	f.CheckField(
+		validator.MaxChars(f.WeightNotes, 1024),
+		"weight_notes",
+		"This field cannot be more than 1,024 characters long",
+	)
+
+	allExist, err := app.equipment.AllExist(f.EquipmentIDs)
+	if err != nil {
+		return err
+	}
+	f.CheckField(allExist, "equipment_ids", "Invalid equipment item(s) selected")
+
+	f.CheckField(
+		validator.MaxChars(f.EquipmentNotes, 1024),
+		"equipment_notes",
+		"This field cannot be more than 1,024 characters long",
+	)
+
+	exists, err = app.tankConfigurations.Exists(f.TankConfigurationID)
+	if err != nil {
+		return err
+	}
+	f.CheckField(exists, "tank_configuration_id", "Invalid tank configuration selected")
+
+	exists, err = app.tankMaterials.Exists(f.TankMaterialID)
+	if err != nil {
+		return err
+	}
+	f.CheckField(exists, "tank_material_id", "Invalid tank material selected")
+
+	f.CheckField(
+		f.TankVolume >= 2.0 && f.TankVolume <= 22.0,
+		"tank_volume",
+		"This field must be between 2 and 22 litres inclusive",
+	)
+
+	gasMix, err := app.gasMixes.GetOneByID(f.GasMixID)
+	if errors.Is(err, models.ErrNoRecord) {
+		f.CheckField(exists, "gas_mix_id", "Invalid gas mix selected")
+	} else if err != nil {
+		return err
+	}
+
+	switch gasMix.Name {
+	case "Air":
+		f.CheckField(f.FO2 == 0.21, "fo2", "FO₂ must be 0.21 when Air is selected")
+	case "Heliox":
+		f.CheckField(
+			validator.NumBetween(f.FO2, 0.04, 0.6),
+			"fo2",
+			"FO₂ must be between 0.04 and 0.6 when Heliox is selected",
+		)
+	case "Nitrox":
+		f.CheckField(
+			validator.NumBetween(f.FO2, 0.21, 0.6),
+			"fo2",
+			"FO₂ must be between 0.21 and 0.6 when Nitrox is selected",
+		)
+	case "Oxygen":
+		f.CheckField(f.FO2 == 1.0, "fo2", "FO₂ must be 1.0 when Oxygen is selected")
+	case "Trimix":
+		f.CheckField(
+			validator.NumBetween(f.FO2, 0.04, 0.6),
+			"fo2",
+			"FO₂ must be between 0.04 and 0.6 when Trimix is selected",
+		)
+	}
+
+	// Check the FO2 values range after the individual values as this will then
+	// take precedence over any gas-specific errors.
+	f.CheckField(
+		f.FO2 >= 0.04 && f.FO2 <= 1.0,
+		"fo2",
+		"This field must be between 0.04 (4%) and 1.0 (100%) inclusive",
+	)
+
+	if f.PressureIn != nil {
+		f.CheckField(
+			*f.PressureIn >= 150 && *f.PressureIn <= 1_000,
+			"pressure_in",
+			"This field must be between 150 and 1,000 bar inclusive",
+		)
+	}
+
+	if f.PressureOut != nil {
+		f.CheckField(
+			*f.PressureOut >= 0 && *f.PressureOut <= 1_000,
+			"pressure_out",
+			"This field must be between 0 and 1,000 bar inclusive",
+		)
+
+		if f.PressureIn != nil {
+			f.CheckField(
+				*f.PressureIn > *f.PressureOut,
+				"pressure_out",
+				"The end pressure must be less than the starting pressure",
+			)
+		}
+	}
+
+	f.CheckField(
+		validator.MaxChars(f.GasMixNotes, 1024),
+		"gas_mix_notes",
+		"This field cannot be more than 1,024 characters long",
+	)
+
+	exists, err = app.entryPoints.Exists(f.EntryPointID)
+	if err != nil {
+		return err
+	}
+	f.CheckField(exists, "entry_point_id", "Invalid entry point selected")
+
+	if f.Rating != nil {
+		f.CheckField(
+			*f.Rating >= 0 && *f.Rating <= 10,
+			"rating",
+			"This field must be between 0 and 10 inclusive",
+		)
+	}
+
+	allExist, err = app.diveProperties.AllExist(f.PropertyIDs)
+	if err != nil {
+		return err
+	}
+	f.CheckField(allExist, "property_ids", "Invalid dive properties selected")
+
+	f.CheckField(
+		validator.MaxChars(f.Notes, 65536),
+		"notes",
+		"This field cannot be more than 65,536 characters long",
+	)
+
+	return nil
+}
+
 func (app *app) diveCreateGET(w http.ResponseWriter, r *http.Request) {
 	data, err := app.newTemplateData(r)
 	if err != nil {
@@ -1091,7 +1402,12 @@ func (app *app) diveCreateGET(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data.Form = diveForm{MaxDepth: 5.0, BottomTime: 10, FO2: 0.21, TankVolume: 11.0}
+	data.Form = diveForm{
+		MaxDepth:   5,
+		BottomTime: 10,
+		FO2:        0.21,
+		TankVolume: 11.0,
+	}
 
 	err = app.addStaticdataToDiveForm(r, &data)
 	if err != nil {
@@ -1099,4 +1415,99 @@ func (app *app) diveCreateGET(w http.ResponseWriter, r *http.Request) {
 	}
 
 	app.render(w, r, http.StatusOK, "dive/form.tmpl", data)
+}
+
+func (app *app) diveCreatePOST(w http.ResponseWriter, r *http.Request) {
+	form := &diveForm{}
+	err := app.decodePOSTForm(r, form)
+	if err != nil {
+		app.log.Error("Error whilst decoding dive form input", "error", err.Error())
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	err = app.validateDiveForm(form)
+	if err != nil {
+		app.serverError(w, r, fmt.Errorf("failed to validate dive form: %w", err))
+		return
+	}
+
+	if !form.Valid() {
+		err = app.addStaticdataToDiveForm(r, &data)
+		if err != nil {
+			errMsg := "failed to load dive form static data: %w"
+			app.serverError(w, r, fmt.Errorf(errMsg, err))
+			return
+		}
+
+		data.Form = form
+		app.render(w, r, http.StatusUnprocessableEntity, "dive/form.tmpl", data)
+		return
+	}
+
+	id, err := app.dives.Insert(
+		app.contextGetUser(r).ID,
+		form.Number,
+		form.Activity,
+		form.DiveSiteID,
+		form.OperatorID,
+		form.PriceAmount,
+		form.CurrencyID,
+		form.TripID,
+		form.CertificationID,
+		form.DateTimeIn,
+		form.MaxDepth,
+		form.AvgDepth,
+		form.BottomTime,
+		form.SafetyStop,
+		form.WaterTemp,
+		form.AirTemp,
+		form.Visibility,
+		form.CurrentID,
+		form.WavesID,
+		form.BuddyID,
+		form.BuddyRoleID,
+		form.Weight,
+		form.WeightNotes,
+		form.EquipmentIDs,
+		form.EquipmentNotes,
+		form.TankConfigurationID,
+		form.TankMaterialID,
+		form.TankVolume,
+		form.GasMixID,
+		form.FO2,
+		form.PressureIn,
+		form.PressureOut,
+		form.GasMixNotes,
+		form.EntryPointID,
+		form.PropertyIDs,
+		form.Rating,
+		form.Notes,
+	)
+	if err != nil {
+		switch err {
+		case models.ErrDuplicateDiveNumber:
+			form.AddFieldError("number", "A dive has already been logged with this number")
+			err = app.addStaticdataToDiveForm(r, &data)
+			if err != nil {
+				errMsg := "failed to load dive form static data: %w"
+				app.serverError(w, r, fmt.Errorf(errMsg, err))
+				return
+			}
+			data.Form = form
+			app.render(w, r, http.StatusUnprocessableEntity, "dive/form.tmpl", data)
+		default:
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	nextUrl := fmt.Sprintf("/log-book/dive/view/%d", id)
+	http.Redirect(w, r, nextUrl, http.StatusSeeOther)
 }

@@ -72,6 +72,7 @@ func (nb nullableBuddy) ToStruct() *Buddy {
 }
 
 type BuddyModelInterface interface {
+	Exists(id int) (bool, error)
 	Insert(
 		ownerID int,
 		name string,
@@ -128,6 +129,10 @@ func buddyFromDBRow(rs RowScanner, totalRecords *int, bu *Buddy) error {
 
 type BuddyModel struct {
 	DB *sql.DB
+}
+
+func (m *BuddyModel) Exists(id int) (bool, error) {
+	return idExistsInTable(m.DB, id, "buddies", "id")
 }
 
 func (m *BuddyModel) Insert(
@@ -269,6 +274,7 @@ type BuddyRoleModel struct {
 }
 
 type BuddyRoleModelInterface interface {
+	Exists(id int) (bool, error)
 	List() ([]BuddyRole, error)
 }
 
@@ -280,6 +286,10 @@ var buddyRoleListQuery string = `
       from buddy_roles
   order by name
 `
+
+func (m *BuddyRoleModel) Exists(id int) (bool, error) {
+	return idExistsInTable(m.DB, id, "buddy_roles", "id")
+}
 
 func (m *BuddyRoleModel) List() ([]BuddyRole, error) {
 	// If the list of buddy roles has already been populated, then use it.

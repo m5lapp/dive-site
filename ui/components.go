@@ -177,7 +177,8 @@ func BSDateField(
 ) (template.HTML, error) {
 	fieldErr, _ := fieldErrs[name]
 
-	inputFormat := time.DateOnly
+	// inputFormat := time.DateOnly
+	inputFormat := "2006-01-02T15:04"
 	inputType := "date"
 	if withTime {
 		inputFormat = time.DateTime
@@ -210,7 +211,13 @@ func BSDateField(
 			g.If(required, Required()),
 			Min(minTime.Format(inputFormat)),
 			Max(maxTime.Format(inputFormat)),
-			g.If(value.IsZero() == true, Value(defaultTime.Format(inputFormat))),
+			Step("60"),
+			g.If(
+				value.IsZero() == true,
+				// By default, truncate the seconds to zero. This will make the
+				// date picker show just hours and minutes in the browser.
+				Value(defaultTime.Truncate(time.Minute).Format(inputFormat)),
+			),
 			g.If(value.IsZero() == false, Value(value.Format(inputFormat))),
 		),
 		g.If(

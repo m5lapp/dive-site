@@ -4,7 +4,7 @@ create table if not exists dives (
     created_at       timestamp(8)  with time zone not null default now(),
     updated_at       timestamp(8)  with time zone not null default now(),
     owner_id         bigint        not null references users(id) on delete cascade,
-    number           smallint      not null,
+    number           integer       not null,
     activity         varchar(256)  not null,
     dive_site_id     bigint        not null references dive_sites(id) on delete restrict,
     operator_id      bigint            null references operators(id) on delete restrict,
@@ -37,7 +37,7 @@ create table if not exists dives (
     gas_mix_notes    varchar(1024) not null default '',
     entry_point_id   smallint      not null references entry_points(id) on delete restrict,
     rating           smallint          null,
-    notes            text          not null default ''
+    notes            text          not null default '',
     unique (owner_id, number)
 );
 
@@ -51,7 +51,7 @@ create index if not exists dives_owner_id_idx on dives (owner_id);
 
 create table if not exists dive_equipment (
     dive_id      bigint   not null references dives(id) on delete cascade,
-    equipment_id smallint not null references entrypoints(id) on delete restrict,
+    equipment_id smallint not null references equipment(id) on delete restrict,
     primary key(dive_id, equipment_id)
 );
 

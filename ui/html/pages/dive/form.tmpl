@@ -13,7 +13,7 @@
 
     <h2>Main Details</h2>
 
-    <form method="post" action="/dive/add"
+    <form method="post" action="/log-book/dive/add"
           class="{{template "bootstrap_form_class" .}}"
           {{if .NoValidate}} novalidate{{end}}>
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -21,7 +21,8 @@
       <div class="row mb-4">
         {{bsNumFieldInt "number" "" "1" "100000" "1" .Form.Number true .Form.FieldErrors}}
 
-        {{bsDateField "date_time_in" "Date and Time" "1960-01-01" "now" "now" .Form.DateTimeIn true true .Form.FieldErrors}}
+        {{/* Add an extra day to cater for timezone differences. */}}
+        {{bsDateField "date_time_in" "Date and Time" "1960-01-01" "now+24h" "now" .Form.DateTimeIn true true .Form.FieldErrors}}
 
         <div class="col-sm">
           <label class="form-label" for="id_rating">Rating</label>
@@ -64,7 +65,7 @@
           {{end}}
         </div>
 
-        {{bsNumFieldF64Ptr "price" "" "0.0" "9999999999.99" "0.01" .Form.PriceAmount false .Form.FieldErrors}}
+        {{bsNumFieldF64Ptr "price_amount" "" "0.0" "9999999999.99" "0.01" .Form.PriceAmount false .Form.FieldErrors}}
 
         <div class="col-sm">
           <label class="form-label" for="id_currency_id">Currency</label>
@@ -315,9 +316,9 @@
 
       <div class="row mb-4">
         <div class="col-sm">
-          <label class="form-label" for="id_breathing_gas_id">Breathing Gas *</label>
-          <select {{template "form_field_common_attrs" "breathing_gas_id"}}
-                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.breathing_gas_id}}">
+          <label class="form-label" for="id_gas_mix_id">Breathing Gas *</label>
+          <select {{template "form_field_common_attrs" "gas_mix_id"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.gas_mix_id}}">
             {{range .GasMixes}}
               <option value="{{.ID}}"
                       {{$gasMix := .}}
@@ -330,12 +331,12 @@
               </option>
             {{end}}
           </select>
-          {{with .Form.FieldErrors.breathing_gas_id}}
-            <div class="invalid-feedback" id="id_breathing_gas_id_feedback">{{.}}</div>
+          {{with .Form.FieldErrors.gas_mix_id}}
+            <div class="invalid-feedback" id="id_gas_mix_id_feedback">{{.}}</div>
           {{end}}
         </div>
 
-        {{bsNumFieldF64 "fo2" "FO2" "0.04" "1.0" "0.001" .Form.FO2 true .Form.FieldErrors}}
+        {{bsNumFieldF64 "fo2" "FO₂" "0.04" "1.0" "0.001" .Form.FO2 true .Form.FieldErrors}}
       </div>
 
       <div class="row mb-4">
@@ -374,7 +375,7 @@
         </div>
 
         <div class="col-sm">
-          <label class="form-label" for="id_breathing_gas_id">Entry Point *</label>
+          <label class="form-label" for="id_entry_point_id">Entry Point *</label>
           <select {{template "form_field_common_attrs" "entry_point_id"}}
                   class="{{template "bootstrap_form_select_class" .Form.FieldErrors.entry_point_id}}">
             {{range .EntryPoints}}
@@ -421,8 +422,9 @@
             <option value="">---------</option>
             {{range .Buddies}}
               <option value="{{.ID}}"
+                      {{$buddy := .}}
                       {{with $.Form.BuddyID}}
-                        {{if eq .ID (derefInt $.Form.BuddyID -1)}}selected{{end}}
+                        {{if eq $buddy.ID (derefInt . -1)}}selected{{end}}
                       {{end}}>
                 {{.String}}
               </option>
@@ -434,14 +436,15 @@
         </div>
 
         <div class="col-sm">
-          <label class="form-label" for="id_buddy_id">Buddy Role</label>
+          <label class="form-label" for="id_buddy_role_id">Buddy Role</label>
           <select {{template "form_field_common_attrs" "buddy_role_id"}}
                   class="{{template "bootstrap_form_select_class" .Form.FieldErrors.buddy_role_id}}">
             <option value="">---------</option>
             {{range .BuddyRoles}}
               <option value="{{.ID}}"
+                      {{$buddyRole := .}}
                       {{with $.Form.BuddyRoleID}}
-                        {{if eq .ID (derefInt $.Form.BuddyRoleID -1)}}selected{{end}}
+                        {{if eq $buddyRole.ID (derefInt . -1)}}selected{{end}}
                       {{end}}>
                 {{.Name}}
               </option>

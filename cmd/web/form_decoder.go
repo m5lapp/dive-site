@@ -16,9 +16,11 @@ func FormDecoderRegisterTimeType(fd *form.Decoder, timeFormats []string) {
 		timeFormats = []string{
 			time.DateOnly,
 			time.TimeOnly,
-			time.DateTime,
+			"2006-01-02T15:04:05",
+			"2006-01-02T15:04",
 			time.RFC3339Nano,
 			time.RFC3339,
+			time.DateTime,
 		}
 	}
 

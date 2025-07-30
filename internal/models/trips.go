@@ -91,6 +91,7 @@ func (nt nullableTrip) ToStruct() *Trip {
 }
 
 type TripModelInterface interface {
+	Exists(id int) (bool, error)
 	Insert(
 		ownerID int,
 		name string,
@@ -194,6 +195,10 @@ func tripFromDBRow(rs RowScanner, totalRecords *int, tr *Trip) error {
 
 type TripModel struct {
 	DB *sql.DB
+}
+
+func (m *TripModel) Exists(id int) (bool, error) {
+	return idExistsInTable(m.DB, id, "trips", "id")
 }
 
 func (m *TripModel) Insert(

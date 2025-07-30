@@ -68,6 +68,7 @@ func (nc nullableCertification) ToStruct() *Certification {
 }
 
 type CertificationModelInterface interface {
+	Exists(id int) (bool, error)
 	Insert(
 		ownerID int,
 		courseID int,
@@ -207,6 +208,10 @@ func certificationFromDBRow(rs RowScanner, totalRecords *int, ce *Certification)
 
 type CertificationModel struct {
 	DB *sql.DB
+}
+
+func (m *CertificationModel) Exists(id int) (bool, error) {
+	return idExistsInTable(m.DB, id, "certifications", "id")
 }
 
 func (m *CertificationModel) Insert(

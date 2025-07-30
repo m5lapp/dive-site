@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -87,6 +86,7 @@ type DiveModelInterface interface {
 		pressureOut *int,
 		gasMixNotes string,
 		entryPointID int,
+		propertyIDs []int,
 		rating *int,
 		notes string,
 	) (int, error)
@@ -95,6 +95,9 @@ type DiveModelInterface interface {
 
 var diveSelectQuery string = `
     select count(*) over(),
+           -- dv.date_time_in - lag(
+           --    dv.date_time_in, 1
+           -- ) over (order by dv.date_time_in) surface_interval
            tr.id, tr.created_at, tr.updated_at, tr.owner_id, tr.name,
            tr.start_date, tr.end_date, tr.description, tr.rating
            op.id, op.created_at, op.updated_at, op.owner_id,
@@ -425,33 +428,41 @@ type DiveModel struct {
 	DB *sql.DB
 }
 
-func buildManyToManyInsert(
-	intermediateTable, parentCol, childCol string,
-	rowCount int,
-) (string, error) {
-	if rowCount == 0 {
-		return "", nil
-	}
+// adjustDiveTimeZone takes a time.Time d which can be in any time.Location and
+// adjusts it so that it represents the same time (i.e. without adjusting the
+// clock value), but in the Location of the DiveSite ID given in siteID, then
+// converted to UTC for storing in a database.
+func (m *DiveModel) adjustDiveTimeZone(
+	ctx context.Context,
+	d time.Time,
+	siteID int,
+) (time.Time, error) {
+	var siteTZStr string
+	siteTZQuery := "select timezone from dive_sites where id = $1"
 
-	var stmt strings.Builder
-	_, err := fmt.Fprintf(
-		&stmt,
-		"insert into %s (%s, %s) values ",
-		intermediateTable,
-		parentCol,
-		childCol,
-	)
-
+	err := m.DB.QueryRowContext(ctx, siteTZQuery, siteID).Scan(&siteTZStr)
 	if err != nil {
-		return "", err
+		errMsg := "failed to get dive site (id %d) time zone: %w"
+		return time.Time{}, fmt.Errorf(errMsg, siteID, err)
 	}
 
-	for i := 0; i < rowCount; i++ {
-		fmt.Fprintf(&stmt, "    ($1, $%d),", i+2)
+	siteTZ, err := time.LoadLocation(siteTZStr)
+	if err != nil {
+		errMsg := "failed to load dive site (id %d) time zone (%s): %w"
+		return time.Time{}, fmt.Errorf(errMsg, siteID, siteTZStr, err)
 	}
 
-	// Strip off the trailing comma.
-	return strings.TrimRight(stmt.String(), ","), nil
+	adjustedDate := time.Date(
+		d.Year(),
+		d.Month(),
+		d.Day(),
+		d.Hour(),
+		d.Minute(),
+		d.Second(),
+		d.Nanosecond(),
+		siteTZ,
+	)
+	return adjustedDate.UTC(), err
 }
 
 func (m *DiveModel) Insert(
@@ -465,8 +476,8 @@ func (m *DiveModel) Insert(
 	tripID *int,
 	certificationID *int,
 	dateTimeIn time.Time,
-	maxDepth int,
-	avgDepth *int,
+	maxDepth float64,
+	avgDepth *float64,
 	bottomTime int,
 	safetyStop *int,
 	waterTemp *int,
@@ -475,7 +486,7 @@ func (m *DiveModel) Insert(
 	currentID *int,
 	wavesID *int,
 	buddyID *int,
-	buddyRole *int,
+	buddyRoleID *int,
 	weight *float64,
 	weightNotes string,
 	equipmentIDs []int,
@@ -489,32 +500,43 @@ func (m *DiveModel) Insert(
 	pressureOut *int,
 	gasMixNotes string,
 	entryPointID int,
+	propertyIDs []int,
 	rating *int,
 	notes string,
 ) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	// Adjust the dateTimeIn so that it is in the same Location as the
+	// diveSiteID and converted to UTC.
+	dateTimeIn, err := m.adjustDiveTimeZone(ctx, dateTimeIn, diveSiteID)
+	if err != nil {
+		return 0, err
+	}
+
+	tx, err := m.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, fmt.Errorf("failed to start db transaction: %w", err)
+	}
+
 	stmt := `
         insert into dives (
             owner_id, number, activity, dive_site_id, operator_id, price,
             currency_id, trip_id, certification_id, date_time_in, max_depth,
             avg_depth, bottom_time, safety_stop, water_temp, air_temp,
-            visibility, current_id, waves_id, buddy_role_id, weight_used,
-            weight_notes, equipment_notes, tank_configuration_id,
+            visibility, current_id, waves_id, buddy_id, buddy_role_id,
+            weight_used, weight_notes, equipment_notes, tank_configuration_id,
             tank_material_id, tank_volume, gas_mix_id, fo2, pressure_in,
             pressure_out, gas_mix_notes, entry_point_id, rating, notes
         ) values (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
             $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28,
-            $29, $30, $31, $32, $33, $34
+            $29, $30, $31, $32, $33, $34, $35
         )
         returning id
     `
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
-	// TODO: Also insert equipmentIDs and propertyIDs as part of a TRANSACTION.
-
-	result := m.DB.QueryRowContext(
+	result := tx.QueryRowContext(
 		ctx,
 		stmt,
 		ownerID,
@@ -537,7 +559,7 @@ func (m *DiveModel) Insert(
 		currentID,
 		wavesID,
 		buddyID,
-		buddyRole,
+		buddyRoleID,
 		weight,
 		weightNotes,
 		equipmentNotes,
@@ -555,17 +577,55 @@ func (m *DiveModel) Insert(
 	)
 
 	var diveID int
-	err := result.Scan(&diveID)
+	err = result.Scan(&diveID)
 	if err != nil {
-		return 0, err
+		_ = tx.Rollback()
+		switch err.Error() {
+		case `pq: duplicate key value violates unique constraint "dives_owner_id_number_key"`:
+			return 0, ErrDuplicateDiveNumber
+		default:
+			return 0, err
+		}
 	}
 
-	// stmtEquipment := buildManyToManyInsert(
-	// 	"dive_equipment",
-	// 	"dive_id",
-	// 	"equipment_id",
-	// 	len(equipmentIDs),
-	// )
+	if len(equipmentIDs) > 0 {
+		err = insertManyToManyIDs(
+			ctx,
+			tx,
+			"dive_equipment",
+			"dive_id",
+			"equipment_id",
+			diveID,
+			equipmentIDs,
+		)
+
+		if err != nil {
+			_ = tx.Rollback()
+			return 0, err
+		}
+	}
+
+	if len(propertyIDs) > 0 {
+		err = insertManyToManyIDs(
+			ctx,
+			tx,
+			"dive_dive_properties",
+			"dive_id",
+			"property_id",
+			diveID,
+			propertyIDs,
+		)
+
+		if err != nil {
+			_ = tx.Rollback()
+			return 0, err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 0, fmt.Errorf("failed to commit db transaction: %w", err)
+	}
 
 	return diveID, nil
 }

@@ -22,7 +22,7 @@ drop table if exists equipment;
 
 --------------------------------------------------------------------------------
 
-drop table if exists entrypoints;
+drop table if exists entry_points;
 
 --------------------------------------------------------------------------------
 
