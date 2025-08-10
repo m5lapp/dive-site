@@ -27,6 +27,7 @@ func (app *app) routes() http.Handler {
 	mux.Handle("POST /user/log-in", dynamic.ThenFunc(app.userLogInPOST))
 	mux.Handle("POST /user/log-out", protected.ThenFunc(app.userLogOutPOST))
 
+	mux.Handle("GET  /log-book/dive/", protected.ThenFunc(app.diveList))
 	mux.Handle("GET  /log-book/dive/add", protected.ThenFunc(app.diveCreateGET))
 	mux.Handle("POST /log-book/dive/add", protected.ThenFunc(app.diveCreatePOST))
 	mux.Handle("GET  /log-book/dive/view/{id}", protected.ThenFunc(app.diveGET))

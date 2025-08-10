@@ -149,6 +149,7 @@ type templateData struct {
 	CurrentYear        int
 	DarkMode           bool
 	Dive               models.Dive
+	Dives              []models.Dive
 	DiveProperties     []models.DiveProperty
 	DiveSite           models.DiveSite
 	DiveSites          []models.DiveSite

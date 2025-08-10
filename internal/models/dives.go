@@ -809,11 +809,11 @@ func (m *DiveModel) Insert(
 func (m *DiveModel) List(userID int, filters ListFilters) ([]Dive, PageData, error) {
 	limit := filters.limit()
 	offset := filters.offset()
-	stmt := fmt.Sprintf("%s limit $1 offset $2", diveSelectQuery)
+	stmt := fmt.Sprintf("%s order by date_time_in desc limit $2 offset $3", diveSelectQuery)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, stmt, limit, offset)
+	rows, err := m.DB.QueryContext(ctx, stmt, userID, limit, offset)
 	if err != nil {
 		return nil, PageData{}, err
 	}

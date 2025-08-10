@@ -1540,3 +1540,29 @@ func (app *app) diveGET(w http.ResponseWriter, r *http.Request) {
 
 	app.render(w, r, http.StatusOK, "dive/view.tmpl", data)
 }
+
+func (app *app) diveList(w http.ResponseWriter, r *http.Request) {
+	const defaultPageSize = 20
+
+	user := app.contextGetUser(r)
+	page := app.readInt(r.URL.Query(), "page", 1)
+	pageSize := app.readInt(r.URL.Query(), "page_size", defaultPageSize)
+
+	filters := models.NewListFilters(page, pageSize, defaultPageSize)
+
+	records, pageData, err := app.dives.List(user.ID, filters)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	data.Dives = records
+	data.PageData = pageData
+
+	app.render(w, r, http.StatusOK, "dive/list.tmpl", data)
+}
