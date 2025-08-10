@@ -360,7 +360,7 @@ type EntryPoint struct {
 }
 
 func (_ EntryPoint) tableName() string {
-	return "entrypoints"
+	return "entry_points"
 }
 
 // Equipment.

@@ -39,7 +39,7 @@ func (nc nullableCurrency) ToStruct() *Currency {
 
 	return &Currency{
 		ID:        *nc.ID,
-		ISOAlpha:  *nc.Name,
+		ISOAlpha:  *nc.ISOAlpha,
 		ISONumber: *nc.ISONumber,
 		Name:      *nc.Name,
 		Exponent:  *nc.Exponent,

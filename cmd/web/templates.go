@@ -128,6 +128,7 @@ var functions = template.FuncMap{
 	"bsNumFieldIntPtr":  ui.BSNumFieldPtr[int],
 	"bsTextField":       ui.BSTextField,
 	"derefInt":          deref[int],
+	"derefF64":          deref[float64],
 	"getOSTimeZones":    getOSTimeZones,
 	"intRange":          intRange,
 	"isoCountryToEmoji": isoCountryToEmoji,
@@ -147,6 +148,7 @@ type templateData struct {
 	Currents           []models.Current
 	CurrentYear        int
 	DarkMode           bool
+	Dive               models.Dive
 	DiveProperties     []models.DiveProperty
 	DiveSite           models.DiveSite
 	DiveSites          []models.DiveSite

@@ -15,8 +15,8 @@ type RowScanner interface {
 	Scan(dest ...any) error
 }
 
-// TimeZone embedds a time.Location struct to represent a time zone location
-// that can be saved and fetched from a SQL database.
+// TimeZone embeds a time.Location struct to represent a time zone location that
+// can be saved and fetched from a SQL database.
 type TimeZone struct {
 	time.Location
 }
@@ -62,7 +62,7 @@ func (tz *TimeZone) Scan(value any) error {
 }
 
 // Value implements the database/sql/driver.Valuer interface. It returns a
-// a string representation of a time.Location from the TimeZone struct, suitable
+// string representation of a time.Location from the TimeZone struct, suitable
 // for storing in a SQL database.
 func (tz TimeZone) Value() (driver.Value, error) {
 	strValue := fmt.Sprint(&tz.Location)

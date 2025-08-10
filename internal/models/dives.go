@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -21,6 +22,7 @@ type Dive struct {
 	Trip              *Trip
 	Certification     *Certification
 	DateTimeIn        time.Time
+	SurfaceInterval   *time.Duration
 	MaxDepth          float64
 	AvgDepth          *float64
 	BottomTime        int
@@ -50,7 +52,40 @@ type Dive struct {
 	Notes             string
 }
 
+func (d Dive) DateTimeOut() time.Time {
+	diveDuration := time.Duration(d.BottomTime) * time.Minute
+	return d.DateTimeIn.Add(diveDuration)
+}
+
+func (d Dive) PressureDelta() int {
+	if d.PressureIn == nil || d.PressureOut == nil {
+		return 0
+	}
+
+	return *d.PressureIn - *d.PressureOut
+}
+
+func (d Dive) GasUsed() float64 {
+	if d.PressureDelta() == 0 {
+		return 0.0
+	}
+
+	tankCount := 1.0
+
+	switch d.TankConfiguration.Name {
+	case "Single Tank":
+		tankCount = 1.0
+	case "Sidemount", "Twinset":
+		tankCount = 2.0
+	default:
+		return 0.0
+	}
+
+	return tankCount * d.TankVolume * float64(d.PressureDelta())
+}
+
 type DiveModelInterface interface {
+	GetOneByID(ownerID, id int) (Dive, error)
 	Insert(
 		ownerID int,
 		number int,
@@ -95,31 +130,134 @@ type DiveModelInterface interface {
 
 var diveSelectQuery string = `
     select count(*) over(),
-           -- dv.date_time_in - lag(
-           --    dv.date_time_in, 1
-           -- ) over (order by dv.date_time_in) surface_interval
-           tr.id, tr.created_at, tr.updated_at, tr.owner_id, tr.name,
-           tr.start_date, tr.end_date, tr.description, tr.rating
+           dv.id, dv.version, dv.created_at, dv.updated_at, dv.owner_id,
+           dv.number, dv.activity,
+           ds.id, ds.version, ds.created_at, ds.updated_at,
+           ds.owner_id, ds.name, ds.alt_name, ds.location, ds.region,
+           ds.timezone, ds.latitude, ds.longitude, ds.altitude, ds.max_depth,
+           ds.notes, ds.rating, dsco.id, dsco.name, dsco.iso_number,
+           dsco.iso2_code, dsco.iso3_code, dsco.dialing_code, dsco.capital,
+           dscu.id, dscu.iso_alpha, dscu.iso_number, dscu.name, dscu.exponent,
+           wb.id, wb.name, wb.description, wt.id, wt.name, wt.description,
+           wt.density,
            op.id, op.created_at, op.updated_at, op.owner_id,
-           ot.id, ot.name, ot.description,
+           opot.id, opot.name, opot.description,
            op.name, op.street, op.suburb, op.state, op.postcode,
-           oc.id, oc.name, oc.iso_number, oc.iso2_code,
-           oc.iso3_code, oc.dialing_code, oc.capital,
-           ou.id, ou.iso_alpha, ou.iso_number, ou.name, ou.exponent,
-           op.website_url, op.email_address, op.phone_number, op.comments
+           opco.id, opco.name, opco.iso_number, opco.iso2_code,
+           opco.iso3_code, opco.dialing_code, opco.capital,
+           opcu.id, opcu.iso_alpha, opcu.iso_number, opcu.name, opcu.exponent,
+           op.website_url, op.email_address, op.phone_number, op.comments,
+           dv.price, prcu.id, prcu.iso_alpha, prcu.iso_number, prcu.name,
+           prcu.exponent,
+           tr.id, tr.created_at, tr.updated_at, tr.owner_id, tr.name,
+           tr.start_date, tr.end_date, tr.description, tr.rating,
+           trop.id, trop.created_at, trop.updated_at, trop.owner_id,
+           trot.id, trot.name, trot.description,
+           trop.name, trop.street, trop.suburb, trop.state, trop.postcode,
+           troc.id, troc.name, troc.iso_number, troc.iso2_code,
+           troc.iso3_code, troc.dialing_code, troc.capital,
+           trou.id, trou.iso_alpha, trou.iso_number, trou.name, trou.exponent,
+           trop.website_url, trop.email_address, trop.phone_number,
+           trop.comments,
            tr.price,
-           cu.id, cu.iso_alpha, cu.iso_number, cu.name, cu.exponent,
-           tr.notes
-      from trips tr
- left join operators      op on tr.operator_id = op.id
- left join operator_types ot on op.operator_type_id = op.id
- left join countries      oc on op.country_id = oc.id
- left join currencies     ou on oc.currency_id = ou.id
- left join currencies     cu on tr.currency_id = cu.id
-     where tr.owner_id = $1
+           trcu.id, trcu.iso_alpha, trcu.iso_number, trcu.name, trcu.exponent,
+           tr.notes,
+           ce.id, ce.created_at, ce.updated_at, ce.owner_id,
+           ceac.id,
+           ceag.id, ceag.common_name, ceag.full_name, ceag.acronym, ceag.url,
+           ceac.name, ceac.url, ceac.is_specialty_course, ceac.is_tech_course,
+           ceac.is_pro_course,
+           ce.start_date, ce.end_date,
+           ceop.id, ceop.created_at, ceop.updated_at, ceop.owner_id,
+           ceot.id, ceot.name, ceot.description,
+           ceop.name, ceop.street, ceop.suburb, ceop.state, ceop.postcode,
+           ceoc.id, ceoc.name, ceoc.iso_number, ceoc.iso2_code,
+           ceoc.iso3_code, ceoc.dialing_code, ceoc.capital,
+           ceou.id, ceou.iso_alpha, ceou.iso_number, ceou.name, ceou.exponent,
+           ceop.website_url, ceop.email_address, ceop.phone_number,
+           ceop.comments,
+           cebu.id, cebu.version, cebu.created_at, cebu.updated_at,
+           cebu.owner_id, cebu.name, cebu.email, cebu.phone_number,
+           ceba.id, ceba.common_name, ceba.full_name, ceba.acronym,
+           ceba.url,
+           cebu.agency_member_num, cebu.notes,
+           ce.price,
+           cecu.id, cecu.iso_alpha, cecu.iso_number, cecu.name, cecu.exponent,
+           ce.rating, ce.notes,
+           dv.date_time_in,
+           si.surface_interval,
+           dv.max_depth, dv.avg_depth, dv.bottom_time, dv.safety_stop,
+           dv.water_temp, dv.air_temp, dv.visibility,
+           cu.id, cu.sort, cu.is_default, cu.name, cu.description,
+           wv.id, wv.sort, wv.is_default, wv.name, wv.description,
+           bu.id, bu.version, bu.created_at, bu.updated_at, bu.owner_id,
+           bu.name, bu.email, bu.phone_number,
+           buag.id, buag.common_name, buag.full_name, buag.acronym, buag.url,
+           bu.agency_member_num, bu.notes,
+           br.id, br.name, br.description,
+           dv.weight_used, dv.weight_notes, dv.equipment_notes,
+           tc.id, tc.sort, tc.is_default, tc.name, tc.description,
+           tm.id, tm.sort, tm.is_default, tm.name, tm.description,
+           dv.tank_volume,
+           gm.id, gm.sort, gm.is_default, gm.name, gm.description,
+           dv.fo2, dv.pressure_in, dv.pressure_out, dv.gas_mix_notes,
+           ep.id, ep.sort, ep.is_default, ep.name, ep.description,
+           dv.rating, dv.notes
+      from dives dv
+inner join (
+    -- Calculate the surface interval which we take to be the length of time
+    -- since the last logged dive for that user. As the lag function is only run
+    -- against the results within the query window, then in order to do this
+    -- accurately, we need to run a full table subquery and get the result from
+    -- there. The result is multiplied by 10^9 in order to get the value in
+    -- nanoseconds.
+    select id, (
+        extract(epoch from age(
+            date_time_in,
+            lag(date_time_in, 1) over (
+                partition by owner_id order by date_time_in
+        ))) * 10^9)::bigint surface_interval
+      from dives             ) si   on dv.id = si.id
+ left join dive_sites          ds   on dv.dive_site_id = ds.id
+ left join countries           dsco on ds.country_id = dsco.id
+ left join currencies          dscu on dsco.currency_id = dscu.id
+ left join water_bodies        wb   on ds.water_body_id = wb.id
+ left join water_types         wt   on ds.water_type_id = wt.id
+ left join operators           op   on dv.operator_id = op.id
+ left join operator_types      opot on op.operator_type_id = opot.id
+ left join countries           opco on op.country_id = opco.id
+ left join currencies          opcu on opco.currency_id = opcu.id
+ left join currencies          prcu on dv.currency_id = prcu.id
+ left join trips               tr   on dv.trip_id = tr.id
+ left join operators           trop on tr.operator_id = trop.id
+ left join operator_types      trot on trop.operator_type_id = trot.id
+ left join countries           troc on trop.country_id = troc.id
+ left join currencies          trou on troc.currency_id = trou.id
+ left join currencies          trcu on tr.currency_id = trcu.id
+ left join certifications      ce   on dv.certification_id = ce.id
+ left join agency_courses      ceac on ce.course_id = ceac.id
+ left join agencies            ceag on ceac.agency_id = ceag.id
+ left join operators           ceop on ce.operator_id = ceop.id
+ left join operator_types      ceot on ceop.operator_type_id = ceot.id
+ left join countries           ceoc on ceop.country_id = ceoc.id
+ left join currencies          ceou on ceoc.currency_id = ceou.id
+ left join buddies             cebu on ce.instructor_id = cebu.id
+ left join agencies            ceba on cebu.agency_id = ceba.id
+ left join currencies          cecu on ce.currency_id = cecu.id
+ left join currents            cu   on dv.current_id = cu.id
+ left join waves               wv   on dv.waves_id = wv.id
+ left join buddies             bu   on dv.buddy_id = bu.id
+ left join agencies            buag on bu.agency_id = buag.id
+ left join buddy_roles         br   on dv.buddy_role_id = br.id
+ left join tank_configurations tc   on dv.tank_configuration_id = tc.id
+ left join tank_materials      tm   on dv.tank_material_id = tm.id
+ left join gas_mixes           gm   on dv.gas_mix_id = gm.id
+ left join entry_points        ep   on dv.entry_point_id = ep.id
+     where dv.owner_id = $1
 `
 
 func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
+	var surfaceInterval *int64
 	op := nullableOperator{}
 	pr := nullablePrice{}
 	tr := nullableTrip{}
@@ -128,10 +266,6 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 	wv := nullableStaticDataItem{}
 	bu := nullableBuddy{}
 	br := nullableBuddyRole{}
-	tc := nullableStaticDataItem{}
-	tm := nullableStaticDataItem{}
-	gm := nullableStaticDataItem{}
-	ep := nullableStaticDataItem{}
 
 	err := rs.Scan(
 		totalRecords,
@@ -203,6 +337,10 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 		&op.Country.Currency.ISONumber,
 		&op.Country.Currency.Name,
 		&op.Country.Currency.Exponent,
+		&op.WebsiteURL,
+		&op.EmailAddress,
+		&op.PhoneNumber,
+		&op.Comments,
 
 		// Dive price.
 		&pr.Amount,
@@ -246,6 +384,10 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 		&tr.Operator.Country.Currency.ISONumber,
 		&tr.Operator.Country.Currency.Name,
 		&tr.Operator.Country.Currency.Exponent,
+		&tr.Operator.WebsiteURL,
+		&tr.Operator.EmailAddress,
+		&tr.Operator.PhoneNumber,
+		&tr.Operator.Comments,
 		&tr.Price.Amount,
 		&tr.Price.Currency.ID,
 		&tr.Price.Currency.ISOAlpha,
@@ -296,6 +438,10 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 		&ce.Operator.Country.Currency.ISONumber,
 		&ce.Operator.Country.Currency.Name,
 		&ce.Operator.Country.Currency.Exponent,
+		&ce.Operator.WebsiteURL,
+		&ce.Operator.EmailAddress,
+		&ce.Operator.PhoneNumber,
+		&ce.Operator.Comments,
 		&ce.Instructor.ID,
 		&ce.Instructor.Version,
 		&ce.Instructor.Created,
@@ -321,6 +467,7 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 		&ce.Notes,
 
 		&dv.DateTimeIn,
+		&surfaceInterval,
 		&dv.MaxDepth,
 		&dv.AvgDepth,
 		&dv.BottomTime,
@@ -370,27 +517,27 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 		&dv.EquipmentNotes,
 
 		// Tank configuration.
-		&tc.ID,
-		&tc.Sort,
-		&tc.IsDefault,
-		&tc.Name,
-		&tc.Description,
+		&dv.TankConfiguration.ID,
+		&dv.TankConfiguration.Sort,
+		&dv.TankConfiguration.IsDefault,
+		&dv.TankConfiguration.Name,
+		&dv.TankConfiguration.Description,
 
 		// Tank material.
-		&tm.ID,
-		&tm.Sort,
-		&tm.IsDefault,
-		&tm.Name,
-		&tm.Description,
+		&dv.TankMaterial.ID,
+		&dv.TankMaterial.Sort,
+		&dv.TankMaterial.IsDefault,
+		&dv.TankMaterial.Name,
+		&dv.TankMaterial.Description,
 
 		&dv.TankVolume,
 
 		// Gas mix.
-		&gm.ID,
-		&gm.Sort,
-		&gm.IsDefault,
-		&gm.Name,
-		&gm.Description,
+		&dv.GasMix.ID,
+		&dv.GasMix.Sort,
+		&dv.GasMix.IsDefault,
+		&dv.GasMix.Name,
+		&dv.GasMix.Description,
 
 		&dv.FO2,
 		&dv.PressureIn,
@@ -398,11 +545,11 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 		&dv.GasMixNotes,
 
 		// Entry point.
-		&ep.ID,
-		&ep.Sort,
-		&ep.IsDefault,
-		&ep.Name,
-		&ep.Description,
+		&dv.EntryPoint.ID,
+		&dv.EntryPoint.Sort,
+		&dv.EntryPoint.IsDefault,
+		&dv.EntryPoint.Name,
+		&dv.EntryPoint.Description,
 
 		&dv.Rating,
 		&dv.Notes,
@@ -414,12 +561,20 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 
 	dv.Operator = op.ToStruct()
 	dv.Price = pr.ToStruct()
+	dv.Trip = tr.ToStruct()
+	dv.Certification = ce.ToStruct()
 	dv.Current = nullableStaticDataItemToStruct[Current](cu)
 	dv.Waves = nullableStaticDataItemToStruct[Waves](wv)
-	dv.TankConfiguration = *nullableStaticDataItemToStruct[TankConfiguration](tc)
-	dv.TankMaterial = *nullableStaticDataItemToStruct[TankMaterial](tm)
-	dv.GasMix = *nullableStaticDataItemToStruct[GasMix](gm)
-	dv.EntryPoint = *nullableStaticDataItemToStruct[EntryPoint](ep)
+	dv.Buddy = bu.ToStruct()
+	dv.BuddyRole = br.ToStruct()
+
+	// Adjust the Dive's DateTimeIn from UTC to the time zone of the dive site.
+	dv.DateTimeIn = dv.DateTimeIn.In(&dv.DiveSite.TimeZone.Location)
+
+	if surfaceInterval != nil {
+		si := time.Duration(*surfaceInterval * int64(time.Nanosecond))
+		dv.SurfaceInterval = &si
+	}
 
 	return nil
 }
@@ -463,6 +618,27 @@ func (m *DiveModel) adjustDiveTimeZone(
 		siteTZ,
 	)
 	return adjustedDate.UTC(), err
+}
+
+func (m *DiveModel) GetOneByID(ownerID, id int) (Dive, error) {
+	stmt := fmt.Sprintf("%s and dv.id = $2", diveSelectQuery)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	var totalRecords int
+	var dive Dive
+	row := m.DB.QueryRowContext(ctx, stmt, ownerID, id)
+	err := diveFromDBRow(row, &totalRecords, &dive)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Dive{}, ErrNoRecord
+		} else {
+			return Dive{}, err
+		}
+	}
+
+	return dive, nil
 }
 
 func (m *DiveModel) Insert(

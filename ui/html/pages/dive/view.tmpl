@@ -1,0 +1,294 @@
+{{define "title"}}
+  #{{.Dive.Number}} {{.Dive.DiveSite.Name}}, {{.Dive.DiveSite.Location}},
+  {{with .Dive.DiveSite.Region}}{{.}},{{end}}
+  {{.Dive.DateTimeIn.Format "2006-01-02"}}
+{{end}}
+
+{{define "heading"}}
+  {{isoCountryToEmoji .Dive.DiveSite.Country.ISO2Code}}
+  #{{.Dive.Number}} {{.Dive.DiveSite.Name}}, {{.Dive.DiveSite.Location}},
+  {{with .Dive.DiveSite.Region}}{{.}},{{end}}
+  {{.Dive.DateTimeIn.Format "2006-01-02"}}
+{{end}}
+
+{{define "main"}}
+  <section>
+
+    <div class="row mt-5">
+      <h2>General</h2>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Date</h4>
+          <p class="mb-1">{{.Dive.DateTimeIn.Format "2006-01-02"}}</p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Rating</h4>
+          <p class="mb-1">
+            {{if .Dive.Rating}}{{.Dive.Rating}}/10{{else}}-{{end}}
+          </p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Time</h4>
+          <p class="mb-1">
+            {{.Dive.DateTimeIn.Format "15:04"}} to
+            {{(.Dive.DateTimeOut).Format "15:04 MST"}}
+          </p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Surface Interval</h4>
+          <p class="mb-1">
+            {{with .Dive.SurfaceInterval}}{{.String}}{{else}}-{{end}}
+          </p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Activity</h4>
+          <p class="mb-1">{{.Dive.Activity}}</p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Bottom Time</h4>
+          <p class="mb-1">{{.Dive.BottomTime}} minutes</p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Dive Site</h4>
+          <p class="mb-1">
+            <a href="/log-book/dive-site/view/{{.Dive.DiveSite.ID}}">
+              {{.Dive.DiveSite.Name}}
+            </a>
+            {{if and .Dive.DiveSite.Latitude .Dive.DiveSite.Longitude}}
+              (<a href="http://www.google.com/maps/place/
+                  {{- printf "%f" (derefF64 .Dive.DiveSite.Latitude 0.0)}},
+                  {{- printf "%f" (derefF64 .Dive.DiveSite.Longitude 0.0)}}"
+                  target="_blank">map</a>)
+            {{end}}
+          </p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Depth</h4>
+          <p class="mb-1">
+            {{.Dive.MaxDepth}}m (max)
+            {{with .Dive.AvgDepth}} / {{.}}m (avg){{end}}
+          </p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Operator</h4>
+          <p class="mb-1">
+            {{with .Dive.Operator}}
+              {{if .WebsiteURL}}
+                <a href="{{.WebsiteURL}}">{{.}}</a>
+              {{else}}
+                {{.}}
+              {{end}}
+            {{else}}
+              -
+            {{end}}
+          </p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Safety Stop</h4>
+          <p class="mb-1">
+            {{with .Dive.SafetyStop}}{{.}} minutes{{else}}-{{end}}
+          </p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Price</h4>
+          <p class="mb-1">
+            {{with .Dive.Price}}{{.Currency.ISOAlpha}} {{.Amount}}{{else}}-{{end}}
+          </p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Temperature</h4>
+          <p class="mb-1">
+            {{if or .Dive.AirTemp .Dive.WaterTemp}}
+              {{if .Dive.AirTemp}}{{.Dive.AirTemp}}°C (air){{end}}
+              {{if .Dive.WaterTemp}}{{.Dive.WaterTemp}}°C (water){{end}}
+            {{else}}
+              -
+            {{end}}
+          </p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Trip</h4>
+          <p class="mb-1">
+            {{with .Dive.Trip}}{{.}}{{else}}-{{end}}
+          </p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Visibility</h4>
+          <p class="mb-1">
+            {{with .Dive.Visibility}}{{.}} metres{{else}}-{{end}}
+          </p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Course</h4>
+          <p class="mb-1">
+            {{with .Dive.Certification}}
+              {{if .Course.URL}}
+                <a href="{{.Course.URL}}">{{.Course.Name}}</a>
+                ({{.StartDate.Format "2006-01-02"}} to
+                {{.EndDate.Format "2006-01-02"}})
+              {{else}}
+                {{.}}
+              {{end}}
+            {{else}}
+              -
+            {{end}}
+          </p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Current</h4>
+          <p class="mb-1">
+            {{with .Dive.Current}}{{.}}{{else}}-{{end}}
+          </p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">
+            Signature{{with .Dive.BuddyRole}} ({{.Name}}){{end}}
+          </h4>
+          <p class="mb-1">
+            {{with .Dive.Buddy}}{{.}}{{else}}-{{end}}
+          </p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Waves</h4>
+          <p class="mb-1">
+            {{with .Dive.Waves}}{{.}}{{else}}-{{end}}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-5">
+      <h2>Equipment</h2>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Equipment</h4>
+          <p class="mb-1">
+            {{with .Dive.Equipment}}
+              <ul>
+                {{range .}}
+                  <li>{{.Name}}</li>
+                {{end}}
+              </ul>
+            {{else}}
+              -
+            {{end}}
+          </p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Weight</h4>
+          <p class="mb-1">
+            {{with .Dive.Weight}}{{.}}kg{{else}}-{{end}}
+          </p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Equipment Notes</h4>
+          <p class="mb-1">
+            {{with .Dive.EquipmentNotes}}{{.}}{{else}}-{{end}}
+          </p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Weight Notes</h4>
+          <p class="mb-1">
+            {{with .Dive.WeightNotes}}{{.}}{{else}}-{{end}}
+          </p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Breathing Gas</h4>
+          <p class="mb-1">
+            {{.Dive.GasMix.Name}} ({{.Dive.FO2}} FO<sub>2</sub>)
+          </p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Pressure In</h4>
+          <p class="mb-1">
+            {{with .Dive.PressureIn}}{{.}} bar{{else}}-{{end}}
+          </p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Gas Used</h4>
+          <p class="mb-1">
+            {{if .Dive.GasUsed}}
+              {{.Dive.GasUsed}} litres ({{.Dive.PressureDelta}} bar)
+            {{else}}
+              -
+            {{end}}
+          </p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Pressure Out</h4>
+          <p class="mb-1">
+            {{with .Dive.PressureOut}}{{.}} bar{{else}}-{{end}}
+          </p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Tank Configuration</h4>
+          <p class="mb-1">
+            {{.Dive.TankConfiguration}}
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Breathing Gas Notes</h4>
+          <p class="mb-1">
+            {{with .Dive.GasMixNotes}}{{.}}{{else}}-{{end}}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-5">
+      <h2>Properties</h2>
+
+    </div>
+
+    <div class="row mt-5">
+      <h2>Notes</h2>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <blockquote class="mb-1">
+            {{with .Dive.Notes}}{{.}}{{else}}-{{end}}
+          </blockquote>
+        </div>
+      </div>
+    </div>
+    </div>
+  </section>
+{{end}}
+

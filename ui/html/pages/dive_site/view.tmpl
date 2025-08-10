@@ -37,9 +37,12 @@
           <h4 class="mb-1">Latitude/Longitude</h4>
           <p class="mb-1">
             {{if and .DiveSite.Latitude .DiveSite.Longitude}}
-              <a href="http://www.google.com/maps/place/{{.DiveSite.Latitude}},{{.DiveSite.Longitude}}"
+              <a href="http://www.google.com/maps/place/
+                  {{- printf "%f" (derefF64 .DiveSite.Latitude 0.0)}},
+                  {{- printf "%f" (derefF64 .DiveSite.Longitude 0.0)}}"
                 target="_blank">
-                {{.DiveSite.Latitude}}, {{.DiveSite.Longitude}}
+                  {{- printf "%f" (derefF64 .DiveSite.Latitude 0.0)}},
+                  {{printf "%f" (derefF64 .DiveSite.Longitude 0.0)}}
               </a>
             {{else}}
               -

@@ -411,7 +411,7 @@ func (app *app) diveSiteList(w http.ResponseWriter, r *http.Request) {
 	app.render(w, r, http.StatusOK, "dive_site/list.tmpl", data)
 }
 
-func (app *app) diveSiteGet(w http.ResponseWriter, r *http.Request) {
+func (app *app) diveSiteGET(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil || id < 1 {
 		http.NotFound(w, r)
@@ -1510,4 +1510,33 @@ func (app *app) diveCreatePOST(w http.ResponseWriter, r *http.Request) {
 
 	nextUrl := fmt.Sprintf("/log-book/dive/view/%d", id)
 	http.Redirect(w, r, nextUrl, http.StatusSeeOther)
+}
+
+func (app *app) diveGET(w http.ResponseWriter, r *http.Request) {
+	user := app.contextGetUser(r)
+
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || id < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	dive, err := app.dives.GetOneByID(user.ID, id)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	data.Dive = dive
+
+	app.render(w, r, http.StatusOK, "dive/view.tmpl", data)
 }

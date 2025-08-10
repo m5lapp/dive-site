@@ -44,7 +44,11 @@ type DiveSite struct {
 }
 
 func (ds DiveSite) String() string {
-	return fmt.Sprintf("%s, %s, %s", ds.Country.Name, ds.Location, ds.Name)
+	if ds.Region == "" {
+		return fmt.Sprintf("%s, %s, %s", ds.Country.Name, ds.Location, ds.Name)
+	}
+
+	return fmt.Sprintf("%s, %s, %s, %s", ds.Country.Name, ds.Location, ds.Region, ds.Name)
 }
 
 type DiveSiteModelInterface interface {
