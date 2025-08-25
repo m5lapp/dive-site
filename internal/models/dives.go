@@ -214,7 +214,7 @@ inner join (
     select id, (
         extract(epoch from age(
             date_time_in,
-            lag(date_time_in, 1) over (
+            lag(date_time_in + make_interval(mins => bottom_time), 1) over (
                 partition by owner_id order by date_time_in
         ))) * 10^9)::bigint surface_interval
       from dives             ) si   on dv.id = si.id
