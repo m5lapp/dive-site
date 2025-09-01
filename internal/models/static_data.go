@@ -170,6 +170,8 @@ func (m *StaticDataService[T]) Exists(id int) (bool, error) {
 	return false, nil
 }
 
+// AllExist checks that a record exists in the database for every ID in the
+// given slice of `ids`.
 func (m *StaticDataService[T]) AllExist(ids []int) (bool, error) {
 	if len(ids) == 0 {
 		return true, nil
@@ -334,21 +336,6 @@ func (_ Current) tableName() string {
 	return "currents"
 }
 
-// DiveProperty.
-type DivePropertyModelInterface interface {
-	AllExist(ids []int) (bool, error)
-	Exists(id int) (bool, error)
-	List(sortByName bool) ([]DiveProperty, error)
-}
-
-type DiveProperty struct {
-	staticDataItem
-}
-
-func (_ DiveProperty) tableName() string {
-	return "dive_properties"
-}
-
 // Entry point.
 type EntryPointModelInterface interface {
 	Exists(id int) (bool, error)
@@ -361,21 +348,6 @@ type EntryPoint struct {
 
 func (_ EntryPoint) tableName() string {
 	return "entry_points"
-}
-
-// Equipment.
-type EquipmentModelInterface interface {
-	AllExist(ids []int) (bool, error)
-	Exists(id int) (bool, error)
-	List(sortByName bool) ([]Equipment, error)
-}
-
-type Equipment struct {
-	staticDataItem
-}
-
-func (_ Equipment) tableName() string {
-	return "equipment"
 }
 
 // Gas mix.

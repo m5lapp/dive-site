@@ -1033,7 +1033,7 @@ func (app *app) addStaticdataToDiveForm(r *http.Request, data *templateData) err
 	}
 	data.DiveSites = diveSites
 
-	diveProperties, err := app.diveProperties.List(true)
+	diveProperties, err := app.diveProperties.List()
 	if err != nil {
 		return fmt.Errorf("could not fetch dive properties list: %w", err)
 	}
@@ -1045,7 +1045,7 @@ func (app *app) addStaticdataToDiveForm(r *http.Request, data *templateData) err
 	}
 	data.EntryPoints = entryPoints
 
-	equipment, err := app.equipment.List(false)
+	equipment, err := app.equipment.List()
 	if err != nil {
 		return fmt.Errorf("could not fetch equipment list: %w", err)
 	}
