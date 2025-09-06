@@ -16,6 +16,7 @@ type DivePropertyModel struct {
 type DivePropertyModelInterface interface {
 	AllExist(ids []int) (bool, error)
 	Exists(id int) (bool, error)
+	GetAllForDive(diveID int) ([]DiveProperty, error)
 	List() ([]DiveProperty, error)
 }
 

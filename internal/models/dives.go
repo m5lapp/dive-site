@@ -580,7 +580,33 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 }
 
 type DiveModel struct {
-	DB *sql.DB
+	DB             *sql.DB
+	equipmentModel EquipmentModelInterface
+	propertyModel  DivePropertyModelInterface
+}
+
+func NewDiveModel(
+	db *sql.DB,
+	equipmentModel EquipmentModelInterface,
+	propertyModel DivePropertyModelInterface,
+) (*DiveModel, error) {
+	if db == nil {
+		return nil, fmt.Errorf("diveModel db cannot be nil")
+	}
+
+	if equipmentModel == nil {
+		return nil, fmt.Errorf("diveModel equipmentModel cannot be nil")
+	}
+
+	if propertyModel == nil {
+		return nil, fmt.Errorf("diveModel propertyModel cannot be nil")
+	}
+
+	return &DiveModel{
+		DB:             db,
+		equipmentModel: equipmentModel,
+		propertyModel:  propertyModel,
+	}, nil
 }
 
 // adjustDiveTimeZone takes a time.Time d which can be in any time.Location and
@@ -637,6 +663,19 @@ func (m *DiveModel) GetOneByID(ownerID, id int) (Dive, error) {
 			return Dive{}, err
 		}
 	}
+
+	equipment, err := m.equipmentModel.GetAllForDive(id)
+	if err != nil {
+		return Dive{}, err
+	}
+
+	properties, err := m.propertyModel.GetAllForDive(id)
+	if err != nil {
+		return Dive{}, err
+	}
+
+	dive.Equipment = equipment
+	dive.Properties = properties
 
 	return dive, nil
 }

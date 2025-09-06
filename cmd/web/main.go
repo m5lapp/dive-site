@@ -106,7 +106,6 @@ func main() {
 		currencies:         &models.CurrencyModel{DB: db},
 		currents:           models.NewStaticDataService[models.Current](db),
 		diveProperties:     &models.DivePropertyModel{DB: db},
-		dives:              &models.DiveModel{DB: db},
 		diveSites:          &models.DiveSiteModel{DB: db},
 		entryPoints:        models.NewStaticDataService[models.EntryPoint](db),
 		equipment:          &models.EquipmentModel{DB: db},
@@ -123,6 +122,13 @@ func main() {
 		waterTypes:         &models.WaterTypeModel{DB: db},
 		waves:              models.NewStaticDataService[models.Waves](db),
 	}
+
+	dm, err := models.NewDiveModel(db, app.equipment, app.diveProperties)
+	if err != nil {
+		app.log.Error("Could not instantiate DiveModel: " + err.Error())
+		os.Exit(3)
+	}
+	app.dives = dm
 
 	tlsConfig := &tls.Config{
 		CurvePreferences: []tls.CurveID{tls.CurveP256, tls.X25519},
@@ -141,5 +147,5 @@ func main() {
 	app.log.Info("Starting server", "addr", *addr)
 	err = srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem")
 	app.log.Error(err.Error())
-	os.Exit(3)
+	os.Exit(4)
 }

@@ -201,18 +201,18 @@
           </p>
         </div>
         <div class="list-group-item list-group-item-action flex-fill">
-          <h4 class="mb-1">Weight</h4>
+          <h4 class="mb-1">Equipment Notes</h4>
           <p class="mb-1">
-            {{with .Dive.Weight}}{{.}}kg{{else}}-{{end}}
+            {{with .Dive.EquipmentNotes}}{{.}}{{else}}-{{end}}
           </p>
         </div>
       </div>
 
       <div class="list-group list-group-horizontal">
         <div class="list-group-item list-group-item-action flex-fill">
-          <h4 class="mb-1">Equipment Notes</h4>
+          <h4 class="mb-1">Weight</h4>
           <p class="mb-1">
-            {{with .Dive.EquipmentNotes}}{{.}}{{else}}-{{end}}
+            {{with .Dive.Weight}}{{.}}kg{{else}}-{{end}}
           </p>
         </div>
         <div class="list-group-item list-group-item-action flex-fill">
@@ -231,14 +231,22 @@
           </p>
         </div>
         <div class="list-group-item list-group-item-action flex-fill">
-          <h4 class="mb-1">Pressure In</h4>
+          <h4 class="mb-1">Tank Configuration</h4>
           <p class="mb-1">
-            {{with .Dive.PressureIn}}{{.}} bar{{else}}-{{end}}
-          </p>
+            {{.Dive.TankConfiguration.Name}},
+            {{.Dive.TankMaterial.Name}} ({{.Dive.TankVolume}} litres)
         </div>
       </div>
 
       <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Tank Pressure</h4>
+          <p class="mb-1">
+            {{with .Dive.PressureIn}}{{.}} bar (start){{end}}
+            {{if and .Dive.PressureIn .Dive.PressureOut}} to {{end}}
+            {{with .Dive.PressureOut}}{{.}} bar (finish){{end}}
+          </p>
+        </div>
         <div class="list-group-item list-group-item-action flex-fill">
           <h4 class="mb-1">Gas Used</h4>
           <p class="mb-1">
@@ -249,20 +257,9 @@
             {{end}}
           </p>
         </div>
-        <div class="list-group-item list-group-item-action flex-fill">
-          <h4 class="mb-1">Pressure Out</h4>
-          <p class="mb-1">
-            {{with .Dive.PressureOut}}{{.}} bar{{else}}-{{end}}
-          </p>
-        </div>
       </div>
 
       <div class="list-group list-group-horizontal">
-        <div class="list-group-item list-group-item-action flex-fill">
-          <h4 class="mb-1">Tank Configuration</h4>
-          <p class="mb-1">
-            {{.Dive.TankConfiguration}}
-        </div>
         <div class="list-group-item list-group-item-action flex-fill">
           <h4 class="mb-1">Breathing Gas Notes</h4>
           <p class="mb-1">
@@ -275,6 +272,20 @@
     <div class="row mt-5">
       <h2>Properties</h2>
 
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <p class="mb-1">
+            {{with .Dive.Properties}}
+              <ul>
+                {{range .}}
+                  <li>{{.Name}}</li>
+                {{end}}
+              </ul>
+            {{else}}
+              -
+            {{end}}
+          </p>
+        </div>
     </div>
 
     <div class="row mt-5">

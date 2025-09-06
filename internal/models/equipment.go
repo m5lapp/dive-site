@@ -16,6 +16,7 @@ type EquipmentModel struct {
 type EquipmentModelInterface interface {
 	AllExist(ids []int) (bool, error)
 	Exists(id int) (bool, error)
+	GetAllForDive(diveID int) ([]Equipment, error)
 	List() ([]Equipment, error)
 }
 
