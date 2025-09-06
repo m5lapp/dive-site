@@ -84,6 +84,23 @@ func (d Dive) GasUsed() float64 {
 	return tankCount * d.TankVolume * float64(d.PressureDelta())
 }
 
+// Calculates the diver's SAC (Surface Air Consumption) rate in litres per
+// minute if AvgDepth and BottomTime are set and GasUsed can be calculated.
+// Returns 0.0 if the value cannot be calculated.
+func (d Dive) SACRate() float64 {
+	gasUsed := d.GasUsed()
+
+	if gasUsed == 0.0 || d.AvgDepth == nil {
+		return 0.0
+	}
+
+	litresPerMinute := gasUsed / float64(d.BottomTime)
+	avgPressure := (*d.AvgDepth + 1.0) / 10.0
+	sacRate := litresPerMinute / avgPressure
+
+	return sacRate
+}
+
 type DiveModelInterface interface {
 	GetOneByID(ownerID, id int) (Dive, error)
 	Insert(

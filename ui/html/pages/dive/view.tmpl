@@ -252,6 +252,7 @@
           <p class="mb-1">
             {{if .Dive.GasUsed}}
               {{.Dive.GasUsed}} litres ({{.Dive.PressureDelta}} bar)
+              {{with .Dive.SACRate}} ({{printf "%.2f" .}} litres/min SAC rate){{end}}
             {{else}}
               -
             {{end}}
