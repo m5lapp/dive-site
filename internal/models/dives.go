@@ -25,8 +25,8 @@ type Dive struct {
 	SurfaceInterval   *time.Duration
 	MaxDepth          float64
 	AvgDepth          *float64
-	BottomTime        int
-	SafetyStop        *int
+	BottomTime        time.Duration
+	SafetyStop        *time.Duration
 	WaterTemp         *int
 	AirTemp           *int
 	Visibility        *float64
@@ -53,8 +53,7 @@ type Dive struct {
 }
 
 func (d Dive) DateTimeOut() time.Time {
-	diveDuration := time.Duration(d.BottomTime) * time.Minute
-	return d.DateTimeIn.Add(diveDuration)
+	return d.DateTimeIn.Add(d.BottomTime)
 }
 
 func (d Dive) PressureDelta() int {
@@ -94,7 +93,7 @@ func (d Dive) SACRate() float64 {
 		return 0.0
 	}
 
-	litresPerMinute := gasUsed / float64(d.BottomTime)
+	litresPerMinute := gasUsed / d.BottomTime.Minutes()
 	avgPressure := (*d.AvgDepth + 1.0) / 10.0
 	sacRate := litresPerMinute / avgPressure
 
@@ -116,8 +115,8 @@ type DiveModelInterface interface {
 		dateTimeIn time.Time,
 		maxDepth float64,
 		avgDepth *float64,
-		bottomTime int,
-		safetyStop *int,
+		bottomTime time.Duration,
+		safetyStop *time.Duration,
 		waterTemp *int,
 		airTemp *int,
 		visibility *float64,
@@ -231,7 +230,7 @@ inner join (
     select id, (
         extract(epoch from age(
             date_time_in,
-            lag(date_time_in + make_interval(mins => bottom_time), 1) over (
+            lag(date_time_in + make_interval(secs => bottom_time / 10^9), 1) over (
                 partition by owner_id order by date_time_in
         ))) * 10^9)::bigint surface_interval
       from dives             ) si   on dv.id = si.id
@@ -274,7 +273,9 @@ inner join (
 `
 
 func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
-	var surfaceInterval *int64
+	var bottomTimeNanos int64
+	var safetyStopNanos *int64
+	var surfaceIntervalNanos *int64
 	op := nullableOperator{}
 	pr := nullablePrice{}
 	tr := nullableTrip{}
@@ -484,11 +485,11 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 		&ce.Notes,
 
 		&dv.DateTimeIn,
-		&surfaceInterval,
+		&surfaceIntervalNanos,
 		&dv.MaxDepth,
 		&dv.AvgDepth,
-		&dv.BottomTime,
-		&dv.SafetyStop,
+		&bottomTimeNanos,
+		&safetyStopNanos,
 		&dv.WaterTemp,
 		&dv.AirTemp,
 		&dv.Visibility,
@@ -585,11 +586,18 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 	dv.Buddy = bu.ToStruct()
 	dv.BuddyRole = br.ToStruct()
 
+	dv.BottomTime = time.Duration(bottomTimeNanos)
+
 	// Adjust the Dive's DateTimeIn from UTC to the time zone of the dive site.
 	dv.DateTimeIn = dv.DateTimeIn.In(&dv.DiveSite.TimeZone.Location)
 
-	if surfaceInterval != nil {
-		si := time.Duration(*surfaceInterval * int64(time.Nanosecond))
+	if safetyStopNanos != nil {
+		ss := time.Duration(*safetyStopNanos)
+		dv.SafetyStop = &ss
+	}
+
+	if surfaceIntervalNanos != nil {
+		si := time.Duration(*surfaceIntervalNanos)
 		dv.SurfaceInterval = &si
 	}
 
@@ -710,8 +718,8 @@ func (m *DiveModel) Insert(
 	dateTimeIn time.Time,
 	maxDepth float64,
 	avgDepth *float64,
-	bottomTime int,
-	safetyStop *int,
+	bottomTime time.Duration,
+	safetyStop *time.Duration,
 	waterTemp *int,
 	airTemp *int,
 	visibility *float64,
@@ -768,6 +776,12 @@ func (m *DiveModel) Insert(
         returning id
     `
 
+	var safetyStopNanos *int64
+	if safetyStop != nil {
+		ss := safetyStop.Nanoseconds()
+		safetyStopNanos = &ss
+	}
+
 	result := tx.QueryRowContext(
 		ctx,
 		stmt,
@@ -783,8 +797,8 @@ func (m *DiveModel) Insert(
 		dateTimeIn,
 		maxDepth,
 		avgDepth,
-		bottomTime,
-		safetyStop,
+		bottomTime.Nanoseconds(),
+		safetyStopNanos,
 		waterTemp,
 		airTemp,
 		visibility,

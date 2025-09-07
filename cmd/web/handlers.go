@@ -981,8 +981,8 @@ type diveForm struct {
 	DateTimeIn          time.Time `form:"date_time_in"`
 	MaxDepth            float64   `form:"max_depth"`
 	AvgDepth            *float64  `form:"avg_depth"`
-	BottomTime          int       `form:"bottom_time"`
-	SafetyStop          *int      `form:"safety_stop"`
+	BottomTimeMins      int64     `form:"bottom_time"`
+	SafetyStopMins      *int64    `form:"safety_stop"`
 	WaterTemp           *int      `form:"water_temp"`
 	AirTemp             *int      `form:"air_temp"`
 	Visibility          *float64  `form:"visibility"`
@@ -1177,14 +1177,14 @@ func (app *app) validateDiveForm(f *diveForm) error {
 	}
 
 	f.CheckField(
-		f.BottomTime >= 10 && f.BottomTime <= 1440,
+		f.BottomTimeMins >= 10 && f.BottomTimeMins <= 1440,
 		"bottom_time",
 		"This field must be between 10 and 1,440 minutes inclusive",
 	)
 
-	if f.SafetyStop != nil {
+	if f.SafetyStopMins != nil {
 		f.CheckField(
-			*f.SafetyStop >= 0 && *f.SafetyStop <= 6,
+			*f.SafetyStopMins >= 0 && *f.SafetyStopMins <= 6,
 			"safety_stop",
 			"This field must be between 0 and 6 minutes inclusive",
 		)
@@ -1403,10 +1403,10 @@ func (app *app) diveCreateGET(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data.Form = diveForm{
-		MaxDepth:   5,
-		BottomTime: 10,
-		FO2:        0.21,
-		TankVolume: 11.0,
+		MaxDepth:       5,
+		BottomTimeMins: 10,
+		FO2:            0.21,
+		TankVolume:     11.0,
 	}
 
 	err = app.addStaticdataToDiveForm(r, &data)
@@ -1451,6 +1451,12 @@ func (app *app) diveCreatePOST(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var safetyStop *time.Duration
+	if form.SafetyStopMins != nil {
+		ss := time.Duration(*form.SafetyStopMins) * time.Minute
+		safetyStop = &ss
+	}
+
 	id, err := app.dives.Insert(
 		app.contextGetUser(r).ID,
 		form.Number,
@@ -1464,8 +1470,8 @@ func (app *app) diveCreatePOST(w http.ResponseWriter, r *http.Request) {
 		form.DateTimeIn,
 		form.MaxDepth,
 		form.AvgDepth,
-		form.BottomTime,
-		form.SafetyStop,
+		time.Duration(form.BottomTimeMins)*time.Minute,
+		safetyStop,
 		form.WaterTemp,
 		form.AirTemp,
 		form.Visibility,

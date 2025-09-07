@@ -160,7 +160,7 @@
 
         {{bsNumFieldF64Ptr "avg_depth" "Average Depth (m)" "4.0" "350.0" "0.1" .Form.AvgDepth false .Form.FieldErrors}}
 
-        {{bsNumFieldInt "bottom_time" "Bottom Time (mins)" "10" "1440" "1" .Form.BottomTime true .Form.FieldErrors}}
+        {{bsNumFieldI64 "bottom_time" "Bottom Time (mins)" "10" "1440" "1" .Form.BottomTimeMins true .Form.FieldErrors}}
 
         <div class="col-sm">
           <label class="form-label" for="id_safety_stop">Safety Stop</label>
@@ -169,7 +169,7 @@
             <option value="">---------</option>
             {{range $i := intRange 0 6}}
               <option value="{{$i}}"
-                {{with $.Form.SafetyStop}}{{if eq $i (derefInt . -1)}}selected{{end}}{{end}}>
+                {{with $.Form.SafetyStopMins}}{{if eq $i (derefInt . -1)}}selected{{end}}{{end}}>
                 {{$i}} minutes
               </option>
             {{end}}

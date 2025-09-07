@@ -124,6 +124,7 @@ var functions = template.FuncMap{
 	"bsDateField":       ui.BSDateField,
 	"bsNumFieldF64":     ui.BSNumField[float64],
 	"bsNumFieldF64Ptr":  ui.BSNumFieldPtr[float64],
+	"bsNumFieldI64":     ui.BSNumField[int64],
 	"bsNumFieldInt":     ui.BSNumField[int],
 	"bsNumFieldIntPtr":  ui.BSNumFieldPtr[int],
 	"bsTextField":       ui.BSTextField,

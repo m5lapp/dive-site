@@ -30,7 +30,7 @@
             </p>
             <p class="mb-1">
               {{.Activity}},
-              <small>{{.BottomTime}}mins @ {{.MaxDepth}}m</small>
+              <small>{{.BottomTime.Minutes}}mins @ {{.MaxDepth}}m</small>
               {{- with .Buddy}} with {{.Name}}{{end}}
             </p>
           </a>
