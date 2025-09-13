@@ -3,8 +3,8 @@ create extension if not exists citext;
 create table if not exists buddies (
     id                bigint       primary key generated always as identity,
     version           integer      not null default 1,
-    created_at        timestamp(8) with time zone not null default now(),
-    updated_at        timestamp(8) with time zone not null default now(),
+    created_at        timestamp(6) with time zone not null default now(),
+    updated_at        timestamp(6) with time zone not null default now(),
     owner_id          bigint       not null references users(id) on delete cascade,
     buddy_user_id     bigint           null references users(id) on delete set null,
     name              varchar(256) not null,

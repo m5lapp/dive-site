@@ -31,6 +31,10 @@ func (c Certification) String() string {
 	)
 }
 
+func (c Certification) Duration() time.Duration {
+	return c.EndDate.Sub(c.StartDate)
+}
+
 type nullableCertification struct {
 	ID         *int
 	Created    *time.Time

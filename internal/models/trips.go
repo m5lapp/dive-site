@@ -54,6 +54,10 @@ func (tr Trip) String() string {
 	)
 }
 
+func (tr Trip) Duration() time.Duration {
+	return tr.EndDate.Sub(tr.StartDate)
+}
+
 type nullableTrip struct {
 	ID          *int
 	Created     *time.Time
@@ -253,11 +257,11 @@ func (m *TripModel) Insert(
 func (m *TripModel) List(userID int, filters ListFilters) ([]Trip, PageData, error) {
 	limit := filters.limit()
 	offset := filters.offset()
-	stmt := fmt.Sprintf("%s limit $1 offset $2", tripSelectQuery)
+	stmt := fmt.Sprintf("%s limit $2 offset $3", tripSelectQuery)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, stmt, limit, offset)
+	rows, err := m.DB.QueryContext(ctx, stmt, userID, limit, offset)
 	if err != nil {
 		return nil, PageData{}, err
 	}

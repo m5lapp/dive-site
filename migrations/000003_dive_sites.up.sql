@@ -34,8 +34,8 @@ insert into water_bodies (sort, is_default, name, description) values
 create table if not exists dive_sites (
     id            bigint        primary key generated always as identity,
     version       integer       not null default 1,
-    created_at    timestamp(8) with time zone not null default now(),
-    updated_at    timestamp(8) with time zone not null default now(),
+    created_at    timestamp(6) with time zone not null default now(),
+    updated_at    timestamp(6) with time zone not null default now(),
     owner_id      bigint        not null references users(id) on delete restrict,
     name          varchar(256)  not null,
     alt_name      varchar(256)  not null default '',
