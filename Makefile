@@ -21,8 +21,10 @@ confirm:
 ## run: Run the cmd/web application
 .PHONY: run
 run:
-	go run ./cmd/web/ --addr ":8080" \
-		--db-dsn ${DIVESITE_DB_DSN}
+	go run ./cmd/web/ \
+		--addr ":8080" \
+		--db-dsn ${DIVESITE_DB_DSN} \
+		--debug=true
 
 ## gen-cert: Generate a TLS certificate and key for testing on localhost
 .PHONY: gen-cert

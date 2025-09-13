@@ -27,6 +27,7 @@ type app struct {
 	countries          models.CountryModelInterface
 	currencies         models.CurrencyModelInterface
 	currents           models.CurrentModelInterface
+	debug              bool
 	diveProperties     models.DivePropertyModelInterface
 	dives              models.DiveModelInterface
 	diveSites          models.DiveSiteModelInterface
@@ -65,6 +66,7 @@ func openDB(dsn string) (*sql.DB, error) {
 
 func main() {
 	addr := flag.String("addr", ":8080", "HTTP network address")
+	debug := flag.Bool("debug", false, "Turn on debug mode")
 	dsn := flag.String("db-dsn", "", "PostgreSQL data source name")
 	flag.Parse()
 
@@ -95,6 +97,7 @@ func main() {
 	sessionManager.Cookie.Secure = true
 
 	app := app{
+		debug:              *debug,
 		log:                logger,
 		templateCache:      templateCache,
 		agencies:           &models.AgencyModel{DB: db},
