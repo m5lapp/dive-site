@@ -18,6 +18,19 @@ confirm:
 # DEVELOPMENT
 # ============================================================================ #
 
+## update-bootstrap version=X.Y.Z: Update the version of Bootstrap
+.PHONY: update-bootstrap
+update-bootstrap:
+	@echo "Downloading Bootstrap files at version ${version}..."
+	curl -Lo ui/static/js/bootstrap.bundle.min.js \
+		https://cdn.jsdelivr.net/npm/bootstrap@${version}/dist/js/bootstrap.bundle.min.js
+	curl -Lo ui/static/css/bootstrap.min.css \
+		https://cdn.jsdelivr.net/npm/bootstrap@${version}/dist/css/bootstrap.min.css
+	@echo ""
+	@echo "Remember to also update the integrity hash of each file in ui/html/base.tmpl,"
+	@echo "the hash values can be found at https://getbootstrap.com/docs/5.3/getting-started/introduction/"
+
+
 ## run: Run the cmd/web application
 .PHONY: run
 run:
