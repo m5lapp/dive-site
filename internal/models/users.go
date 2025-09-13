@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -18,8 +19,12 @@ type User struct {
 	HashedPassword         []byte
 	Suspended              bool
 	Deleted                bool
+	LastLogIn              time.Time
 	DivingSince            time.Time
 	DiveNumberOffset       int
+	DivesLogged            int
+	TotalDives             int
+	MaxDiveNumber          int
 	DefaultDivingCountryID int
 	DefaultDivingTZ        TimeZone
 	DarkMode               bool
@@ -91,12 +96,15 @@ func (m *UserModel) Insert(
 }
 
 func (m *UserModel) Authenticate(email, password string) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
 	var id int
 	var hashedPassword []byte
 
 	stmt := `select id, hashed_password from users
               where email = $1 and suspended = false and deleted = false`
-	err := m.DB.QueryRow(stmt, email).Scan(&id, &hashedPassword)
+	err := m.DB.QueryRowContext(ctx, stmt, email).Scan(&id, &hashedPassword)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, ErrInvalidCredentials
@@ -114,6 +122,10 @@ func (m *UserModel) Authenticate(email, password string) (int, error) {
 		}
 	}
 
+	// Update the user's last log in date, we don't care if this errors though.
+	stmt = `update users set last_log_in = now() where email = $1`
+	_, _ = m.DB.ExecContext(ctx, stmt, email)
+
 	return id, nil
 }
 
@@ -125,10 +137,22 @@ func (m *UserModel) GetByID(id int) (User, error) {
 	var user User
 
 	stmt := `
-        select id, created_at, updated_at, name, friendly_name, email,
-               suspended, deleted, dark_mode, diving_since, dive_number_offset,
-               default_diving_country_id, default_diving_tz
-          from users where id = $1
+        with user_dives as (
+          select count(dv.id) dives_logged,
+                 coalesce(max(dv.number), 0) max_dive_number
+            from dives dv
+           where owner_id = $1
+        )
+        select us.id, us.created_at, us.updated_at, us.name, us.friendly_name,
+               us.email, us.suspended, us.deleted, us.last_log_in, us.dark_mode,
+               us.diving_since, us.dive_number_offset,
+               ud.dives_logged,
+               ud.dives_logged + us.dive_number_offset total_dives,
+               ud.max_dive_number,
+               us.default_diving_country_id, us.default_diving_tz
+          from users us
+    cross join user_dives ud
+         where us.id = $1
     `
 
 	err := m.DB.QueryRow(stmt, id).Scan(
@@ -140,9 +164,13 @@ func (m *UserModel) GetByID(id int) (User, error) {
 		&user.Email,
 		&user.Suspended,
 		&user.Deleted,
+		&user.LastLogIn,
 		&user.DarkMode,
 		&user.DivingSince,
 		&user.DiveNumberOffset,
+		&user.DivesLogged,
+		&user.MaxDiveNumber,
+		&user.TotalDives,
 		&user.DefaultDivingCountryID,
 		&user.DefaultDivingTZ,
 	)

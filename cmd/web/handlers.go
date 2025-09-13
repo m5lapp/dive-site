@@ -1403,6 +1403,7 @@ func (app *app) diveCreateGET(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data.Form = diveForm{
+		Number:         app.contextGetUser(r).TotalDives + 1,
 		MaxDepth:       5,
 		BottomTimeMins: 10,
 		FO2:            0.21,

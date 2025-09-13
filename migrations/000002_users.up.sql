@@ -10,14 +10,15 @@ $$ language 'plpgsql';
 
 create table if not exists users (
     id              bigint       primary key generated always as identity,
-    created_at      timestamp(8) with time zone not null default now(),
-    updated_at      timestamp(8) with time zone not null default now(),
+    created_at      timestamp(6) with time zone not null default now(),
+    updated_at      timestamp(6) with time zone not null default now(),
     name            varchar(256) not null,
     friendly_name   varchar(256) not null,
     email           varchar(256) not null unique,
     hashed_password char(60)     not null,
     suspended       bool         not null default false,
     deleted         bool         not null default false,
+    last_log_in     timestamp(6) with time zone not null default '0001-01-01T00:00:00.000'::date,
     dark_mode       boolean      not null default true,
     diving_since    date         not null default '0001-01-01'::date,
     dive_number_offset smallint  not null default 0,

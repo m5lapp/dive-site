@@ -100,6 +100,24 @@ func (d Dive) SACRate() float64 {
 	return sacRate
 }
 
+func (d Dive) IsAltitudeDive() bool {
+	altitudeDive := d.DiveSite.Altitude >= 300
+
+	requiresCorrection := d.DiveSite.Altitude >= 91 &&
+		d.DiveSite.Altitude < 300 &&
+		d.MaxDepth >= 44.0
+
+	return altitudeDive || requiresCorrection
+}
+
+func (d Dive) IsDeepDive() bool {
+	return d.MaxDepth > 30.0
+}
+
+func (d Dive) IsTrainingDive() bool {
+	return d.Certification != nil
+}
+
 type DiveModelInterface interface {
 	GetOneByID(ownerID, id int) (Dive, error)
 	Insert(

@@ -54,32 +54,33 @@
       <div class="container-fluid">
         <footer id="footer"
                 class="d-flex flex-wrap justify-content-between align-items-center py-3 my-4 border-top">
-          <p class="col-md mb-0 text-body-secondary">
+          {{if .IsAuthenticated}}
+            <ul class="col-md mb-0 text-body-secondary">
+              <li class="list-unstyled">
+                <small>
+                  <strong>Logged in as</strong>: {{.User.Name}} ({{.User.Email}})
+                </small>
+              </li>
+              <li class="list-unstyled">
+                <small>
+                  <strong>Last log in</strong>:
+                  {{.User.LastLogIn.Format "2006-01-02 15:04:05 MST"}}
+                </small>
+              </li>
+            </ul>
+          {{else}}
+            <p class="col-md mb-0 text-body-secondary">&nbsp;</p>
+          {{end}}
+
+          <p class="col-md-4 d-flex align-items-center justify-content-center mb-3 mb-md-0 me-md-auto text-body-secondary">
             &copy; {{.CurrentYear}}. All rights reserved.
-            {{/*{{if .IsAuthenticated}}
-              <ul>
-                <li>Logged in as: {{.UserName}}</li>
-                <li>Last log-in: {{"2022-09-02 11:31 UTC"}}</li>
-              </ul>
-            {{end}}*/}}
           </p>
 
-          <a href="/" class="col-md-4 d-flex align-items-center justify-content-center mb-3 mb-md-0 me-md-auto link-body-emphasis text-decoration-none">
-            <svg class="bi me-2" width="40" height="32"><use xlink:href="#bootstrap"/></svg>
-          </a>
-
-          <ul class="nav col-md-4 justify-content-end">
-            <li class="nav-item"><a href="#" class="nav-link px-2 text-body-secondary">Home</a></li>
-            {{if .IsAuthenticated}}
-              <li class="nav-item">
-                <a href="/" class="nav-link px-2 text-body-secondary">Log In</a>
-              </li>
-            {{end}}
-          </ul>
+          <p class="nav col-md-4 justify-content-end">&nbsp;</p>
         </footer>
       </div>
 
-      <script src="/static/js/bootstrap-5.3.3.bundle.min.js"
+      <script src="/static/js/bootstrap-5.3.8.bundle.min.js"
               integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
               crossorigin="anonymous"></script>
     </body>
