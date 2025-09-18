@@ -30,7 +30,6 @@ update-bootstrap:
 	@echo "Remember to also update the integrity hash of each file in ui/html/base.tmpl,"
 	@echo "the hash values can be found at https://getbootstrap.com/docs/5.3/getting-started/introduction/"
 
-
 ## run: Run the cmd/web application
 .PHONY: run
 run:

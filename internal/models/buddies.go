@@ -19,6 +19,9 @@ type Buddy struct {
 	PhoneNumber     string
 	Agency          *Agency
 	AgencyMemberNum string
+	DivesWith       int
+	FirstDiveWith   *time.Time
+	LastDiveWith    *time.Time
 	Notes           string
 }
 
@@ -29,7 +32,7 @@ func (bu Buddy) String() string {
 	if bu.Agency != nil {
 		str.WriteString(" (" + bu.Agency.Acronym)
 		if bu.AgencyMemberNum != "" {
-			str.WriteString("#" + bu.AgencyMemberNum)
+			str.WriteString(" #" + bu.AgencyMemberNum)
 		}
 		str.WriteString(")")
 	}
@@ -48,6 +51,9 @@ type nullableBuddy struct {
 	PhoneNumber     *string
 	Agency          nullableAgency
 	AgencyMemberNum *string
+	DivesWith       *int
+	FirstDiveWith   *time.Time
+	LastDiveWith    *time.Time
 	Notes           *string
 }
 
@@ -67,6 +73,9 @@ func (nb nullableBuddy) ToStruct() *Buddy {
 		PhoneNumber:     *nb.PhoneNumber,
 		Agency:          nb.Agency.ToStruct(),
 		AgencyMemberNum: *nb.AgencyMemberNum,
+		DivesWith:       *nb.DivesWith,
+		FirstDiveWith:   nb.FirstDiveWith,
+		LastDiveWith:    nb.LastDiveWith,
 		Notes:           *nb.Notes,
 	}
 }
@@ -87,13 +96,24 @@ type BuddyModelInterface interface {
 }
 
 var buddySelectQuery string = `
+      with buddy_dive_stats as (
+        select dv.buddy_id buddy_id, count(dv.id) dives_with,
+               min(dv.date_time_in) first_dive_with,
+               max(dv.date_time_in) last_dive_with
+          from dives dv
+         where dv.owner_id = $1
+      group by dv.buddy_id
+           )
     select count(*) over(),
            bu.id, bu.version, bu.created_at, bu.updated_at, bu.owner_id,
            bu.name, bu.email, bu.phone_number,
            bu.agency_id, ag.common_name, ag.full_name, ag.acronym, ag.url,
-           bu.agency_member_num, bu.notes
+           bu.agency_member_num,
+           coalesce(ds.dives_with, 0), ds.first_dive_with, ds.last_dive_with,
+           bu.notes
       from buddies bu
  left join agencies ag on bu.agency_id = ag.id
+ left join buddy_dive_stats ds on bu.id = ds.buddy_id
      where bu.owner_id = $1
 `
 
@@ -116,6 +136,9 @@ func buddyFromDBRow(rs RowScanner, totalRecords *int, bu *Buddy) error {
 		&ag.Acronym,
 		&ag.URL,
 		&bu.AgencyMemberNum,
+		&bu.DivesWith,
+		&bu.FirstDiveWith,
+		&bu.LastDiveWith,
 		&bu.Notes,
 	)
 
@@ -181,11 +204,11 @@ func (m *BuddyModel) Insert(
 func (m *BuddyModel) List(userID int, filters ListFilters) ([]Buddy, PageData, error) {
 	limit := filters.limit()
 	offset := filters.offset()
-	stmt := fmt.Sprintf("%s limit $1 offset $2", buddySelectQuery)
+	stmt := fmt.Sprintf("%s limit $2 offset $3", buddySelectQuery)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, stmt, limit, offset)
+	rows, err := m.DB.QueryContext(ctx, stmt, userID, limit, offset)
 	if err != nil {
 		return nil, PageData{}, err
 	}

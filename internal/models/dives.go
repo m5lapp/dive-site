@@ -163,6 +163,14 @@ type DiveModelInterface interface {
 }
 
 var diveSelectQuery string = `
+      with buddy_dive_stats as (
+        select dv.buddy_id buddy_id, count(dv.id) dives_with,
+               min(dv.date_time_in) first_dive_with,
+               max(dv.date_time_in) last_dive_with
+          from dives dv
+         where dv.owner_id = $1
+      group by dv.buddy_id
+           )
     select count(*) over(),
            dv.id, dv.version, dv.created_at, dv.updated_at, dv.owner_id,
            dv.number, dv.activity,
@@ -214,7 +222,10 @@ var diveSelectQuery string = `
            cebu.owner_id, cebu.name, cebu.email, cebu.phone_number,
            ceba.id, ceba.common_name, ceba.full_name, ceba.acronym,
            ceba.url,
-           cebu.agency_member_num, cebu.notes,
+           cebu.agency_member_num,
+           coalesce(cebs.dives_with, 0),
+           cebs.first_dive_with, cebs.last_dive_with,
+           cebu.notes,
            ce.price,
            cecu.id, cecu.iso_alpha, cecu.iso_number, cecu.name, cecu.exponent,
            ce.rating, ce.notes,
@@ -227,7 +238,10 @@ var diveSelectQuery string = `
            bu.id, bu.version, bu.created_at, bu.updated_at, bu.owner_id,
            bu.name, bu.email, bu.phone_number,
            buag.id, buag.common_name, buag.full_name, buag.acronym, buag.url,
-           bu.agency_member_num, bu.notes,
+           bu.agency_member_num,
+           coalesce(cbds.dives_with, 0),
+           cbds.first_dive_with, cbds.last_dive_with,
+           bu.notes,
            br.id, br.name, br.description,
            dv.weight_used, dv.weight_notes, dv.equipment_notes,
            tc.id, tc.sort, tc.is_default, tc.name, tc.description,
@@ -276,11 +290,13 @@ inner join (
  left join countries           ceoc on ceop.country_id = ceoc.id
  left join currencies          ceou on ceoc.currency_id = ceou.id
  left join buddies             cebu on ce.instructor_id = cebu.id
+ left join buddy_dive_stats    cbds on ce.instructor_id = cbds.buddy_id
  left join agencies            ceba on cebu.agency_id = ceba.id
  left join currencies          cecu on ce.currency_id = cecu.id
  left join currents            cu   on dv.current_id = cu.id
  left join waves               wv   on dv.waves_id = wv.id
  left join buddies             bu   on dv.buddy_id = bu.id
+ left join buddy_dive_stats    buds on dv.buddy_id = buds.buddy_id
  left join agencies            buag on bu.agency_id = buag.id
  left join buddy_roles         br   on dv.buddy_role_id = br.id
  left join tank_configurations tc   on dv.tank_configuration_id = tc.id

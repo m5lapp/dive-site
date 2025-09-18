@@ -1,0 +1,56 @@
+{{define "title"}}Dive Buddies{{end}}
+
+{{define "heading"}}Dive Buddies{{end}}
+
+{{define "main"}}
+  <section>
+
+    {{if .Buddies}}
+      {{pageControls "/buddy" .PageData}}
+
+      <div class="list-group">
+        {{range .Buddies}}
+          <div class="list-group-item list-group-item-action">
+            <div class="d-flex w-100 justify-content-between">
+              <h4 class="mb-1">
+                {{.}}
+                {{with .Email}}
+                  <small>
+                    <a class="link-underline-opacity-25 link-underline-opacity-100-hover"
+                       href="mailto:{{.}}">📧</a>
+                  </small>
+                {{end}}
+                {{with .PhoneNumber}}
+                  <small>
+                    <a class="link-underline-opacity-25 link-underline-opacity-100-hover"
+                       href="tel:{{.}}">☎️</a>
+                  </small>
+                {{end}}
+              </h4>
+              <span>
+              {{.DivesWith}} dive{{if ne .DivesWith 1}}s{{end}}
+              {{if and .FirstDiveWith .LastDiveWith}}
+                between {{.FirstDiveWith.Format "2006-01-02"}}
+                and {{.LastDiveWith.Format "2006-01-02"}}
+              {{end}}
+              </span>
+            </div>
+            <div class="d-flex w-100 justify-content-between">
+            </div>
+            {{with .Notes}}<small><blockquote>{{.}}</blockquote></small>{{end}}
+          </div>
+        {{end}}
+      </div>
+
+      {{pageControls "/buddy" .PageData}}
+
+    {{else}}
+      <p>
+        No dive buddies have been added yet. Please feel free to
+        <a href="/buddy/add">add a new one</a>.
+      </p>
+    {{end}}
+
+  </section>
+{{end}}
+

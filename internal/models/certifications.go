@@ -90,6 +90,14 @@ type CertificationModelInterface interface {
 }
 
 var certificationSelectQuery string = `
+      with buddy_dive_stats as (
+        select dv.buddy_id buddy_id, count(dv.id) dives_with,
+               min(dv.date_time_in) first_dive_with,
+               max(dv.date_time_in) last_dive_with
+          from dives dv
+         where dv.owner_id = $1
+      group by dv.buddy_id
+           )
     select count(*) over(),
            ce.id, ce.created_at, ce.updated_at, ce.owner_id,
            ac.id,
@@ -107,7 +115,9 @@ var certificationSelectQuery string = `
            bu.id, bu.version, bu.created_at, bu.updated_at, bu.owner_id,
            bu.name, bu.email, bu.phone_number,
            bu.agency_id, ba.common_name, ba.full_name, ba.acronym, ba.url,
-           bu.agency_member_num, bu.notes,
+           bu.agency_member_num,
+           coalesce(ds.dives_with, 0), ds.first_dive_with, ds.last_dive_with,
+           bu.notes,
            ce.price,
            cu.id, cu.iso_alpha, cu.iso_number, cu.name, cu.exponent,
            ce.rating, ce.notes
@@ -189,6 +199,9 @@ func certificationFromDBRow(rs RowScanner, totalRecords *int, ce *Certification)
 		&ia.Acronym,
 		&ia.URL,
 		&ce.Instructor.AgencyMemberNum,
+		&ce.Instructor.DivesWith,
+		&ce.Instructor.FirstDiveWith,
+		&ce.Instructor.LastDiveWith,
 		&ce.Instructor.Notes,
 		&pr.Amount,
 		&pr.Currency.ID,

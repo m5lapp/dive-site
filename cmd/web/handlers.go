@@ -590,6 +590,32 @@ type buddyForm struct {
 	validator.Validator `       form:"-"`
 }
 
+func (app *app) buddyList(w http.ResponseWriter, r *http.Request) {
+	const defaultPageSize = 20
+
+	page := app.readInt(r.URL.Query(), "page", 1)
+	pageSize := app.readInt(r.URL.Query(), "page_size", defaultPageSize)
+
+	filters := models.NewListFilters(page, pageSize, defaultPageSize)
+	userID := app.contextGetUser(r).ID
+
+	buddies, pageData, err := app.buddies.List(userID, filters)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	data.Buddies = buddies
+	data.PageData = pageData
+
+	app.render(w, r, http.StatusOK, "buddy/list.tmpl", data)
+}
+
 func (app *app) buddyCreateGET(w http.ResponseWriter, r *http.Request) {
 	data, err := app.newTemplateData(r)
 	if err != nil {
