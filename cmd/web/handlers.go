@@ -187,8 +187,13 @@ func (app *app) userLogInPOST(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	redirectPath := app.sessionManager.PopString(r.Context(), "redirectPathAfterLogIn")
+	if redirectPath == "" {
+		redirectPath = "/"
+	}
+
 	app.sessionManager.Put(r.Context(), "authenticatedUserID", id)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, redirectPath, http.StatusSeeOther)
 }
 
 func (app *app) userLogOutPOST(w http.ResponseWriter, r *http.Request) {
