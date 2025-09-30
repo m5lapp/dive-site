@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -71,6 +72,7 @@ func (d Dive) GasUsed() float64 {
 
 	tankCount := 1.0
 
+	// TODO: Switching on the Name field from the database is quite brittle.
 	switch d.TankConfiguration.Name {
 	case "Single Tank":
 		tankCount = 1.0
@@ -159,11 +161,20 @@ type DiveModelInterface interface {
 		rating *int,
 		notes string,
 	) (int, error)
-	List(userID int, filters ListFilters) ([]Dive, PageData, error)
+	List(userID int, pager Pager, filter DiveFilter, sort []SortDive) ([]Dive, PageData, error)
 }
 
 var diveSelectQuery string = `
-      with buddy_dive_stats as (
+      with dive_site_dive_stats as (
+        select dv.dive_site_id dive_site_id,
+               count(dv.id) dives_at,
+               min(dv.date_time_in) first_dive_at,
+               max(dv.date_time_in) last_dive_at
+          from dives dv
+         where dv.owner_id = $1
+      group by dv.dive_site_id
+           ),
+           buddy_dive_stats as (
         select dv.buddy_id buddy_id, count(dv.id) dives_with,
                min(dv.date_time_in) first_dive_with,
                max(dv.date_time_in) last_dive_with
@@ -175,7 +186,9 @@ var diveSelectQuery string = `
            dv.id, dv.version, dv.created_at, dv.updated_at, dv.owner_id,
            dv.number, dv.activity,
            ds.id, ds.version, ds.created_at, ds.updated_at,
-           ds.owner_id, ds.name, ds.alt_name, ds.location, ds.region,
+           ds.owner_id,
+           coalesce(dsds.dives_at, 0), dsds.first_dive_at, dsds.last_dive_at,
+           ds.name, ds.alt_name, ds.location, ds.region,
            ds.timezone, ds.latitude, ds.longitude, ds.altitude, ds.max_depth,
            ds.notes, ds.rating, dsco.id, dsco.name, dsco.iso_number,
            dsco.iso2_code, dsco.iso3_code, dsco.dialing_code, dsco.capital,
@@ -223,8 +236,8 @@ var diveSelectQuery string = `
            ceba.id, ceba.common_name, ceba.full_name, ceba.acronym,
            ceba.url,
            cebu.agency_member_num,
-           coalesce(cebs.dives_with, 0),
-           cebs.first_dive_with, cebs.last_dive_with,
+           coalesce(cbds.dives_with, 0),
+           cbds.first_dive_with, cbds.last_dive_with,
            cebu.notes,
            ce.price,
            cecu.id, cecu.iso_alpha, cecu.iso_number, cecu.name, cecu.exponent,
@@ -239,8 +252,8 @@ var diveSelectQuery string = `
            bu.name, bu.email, bu.phone_number,
            buag.id, buag.common_name, buag.full_name, buag.acronym, buag.url,
            bu.agency_member_num,
-           coalesce(cbds.dives_with, 0),
-           cbds.first_dive_with, cbds.last_dive_with,
+           coalesce(buds.dives_with, 0),
+           buds.first_dive_with, buds.last_dive_with,
            bu.notes,
            br.id, br.name, br.description,
            dv.weight_used, dv.weight_notes, dv.equipment_notes,
@@ -265,44 +278,45 @@ inner join (
             lag(date_time_in + make_interval(secs => bottom_time / 10^9), 1) over (
                 partition by owner_id order by date_time_in
         ))) * 10^9)::bigint surface_interval
-      from dives             ) si   on dv.id = si.id
- left join dive_sites          ds   on dv.dive_site_id = ds.id
- left join countries           dsco on ds.country_id = dsco.id
- left join currencies          dscu on dsco.currency_id = dscu.id
- left join water_bodies        wb   on ds.water_body_id = wb.id
- left join water_types         wt   on ds.water_type_id = wt.id
- left join operators           op   on dv.operator_id = op.id
- left join operator_types      opot on op.operator_type_id = opot.id
- left join countries           opco on op.country_id = opco.id
- left join currencies          opcu on opco.currency_id = opcu.id
- left join currencies          prcu on dv.currency_id = prcu.id
- left join trips               tr   on dv.trip_id = tr.id
- left join operators           trop on tr.operator_id = trop.id
- left join operator_types      trot on trop.operator_type_id = trot.id
- left join countries           troc on trop.country_id = troc.id
- left join currencies          trou on troc.currency_id = trou.id
- left join currencies          trcu on tr.currency_id = trcu.id
- left join certifications      ce   on dv.certification_id = ce.id
- left join agency_courses      ceac on ce.course_id = ceac.id
- left join agencies            ceag on ceac.agency_id = ceag.id
- left join operators           ceop on ce.operator_id = ceop.id
- left join operator_types      ceot on ceop.operator_type_id = ceot.id
- left join countries           ceoc on ceop.country_id = ceoc.id
- left join currencies          ceou on ceoc.currency_id = ceou.id
- left join buddies             cebu on ce.instructor_id = cebu.id
- left join buddy_dive_stats    cbds on ce.instructor_id = cbds.buddy_id
- left join agencies            ceba on cebu.agency_id = ceba.id
- left join currencies          cecu on ce.currency_id = cecu.id
- left join currents            cu   on dv.current_id = cu.id
- left join waves               wv   on dv.waves_id = wv.id
- left join buddies             bu   on dv.buddy_id = bu.id
- left join buddy_dive_stats    buds on dv.buddy_id = buds.buddy_id
- left join agencies            buag on bu.agency_id = buag.id
- left join buddy_roles         br   on dv.buddy_role_id = br.id
- left join tank_configurations tc   on dv.tank_configuration_id = tc.id
- left join tank_materials      tm   on dv.tank_material_id = tm.id
- left join gas_mixes           gm   on dv.gas_mix_id = gm.id
- left join entry_points        ep   on dv.entry_point_id = ep.id
+      from dives)               si   on dv.id = si.id
+ left join dive_sites           ds   on dv.dive_site_id = ds.id
+ left join dive_site_dive_stats dsds on ds.id = dsds.dive_site_id
+ left join countries            dsco on ds.country_id = dsco.id
+ left join currencies           dscu on dsco.currency_id = dscu.id
+ left join water_bodies         wb   on ds.water_body_id = wb.id
+ left join water_types          wt   on ds.water_type_id = wt.id
+ left join operators            op   on dv.operator_id = op.id
+ left join operator_types       opot on op.operator_type_id = opot.id
+ left join countries            opco on op.country_id = opco.id
+ left join currencies           opcu on opco.currency_id = opcu.id
+ left join currencies           prcu on dv.currency_id = prcu.id
+ left join trips                tr   on dv.trip_id = tr.id
+ left join operators            trop on tr.operator_id = trop.id
+ left join operator_types       trot on trop.operator_type_id = trot.id
+ left join countries            troc on trop.country_id = troc.id
+ left join currencies           trou on troc.currency_id = trou.id
+ left join currencies           trcu on tr.currency_id = trcu.id
+ left join certifications       ce   on dv.certification_id = ce.id
+ left join agency_courses       ceac on ce.course_id = ceac.id
+ left join agencies             ceag on ceac.agency_id = ceag.id
+ left join operators            ceop on ce.operator_id = ceop.id
+ left join operator_types       ceot on ceop.operator_type_id = ceot.id
+ left join countries            ceoc on ceop.country_id = ceoc.id
+ left join currencies           ceou on ceoc.currency_id = ceou.id
+ left join buddies              cebu on ce.instructor_id = cebu.id
+ left join buddy_dive_stats     cbds on ce.instructor_id = cbds.buddy_id
+ left join agencies             ceba on cebu.agency_id = ceba.id
+ left join currencies           cecu on ce.currency_id = cecu.id
+ left join currents             cu   on dv.current_id = cu.id
+ left join waves                wv   on dv.waves_id = wv.id
+ left join buddies              bu   on dv.buddy_id = bu.id
+ left join buddy_dive_stats     buds on dv.buddy_id = buds.buddy_id
+ left join agencies             buag on bu.agency_id = buag.id
+ left join buddy_roles          br   on dv.buddy_role_id = br.id
+ left join tank_configurations  tc   on dv.tank_configuration_id = tc.id
+ left join tank_materials       tm   on dv.tank_material_id = tm.id
+ left join gas_mixes            gm   on dv.gas_mix_id = gm.id
+ left join entry_points         ep   on dv.entry_point_id = ep.id
      where dv.owner_id = $1
 `
 
@@ -333,6 +347,9 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 		&dv.DiveSite.Created,
 		&dv.DiveSite.Updated,
 		&dv.DiveSite.OwnerId,
+		&dv.DiveSite.DivesAt,
+		&dv.DiveSite.FirstDiveAt,
+		&dv.DiveSite.LastDiveAt,
 		&dv.DiveSite.Name,
 		&dv.DiveSite.AltName,
 		&dv.DiveSite.Location,
@@ -508,6 +525,9 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 		&ce.Instructor.Agency.Acronym,
 		&ce.Instructor.Agency.URL,
 		&ce.Instructor.AgencyMemberNum,
+		&ce.Instructor.DivesWith,
+		&ce.Instructor.FirstDiveWith,
+		&ce.Instructor.LastDiveWith,
 		&ce.Instructor.Notes,
 		&ce.Price.Amount,
 		&ce.Price.Currency.ID,
@@ -557,6 +577,9 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 		&bu.Agency.Acronym,
 		&bu.Agency.URL,
 		&bu.AgencyMemberNum,
+		&bu.DivesWith,
+		&bu.FirstDiveWith,
+		&bu.LastDiveWith,
 		&bu.Notes,
 
 		// Buddu role.
@@ -910,14 +933,50 @@ func (m *DiveModel) Insert(
 	return diveID, nil
 }
 
-func (m *DiveModel) List(userID int, filters ListFilters) ([]Dive, PageData, error) {
-	limit := filters.limit()
-	offset := filters.offset()
-	stmt := fmt.Sprintf("%s order by date_time_in desc limit $2 offset $3", diveSelectQuery)
+type DiveFilter struct {
+	ID              int
+	DiveSiteID      int
+	OperatorID      int
+	CertificationID int
+	TripID          int
+}
+
+func (df DiveFilter) buildWhereClause() string {
+	clause := strings.Builder{}
+
+	clause.WriteString(" and ($2 = 0 or dv.id = $2)")
+	clause.WriteString(" and ($3 = 0 or dv.dive_site_id = $3)")
+	clause.WriteString(" and ($4 = 0 or dv.operator_id = $4)")
+	clause.WriteString(" and ($5 = 0 or dv.trip_id = $5)")
+	clause.WriteString(" and ($6 = 0 or dv.certification_id = $6)")
+
+	return clause.String()
+}
+
+func (m *DiveModel) List(
+	userID int,
+	pager Pager,
+	filter DiveFilter,
+	sort []SortDive,
+) ([]Dive, PageData, error) {
+	where := filter.buildWhereClause()
+	order := buildOrderByClause(sort, SortDiveIDAsc)
+	stmt := fmt.Sprintf("%s %s %s limit $7 offset $8", diveSelectQuery, where, order)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, stmt, userID, limit, offset)
+	rows, err := m.DB.QueryContext(
+		ctx,
+		stmt,
+		userID,
+		filter.ID,
+		filter.DiveSiteID,
+		filter.OperatorID,
+		filter.TripID,
+		filter.CertificationID,
+		pager.limit(),
+		pager.offset(),
+	)
 	if err != nil {
 		return nil, PageData{}, err
 	}
@@ -941,8 +1000,8 @@ func (m *DiveModel) List(userID int, filters ListFilters) ([]Dive, PageData, err
 
 	paginationData := newPaginationData(
 		totalRecords,
-		filters.page,
-		filters.pageSize,
+		pager.page,
+		pager.pageSize,
 	)
 
 	return records, paginationData, nil

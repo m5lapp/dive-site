@@ -91,7 +91,7 @@ type BuddyModelInterface interface {
 		agencyMemberNum string,
 		notes string,
 	) (int, error)
-	List(userID int, filters ListFilters) ([]Buddy, PageData, error)
+	List(userID int, pager Pager) ([]Buddy, PageData, error)
 	ListAll(userID int) ([]Buddy, error)
 }
 
@@ -201,9 +201,9 @@ func (m *BuddyModel) Insert(
 	return id, nil
 }
 
-func (m *BuddyModel) List(userID int, filters ListFilters) ([]Buddy, PageData, error) {
-	limit := filters.limit()
-	offset := filters.offset()
+func (m *BuddyModel) List(userID int, pager Pager) ([]Buddy, PageData, error) {
+	limit := pager.limit()
+	offset := pager.offset()
 	stmt := fmt.Sprintf("%s limit $2 offset $3", buddySelectQuery)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -232,8 +232,8 @@ func (m *BuddyModel) List(userID int, filters ListFilters) ([]Buddy, PageData, e
 
 	paginationData := newPaginationData(
 		totalRecords,
-		filters.page,
-		filters.pageSize,
+		pager.page,
+		pager.pageSize,
 	)
 
 	return records, paginationData, nil

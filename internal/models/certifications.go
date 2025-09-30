@@ -85,7 +85,7 @@ type CertificationModelInterface interface {
 		rating *int,
 		notes string,
 	) (int, error)
-	List(userID int, filters ListFilters) ([]Certification, PageData, error)
+	List(userID int, pager Pager) ([]Certification, PageData, error)
 	ListAll(userID int) ([]Certification, error)
 }
 
@@ -282,10 +282,10 @@ func (m *CertificationModel) Insert(
 
 func (m *CertificationModel) List(
 	userID int,
-	filters ListFilters,
+	pager Pager,
 ) ([]Certification, PageData, error) {
-	limit := filters.limit()
-	offset := filters.offset()
+	limit := pager.limit()
+	offset := pager.offset()
 	stmt := fmt.Sprintf("%s limit $1 offset $2", certificationSelectQuery)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -314,8 +314,8 @@ func (m *CertificationModel) List(
 
 	paginationData := newPaginationData(
 		totalRecords,
-		filters.page,
-		filters.pageSize,
+		pager.page,
+		pager.pageSize,
 	)
 
 	return records, paginationData, nil

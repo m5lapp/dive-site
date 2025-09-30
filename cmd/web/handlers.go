@@ -392,9 +392,10 @@ func (app *app) diveSiteList(w http.ResponseWriter, r *http.Request) {
 	page := app.readInt(r.URL.Query(), "page", 1)
 	pageSize := app.readInt(r.URL.Query(), "page_size", defaultPageSize)
 
-	filters := models.NewListFilters(page, pageSize, defaultPageSize)
+	pager := models.NewPager(page, pageSize, defaultPageSize)
+	userID := app.contextGetUser(r).ID
 
-	diveSites, pageData, err := app.diveSites.List(filters)
+	diveSites, pageData, err := app.diveSites.List(userID, pager, models.SortDiveSiteDefault)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
@@ -418,7 +419,9 @@ func (app *app) diveSiteGET(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	diveSite, err := app.diveSites.GetOneByID(id)
+	userID := app.contextGetUser(r).ID
+
+	diveSite, err := app.diveSites.GetOneByID(id, userID)
 	if err != nil {
 		if errors.Is(err, models.ErrNoRecord) {
 			http.NotFound(w, r)
@@ -428,12 +431,21 @@ func (app *app) diveSiteGET(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	pager := models.NewPager(1, 10, 10)
+	filter := models.DiveFilter{DiveSiteID: id}
+	dives, _, err := app.dives.List(userID, pager, filter, models.SortDiveDefault)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
 	data, err := app.newTemplateData(r)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
 	data.DiveSite = diveSite
+	data.Dives = dives
 
 	app.render(w, r, http.StatusOK, "dive_site/view.tmpl", data)
 }
@@ -596,10 +608,10 @@ func (app *app) buddyList(w http.ResponseWriter, r *http.Request) {
 	page := app.readInt(r.URL.Query(), "page", 1)
 	pageSize := app.readInt(r.URL.Query(), "page_size", defaultPageSize)
 
-	filters := models.NewListFilters(page, pageSize, defaultPageSize)
+	pager := models.NewPager(page, pageSize, defaultPageSize)
 	userID := app.contextGetUser(r).ID
 
-	buddies, pageData, err := app.buddies.List(userID, filters)
+	buddies, pageData, err := app.buddies.List(userID, pager)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
@@ -1053,7 +1065,7 @@ func (app *app) addStaticdataToDiveForm(r *http.Request, data *templateData) err
 	}
 	data.Currents = currents
 
-	diveSites, err := app.diveSites.ListAll()
+	diveSites, err := app.diveSites.ListAll(user.ID)
 	if err != nil {
 		return fmt.Errorf("could not fetch dive sites list: %w", err)
 	}
@@ -1581,9 +1593,10 @@ func (app *app) diveList(w http.ResponseWriter, r *http.Request) {
 	page := app.readInt(r.URL.Query(), "page", 1)
 	pageSize := app.readInt(r.URL.Query(), "page_size", defaultPageSize)
 
-	filters := models.NewListFilters(page, pageSize, defaultPageSize)
+	pager := models.NewPager(page, pageSize, defaultPageSize)
+	filter := models.DiveFilter{}
 
-	records, pageData, err := app.dives.List(user.ID, filters)
+	records, pageData, err := app.dives.List(user.ID, pager, filter, models.SortDiveDefault)
 	if err != nil {
 		app.serverError(w, r, err)
 		return

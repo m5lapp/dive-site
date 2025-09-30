@@ -22,25 +22,28 @@ type WaterBody struct {
 }
 
 type DiveSite struct {
-	ID        int
-	Version   int
-	Created   time.Time
-	Updated   time.Time
-	OwnerId   int
-	Name      string
-	AltName   string
-	Location  string
-	Region    string
-	Country   Country
-	TimeZone  TimeZone
-	Latitude  *float64
-	Longitude *float64
-	WaterBody WaterBody
-	WaterType WaterType
-	Altitude  int
-	MaxDepth  *float64
-	Notes     string
-	Rating    *int
+	ID          int
+	Version     int
+	Created     time.Time
+	Updated     time.Time
+	OwnerId     int
+	DivesAt     int
+	FirstDiveAt *time.Time
+	LastDiveAt  *time.Time
+	Name        string
+	AltName     string
+	Location    string
+	Region      string
+	Country     Country
+	TimeZone    TimeZone
+	Latitude    *float64
+	Longitude   *float64
+	WaterBody   WaterBody
+	WaterType   WaterType
+	Altitude    int
+	MaxDepth    *float64
+	Notes       string
+	Rating      *int
 }
 
 func (ds DiveSite) String() string {
@@ -70,30 +73,41 @@ type DiveSiteModelInterface interface {
 		rating *int,
 	) (int, error)
 
-	GetOneByID(id int) (DiveSite, error)
+	GetOneByID(id, diverID int) (DiveSite, error)
 
-	List(ListControls ListFilters) ([]DiveSite, PageData, error)
+	List(diverID int, ListControls Pager, sort []SortDiveSite) ([]DiveSite, PageData, error)
 
-	ListAll() ([]DiveSite, error)
+	ListAll(diverID int) ([]DiveSite, error)
 
 	Exists(id int) (bool, error)
 }
 
 var diveSiteSelectQuery string = `
+      with dive_site_dive_stats as (
+        select dv.dive_site_id dive_site_id,
+               count(dv.id) dives_at,
+               min(dv.date_time_in) first_dive_at,
+               max(dv.date_time_in) last_dive_at
+          from dives dv
+         where dv.owner_id = $1
+      group by dv.dive_site_id
+           )
     select count(*) over(), ds.id, ds.version, ds.created_at, ds.updated_at,
-           ds.owner_id, ds.name, ds.alt_name, ds.location, ds.region,
+           ds.owner_id,
+           coalesce(st.dives_at, 0), st.first_dive_at, st.last_dive_at,
+           ds.name, ds.alt_name, ds.location, ds.region,
            ds.timezone, ds.latitude, ds.longitude, ds.altitude, ds.max_depth,
            ds.notes, ds.rating, co.id, co.name, co.iso_number, co.iso2_code,
            co.iso3_code, co.dialing_code, co.capital, cu.id, cu.iso_alpha,
            cu.iso_number, cu.name, cu.exponent, wb.id, wb.name, wb.description,
            wt.id, wt.name, wt.description, wt.density
       from dive_sites ds
+ left join dive_site_dive_stats st on ds.id = st.dive_site_id
  left join countries    co on ds.country_id = co.id
  left join currencies   cu on co.currency_id = cu.id
  left join water_bodies wb on ds.water_body_id = wb.id
  left join water_types  wt on ds.water_type_id = wt.id
 `
-var diveSiteOrderBy string = "order by co.name, ds.region, ds.location, ds.name"
 
 func diveSiteFromDBRow(rs RowScanner, totalRecords *int, ds *DiveSite) error {
 	return rs.Scan(
@@ -103,6 +117,9 @@ func diveSiteFromDBRow(rs RowScanner, totalRecords *int, ds *DiveSite) error {
 		&ds.Created,
 		&ds.Updated,
 		&ds.OwnerId,
+		&ds.DivesAt,
+		&ds.FirstDiveAt,
+		&ds.LastDiveAt,
 		&ds.Name,
 		&ds.AltName,
 		&ds.Location,
@@ -200,14 +217,16 @@ func (m *DiveSiteModel) Insert(
 	return id, nil
 }
 
-func (m *DiveSiteModel) GetOneByID(id int) (DiveSite, error) {
-	stmt := fmt.Sprintf("%s where ds.id = $1", diveSiteSelectQuery)
+func (m *DiveSiteModel) GetOneByID(id, ownerID int) (DiveSite, error) {
+	stmt := fmt.Sprintf("%s where ds.id = $2", diveSiteSelectQuery)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
+	fmt.Println(id, ownerID)
+
 	var totalRecords int
 	var diveSite DiveSite
-	row := m.DB.QueryRowContext(ctx, stmt, id)
+	row := m.DB.QueryRowContext(ctx, stmt, ownerID, id)
 	err := diveSiteFromDBRow(row, &totalRecords, &diveSite)
 
 	if err != nil {
@@ -221,14 +240,19 @@ func (m *DiveSiteModel) GetOneByID(id int) (DiveSite, error) {
 	return diveSite, nil
 }
 
-func (m *DiveSiteModel) List(filters ListFilters) ([]DiveSite, PageData, error) {
+func (m *DiveSiteModel) List(
+	diverID int,
+	filters Pager,
+	sort []SortDiveSite,
+) ([]DiveSite, PageData, error) {
 	limit := filters.limit()
 	offset := filters.offset()
-	stmt := fmt.Sprintf("%s %s limit $1 offset $2", diveSiteSelectQuery, diveSiteOrderBy)
+	order := buildOrderByClause(sort, SortDiveSiteIDAsc)
+	stmt := fmt.Sprintf("%s %s limit $2 offset $3", diveSiteSelectQuery, order)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, stmt, limit, offset)
+	rows, err := m.DB.QueryContext(ctx, stmt, diverID, limit, offset)
 	if err != nil {
 		return nil, PageData{}, err
 	}
@@ -259,12 +283,13 @@ func (m *DiveSiteModel) List(filters ListFilters) ([]DiveSite, PageData, error) 
 	return diveSites, paginationData, nil
 }
 
-func (m *DiveSiteModel) ListAll() ([]DiveSite, error) {
+func (m *DiveSiteModel) ListAll(diverID int) ([]DiveSite, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	stmt := fmt.Sprintf("%s %s", diveSiteSelectQuery, diveSiteOrderBy)
-	rows, err := m.DB.QueryContext(ctx, stmt)
+	order := buildOrderByClause(SortDiveSiteDefault, SortDiveSiteIDAsc)
+	stmt := fmt.Sprintf("%s %s", diveSiteSelectQuery, order)
+	rows, err := m.DB.QueryContext(ctx, stmt, diverID)
 	if err != nil {
 		return nil, err
 	}

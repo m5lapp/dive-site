@@ -110,54 +110,41 @@
       </div>
     {{end}}
 
-    {{/*{{if .UserDives}}
+    {{if .Dives}}
       <div class="row mt-4">
-        <h2>Your Dives at {{.DiveSite.Name}} ({{len .UserDives}})</h2>
+        <h2>Your Dives at {{.DiveSite.Name}} ({{len .Dives}})</h2>
 
-        <div class="table-wrapper">
-          <table class="alt">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Date</th>
-                <th>Dive Site</th>
-                <th>Activity</th>
-                <th>Depth</th>
-                <th>Bottom Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {{dive := range .UserDives}}
-                <tr>
-                  <td>
-                    <a href="{{url 'divelog:view_dive' dive.pk}}">{{dive.number}}</a>
-                  </td>
-                  <td>
-                    <a href="{{url 'divelog:view_dive' dive.pk}}">{{dive.date_time_in|date:"Y-m-d H:i e"|timezone:"dive.timezone"}}</a>
-                    <a href="{{url 'divelog:view_dive' dive.pk}}">{{dive.date_time_in|timezone:dive.site.timezone|date:"Y-m-d H:i e"}}</a>
-                  </td>
-                  <td>
-                    {{isoCountryToEmoji .Country.ISO2Code}}
-                    <a href="/blah">
-                      {{dive.site.name}}
-                    </a>
-                  </td>
-                  <td>
-                    <a href="{{url 'divelog:view_dive' dive.pk}}">{{dive.activity}}</a>
-                  </td>
-                  <td>
-                    <a href="{{url 'divelog:view_dive' dive.pk}}">{{dive.max_depth}}</a>
-                  </td>
-                  <td>
-                    <a href="{{url 'divelog:view_dive' dive.pk}}">{{dive.bottom_time}}</a>
-                  </td>
-                </tr>
-              {{end}}
-            </tbody>
-          </table>
+        <div class="list-group">
+          {{range .Dives}}
+            <a class="list-group-item list-group-item-action"
+               href="/log-book/dive/view/{{.ID}}">
+              <div class="d-flex w-100 justify-content-between">
+                <h4 class="mb-1">
+                  {{isoCountryToEmoji .DiveSite.Country.ISO2Code}}
+                  #{{.Number}}
+                  {{.DateTimeIn.Format "2006-01-02 15:04 MST"}}
+                </h4>
+                {{with .Rating}}
+                  <span class="badge text-bg-primary rounded-pill">{{.}}/10</span>
+                {{end}}
+              </div>
+              <p class="mb-1">
+                <strong>{{.DiveSite.Name}}</strong>
+                {{- with .DiveSite.AltName}} <small>({{.}})</small>{{end}},
+                {{.DiveSite.Location}}{{with .DiveSite.Region}}, {{.}}{{end}},
+                {{.DiveSite.Country.Name}}
+              </p>
+              <p class="mb-1">
+                {{.Activity}},
+                <small>{{.BottomTime.Minutes}}mins @ {{.MaxDepth}}m</small>
+                {{- with .Buddy}} with {{.Name}}{{end}}
+              </p>
+            </a>
+          {{end}}
         </div>
-      {{end}} */}}
-    </div>
+      </div>
+    {{end}}
+
   </section>
 {{end}}
 

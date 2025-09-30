@@ -34,11 +34,10 @@
               {{- with .Buddy}} with {{.Name}}{{end}}
             </p>
           </a>
-        </li>
-      {{end}}
-    </ul>
+        {{end}}
+      </div>
 
-    {{pageControls "/log-book/dive" .PageData}}
+      {{pageControls "/log-book/dive" .PageData}}
 
     {{else}}
       <p>

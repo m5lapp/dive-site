@@ -108,7 +108,7 @@ type TripModelInterface interface {
 		priceCurrencyID *int,
 		notes string,
 	) (int, error)
-	List(userID int, filters ListFilters) ([]Trip, PageData, error)
+	List(userID int, pager Pager) ([]Trip, PageData, error)
 	ListAll(userID int) ([]Trip, error)
 }
 
@@ -254,9 +254,9 @@ func (m *TripModel) Insert(
 	return id, nil
 }
 
-func (m *TripModel) List(userID int, filters ListFilters) ([]Trip, PageData, error) {
-	limit := filters.limit()
-	offset := filters.offset()
+func (m *TripModel) List(userID int, pager Pager) ([]Trip, PageData, error) {
+	limit := pager.limit()
+	offset := pager.offset()
 	stmt := fmt.Sprintf("%s limit $2 offset $3", tripSelectQuery)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -285,8 +285,8 @@ func (m *TripModel) List(userID int, filters ListFilters) ([]Trip, PageData, err
 
 	paginationData := newPaginationData(
 		totalRecords,
-		filters.page,
-		filters.pageSize,
+		pager.page,
+		pager.pageSize,
 	)
 
 	return records, paginationData, nil

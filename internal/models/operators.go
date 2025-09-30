@@ -119,7 +119,7 @@ type OperatorModelInterface interface {
 		phoneNumber string,
 		comments string,
 	) (int, error)
-	List(filters ListFilters) ([]Operator, PageData, error)
+	List(Pager Pager) ([]Operator, PageData, error)
 	ListAll() ([]Operator, error)
 }
 
@@ -232,9 +232,9 @@ func (m *OperatorModel) Insert(
 	return id, nil
 }
 
-func (m *OperatorModel) List(filters ListFilters) ([]Operator, PageData, error) {
-	limit := filters.limit()
-	offset := filters.offset()
+func (m *OperatorModel) List(pager Pager) ([]Operator, PageData, error) {
+	limit := pager.limit()
+	offset := pager.offset()
 	stmt := fmt.Sprintf("%s limit $1 offset $2", operatorSelectQuery)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -263,8 +263,8 @@ func (m *OperatorModel) List(filters ListFilters) ([]Operator, PageData, error) 
 
 	paginationData := newPaginationData(
 		totalRecords,
-		filters.page,
-		filters.pageSize,
+		pager.page,
+		pager.pageSize,
 	)
 
 	return operators, paginationData, nil

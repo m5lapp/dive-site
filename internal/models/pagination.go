@@ -1,14 +1,14 @@
 package models
 
-type ListFilters struct {
+type Pager struct {
 	page     int
 	pageSize int
 }
 
-// NewListFilters returns a new ListFilters struct. The pageSize parameter is
-// the size of the page requested by the user; if it's outside of the allowed
-// range, then the defaultPageSize will be used instead.
-func NewListFilters(page, pageSize, defaultPageSize int) ListFilters {
+// NewPager returns a new Pager struct. The pageSize parameter is the size of
+// the page requested by the user; if it's outside of the allowed range, then
+// the defaultPageSize will be used instead.
+func NewPager(page, pageSize, defaultPageSize int) Pager {
 	if page < 1 || page > 10_000_000 {
 		page = 1
 	}
@@ -17,17 +17,17 @@ func NewListFilters(page, pageSize, defaultPageSize int) ListFilters {
 		pageSize = defaultPageSize
 	}
 
-	return ListFilters{
+	return Pager{
 		page:     page,
 		pageSize: pageSize,
 	}
 }
 
-func (lf ListFilters) limit() int {
+func (lf Pager) limit() int {
 	return lf.pageSize
 }
 
-func (lf ListFilters) offset() int {
+func (lf Pager) offset() int {
 	return (lf.page - 1) * lf.pageSize
 }
 
