@@ -594,7 +594,34 @@ func (app *app) operatorCreatePOST(w http.ResponseWriter, r *http.Request) {
 	}
 
 	app.sessionManager.Put(r.Context(), "flash", "Dive operator added successfully.")
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "/operator/", http.StatusSeeOther)
+}
+
+func (app *app) operatorList(w http.ResponseWriter, r *http.Request) {
+	const defaultPageSize = 20
+
+	page := app.readInt(r.URL.Query(), "page", 1)
+	pageSize := app.readInt(r.URL.Query(), "page_size", defaultPageSize)
+
+	pager := models.NewPager(page, pageSize, defaultPageSize)
+	userID := app.contextGetUser(r).ID
+
+	operators, pageData, err := app.operators.List(userID, pager)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data.Operators = operators
+	data.PageData = pageData
+
+	app.render(w, r, http.StatusOK, "operator/list.tmpl", data)
 }
 
 type buddyForm struct {

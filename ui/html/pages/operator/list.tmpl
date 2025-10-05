@@ -1,0 +1,92 @@
+{{define "title"}}Dive Operators{{end}}
+
+{{define "heading"}}Dive Operators{{end}}
+
+{{define "main"}}
+  <section>
+
+    {{if .Operators}}
+      {{pageControls "/operator" .PageData}}
+
+      <table class="table table-hover table-striped">
+        <thead>
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Type</th>
+            <th scope="col">Address</th>
+            <th scope="col">Contact Details</th>
+            <th scope="col">Dives Logged</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Operators}}
+            <tr>
+              <th scope="row">{{.Name}}</td>
+              <td>{{.OperatorType.Name}}</td>
+              <td>
+                {{isoCountryToEmoji .Country.ISO2Code}}
+                {{$needComma := false}}
+
+                {{- with .Street}}
+                  {{- .}}
+                  {{- $needComma = true}}
+                {{- end}}
+
+                {{- with .Suburb}}
+                  {{- if $needComma}}, {{end}}
+                  {{- .}}
+                  {{- $needComma = true}}
+                {{- end}}
+
+                {{- with .State}}
+                  {{- if $needComma}}, {{end}}
+                  {{- .}}
+                  {{- $needComma = true}}
+                {{- end}}
+
+                {{- with .Postcode}}
+                  {{- if $needComma}}, {{end}}
+                  {{- .}}
+                {{- end}}
+              </td>
+              <td>
+                {{with .WebsiteURL}}
+                  <small>
+                    <a class="link-underline-opacity-25 link-underline-opacity-100-hover"
+                       href="{{.}}">🌐</a>
+                  </small>
+                {{end}}
+                {{with .EmailAddress}}
+                  <small>
+                    <a class="link-underline-opacity-25 link-underline-opacity-100-hover"
+                       href="mailto:{{.}}">📧</a>
+                  </small>
+                {{end}}
+                {{with .PhoneNumber}}
+                  <small>
+                    <a class="link-underline-opacity-25 link-underline-opacity-100-hover"
+                       href="tel:{{.}}">☎️</a>
+                  </small>
+                {{end}}
+              </td>
+              <td>
+                {{.Dives}}
+                {{if .Dives}}since {{.FirstDive.Format "2006-01-02"}}{{end}}
+              </td>
+            </tr>
+          {{end}}
+        </tbody>
+      </table>
+
+      {{pageControls "/operator" .PageData}}
+
+    {{else}}
+      <p>
+        No dive operators have been added yet. Please feel free to
+        <a href="/operator/add">add a new one</a>.
+      </p>
+    {{end}}
+
+  </section>
+{{end}}
+

@@ -44,6 +44,7 @@ func (app *app) routes() http.Handler {
 	mux.Handle("GET  /certification/add", protected.ThenFunc(app.certificationCreateGET))
 	mux.Handle("POST /certification/add", protected.ThenFunc(app.certificationCreatePOST))
 
+	mux.Handle("GET  /operator/", protected.ThenFunc(app.operatorList))
 	mux.Handle("GET  /operator/add", protected.ThenFunc(app.operatorCreateGET))
 	mux.Handle("POST /operator/add", protected.ThenFunc(app.operatorCreatePOST))
 
