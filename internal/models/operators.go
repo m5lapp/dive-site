@@ -38,6 +38,9 @@ type Operator struct {
 	Created      time.Time
 	Updated      time.Time
 	OwnerID      int
+	Dives        int
+	FirstDive    *time.Time
+	LastDive     *time.Time
 	OperatorType OperatorType
 	Name         string
 	Street       string
@@ -66,6 +69,9 @@ type nullableOperator struct {
 	Created      *time.Time
 	Updated      *time.Time
 	OwnerID      *int
+	Dives        *int
+	FirstDive    *time.Time
+	LastDive     *time.Time
 	OperatorType nullableOperatorType
 	Name         *string
 	Street       *string
@@ -89,6 +95,9 @@ func (no nullableOperator) ToStruct() *Operator {
 		Created:      *no.Updated,
 		Updated:      *no.Created,
 		OwnerID:      *no.OwnerID,
+		Dives:        *no.Dives,
+		FirstDive:    no.FirstDive,
+		LastDive:     no.LastDive,
 		OperatorType: *no.OperatorType.ToStruct(),
 		Name:         *no.Name,
 		Street:       *no.State,
@@ -119,12 +128,22 @@ type OperatorModelInterface interface {
 		phoneNumber string,
 		comments string,
 	) (int, error)
-	List(Pager Pager) ([]Operator, PageData, error)
-	ListAll() ([]Operator, error)
+	List(userID int, Pager Pager) ([]Operator, PageData, error)
+	ListAll(userID int) ([]Operator, error)
 }
 
 var operatorSelectQuery string = `
+      with operator_dive_stats as (
+        select dv.operator_id operator_id,
+               count(dv.id) dives,
+               min(dv.date_time_in) first_dive,
+               max(dv.date_time_in) last_dive
+          from dives dv
+         where dv.owner_id = $1
+      group by dv.operator_id
+           )
     select count(*) over(), op.id, op.created_at, op.updated_at, op.owner_id,
+           coalesce(os.dives, 0), os.first_dive, os.last_dive,
            ot.id, ot.name, ot.description,
            op.name, op.street, op.suburb, op.state, op.postcode,
            co.id, co.name, co.iso_number, co.iso2_code,
@@ -132,9 +151,10 @@ var operatorSelectQuery string = `
            cu.id, cu.iso_alpha, cu.iso_number, cu.name, cu.exponent,
            op.website_url, op.email_address, op.phone_number, op.comments
       from operators op
- left join operator_types ot on op.operator_type_id = ot.id
- left join countries      co on op.country_id = co.id
- left join currencies     cu on co.currency_id = cu.id
+ left join operator_dive_stats os on op.id = os.operator_id
+ left join operator_types      ot on op.operator_type_id = ot.id
+ left join countries           co on op.country_id = co.id
+ left join currencies          cu on co.currency_id = cu.id
 `
 
 func operatorFromDBRow(rs RowScanner, totalRecords *int, op *Operator) error {
@@ -144,6 +164,9 @@ func operatorFromDBRow(rs RowScanner, totalRecords *int, op *Operator) error {
 		&op.Created,
 		&op.Updated,
 		&op.OwnerID,
+		&op.Dives,
+		&op.FirstDive,
+		&op.LastDive,
 		&op.OperatorType.ID,
 		&op.OperatorType.Name,
 		&op.OperatorType.Description,
@@ -232,14 +255,14 @@ func (m *OperatorModel) Insert(
 	return id, nil
 }
 
-func (m *OperatorModel) List(pager Pager) ([]Operator, PageData, error) {
+func (m *OperatorModel) List(userID int, pager Pager) ([]Operator, PageData, error) {
 	limit := pager.limit()
 	offset := pager.offset()
-	stmt := fmt.Sprintf("%s limit $1 offset $2", operatorSelectQuery)
+	stmt := fmt.Sprintf("%s limit $2 offset $3", operatorSelectQuery)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, stmt, limit, offset)
+	rows, err := m.DB.QueryContext(ctx, stmt, userID, limit, offset)
 	if err != nil {
 		return nil, PageData{}, err
 	}
@@ -270,11 +293,11 @@ func (m *OperatorModel) List(pager Pager) ([]Operator, PageData, error) {
 	return operators, paginationData, nil
 }
 
-func (m *OperatorModel) ListAll() ([]Operator, error) {
+func (m *OperatorModel) ListAll(userID int) ([]Operator, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, operatorSelectQuery)
+	rows, err := m.DB.QueryContext(ctx, operatorSelectQuery, userID)
 	if err != nil {
 		return nil, err
 	}

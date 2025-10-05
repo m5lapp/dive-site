@@ -108,7 +108,7 @@ func (app *app) newTemplateData(r *http.Request) (templateData, error) {
 		return templateData{}, fmt.Errorf("could not fetch currency list for template: %w", err)
 	}
 
-	operators, err := app.operators.ListAll()
+	operators, err := app.operators.ListAll(user.ID)
 	if err != nil {
 		return templateData{}, fmt.Errorf("could not fetch operator list for template: %w", err)
 	}

@@ -108,8 +108,18 @@ var certificationSelectQuery string = `
          where dv.owner_id = $1
       group by dv.certification_id
            ),
+      operator_dive_stats as (
+        select dv.operator_id operator_id,
+               count(dv.id) dives,
+               min(dv.date_time_in) first_dive,
+               max(dv.date_time_in) last_dive
+          from dives dv
+         where dv.owner_id = $1
+      group by dv.operator_id
+           ),
       buddy_dive_stats as (
-        select dv.buddy_id buddy_id, count(dv.id) dives_with,
+        select dv.buddy_id buddy_id,
+               count(dv.id) dives_with,
                min(dv.date_time_in) first_dive_with,
                max(dv.date_time_in) last_dive_with
           from dives dv
@@ -125,6 +135,7 @@ var certificationSelectQuery string = `
            ac.is_pro_course,
            ce.start_date, ce.end_date,
            op.id, op.created_at, op.updated_at, op.owner_id,
+           coalesce(os.dives, 0), os.first_dive, os.last_dive,
            ot.id, ot.name, ot.description,
            op.name, op.street, op.suburb, op.state, op.postcode,
            oc.id, oc.name, oc.iso_number, oc.iso2_code,
@@ -141,17 +152,18 @@ var certificationSelectQuery string = `
            cu.id, cu.iso_alpha, cu.iso_number, cu.name, cu.exponent,
            ce.rating, ce.notes
       from certifications ce
- left join cert_dive_stats  cs on ce.id = cs.certification_id
- left join agency_courses   ac on ce.course_id = ac.id
- left join agencies         ag on ac.agency_id = ag.id
- left join operators        op on ce.operator_id = op.id
- left join operator_types   ot on op.operator_type_id = ot.id
- left join countries        oc on op.country_id = oc.id
- left join currencies       ou on oc.currency_id = ou.id
- left join buddies          bu on ce.instructor_id = bu.id
- left join buddy_dive_stats bs on bu.id = bs.buddy_id
- left join agencies         ba on bu.agency_id = ba.id
- left join currencies       cu on ce.currency_id = cu.id
+ left join cert_dive_stats     cs on ce.id = cs.certification_id
+ left join agency_courses      ac on ce.course_id = ac.id
+ left join agencies            ag on ac.agency_id = ag.id
+ left join operators           op on ce.operator_id = op.id
+ left join operator_dive_stats os on op.id = os.operator_id
+ left join operator_types      ot on op.operator_type_id = ot.id
+ left join countries           oc on op.country_id = oc.id
+ left join currencies          ou on oc.currency_id = ou.id
+ left join buddies             bu on ce.instructor_id = bu.id
+ left join buddy_dive_stats    bs on bu.id = bs.buddy_id
+ left join agencies            ba on bu.agency_id = ba.id
+ left join currencies          cu on ce.currency_id = cu.id
      where ce.owner_id = $1
 `
 
@@ -185,6 +197,9 @@ func certificationFromDBRow(rs RowScanner, totalRecords *int, ce *Certification)
 		&ce.Operator.Created,
 		&ce.Operator.Updated,
 		&ce.Operator.OwnerID,
+		&ce.Operator.Dives,
+		&ce.Operator.FirstDive,
+		&ce.Operator.LastDive,
 		&ce.Operator.OperatorType.ID,
 		&ce.Operator.OperatorType.Name,
 		&ce.Operator.OperatorType.Description,

@@ -174,6 +174,15 @@ var diveSelectQuery string = `
          where dv.owner_id = $1
       group by dv.dive_site_id
            ),
+      operator_dive_stats as (
+        select dv.operator_id operator_id,
+               count(dv.id) dives,
+               min(dv.date_time_in) first_dive,
+               max(dv.date_time_in) last_dive
+          from dives dv
+         where dv.owner_id = $1
+      group by dv.operator_id
+           ),
       trip_dive_stats as (
         select dv.trip_id trip_id,
                count(dv.id) dives,
@@ -214,6 +223,7 @@ var diveSelectQuery string = `
            wb.id, wb.name, wb.description, wt.id, wt.name, wt.description,
            wt.density,
            op.id, op.created_at, op.updated_at, op.owner_id,
+           coalesce(opds.dives, 0), opds.first_dive, opds.last_dive,
            opot.id, opot.name, opot.description,
            op.name, op.street, op.suburb, op.state, op.postcode,
            opco.id, opco.name, opco.iso_number, opco.iso2_code,
@@ -226,6 +236,7 @@ var diveSelectQuery string = `
            coalesce(trds.dives, 0), trds.first_dive, trds.last_dive,
            tr.name, tr.start_date, tr.end_date, tr.description, tr.rating,
            trop.id, trop.created_at, trop.updated_at, trop.owner_id,
+           coalesce(tros.dives, 0), tros.first_dive, tros.last_dive,
            trot.id, trot.name, trot.description,
            trop.name, trop.street, trop.suburb, trop.state, trop.postcode,
            troc.id, troc.name, troc.iso_number, troc.iso2_code,
@@ -244,6 +255,7 @@ var diveSelectQuery string = `
            ceac.is_pro_course,
            ce.start_date, ce.end_date,
            ceop.id, ceop.created_at, ceop.updated_at, ceop.owner_id,
+           coalesce(ceos.dives, 0), ceos.first_dive, ceos.last_dive,
            ceot.id, ceot.name, ceot.description,
            ceop.name, ceop.street, ceop.suburb, ceop.state, ceop.postcode,
            ceoc.id, ceoc.name, ceoc.iso_number, ceoc.iso2_code,
@@ -306,6 +318,7 @@ inner join (
  left join water_bodies         wb   on ds.water_body_id = wb.id
  left join water_types          wt   on ds.water_type_id = wt.id
  left join operators            op   on dv.operator_id = op.id
+ left join operator_dive_stats  opds on dv.operator_id = opds.operator_id
  left join operator_types       opot on op.operator_type_id = opot.id
  left join countries            opco on op.country_id = opco.id
  left join currencies           opcu on opco.currency_id = opcu.id
@@ -313,6 +326,7 @@ inner join (
  left join trips                tr   on dv.trip_id = tr.id
  left join trip_dive_stats      trds on tr.id = trds.trip_id
  left join operators            trop on tr.operator_id = trop.id
+ left join operator_dive_stats  tros on tr.operator_id = tros.operator_id
  left join operator_types       trot on trop.operator_type_id = trot.id
  left join countries            troc on trop.country_id = troc.id
  left join currencies           trou on troc.currency_id = trou.id
@@ -322,6 +336,7 @@ inner join (
  left join agency_courses       ceac on ce.course_id = ceac.id
  left join agencies             ceag on ceac.agency_id = ceag.id
  left join operators            ceop on ce.operator_id = ceop.id
+ left join operator_dive_stats  ceos on ce.operator_id = ceos.operator_id
  left join operator_types       ceot on ceop.operator_type_id = ceot.id
  left join countries            ceoc on ceop.country_id = ceoc.id
  left join currencies           ceou on ceoc.currency_id = ceou.id
@@ -408,6 +423,9 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 		&op.Created,
 		&op.Updated,
 		&op.OwnerID,
+		&op.Dives,
+		&op.FirstDive,
+		&op.LastDive,
 		&op.OperatorType.ID,
 		&op.OperatorType.Name,
 		&op.OperatorType.Description,
@@ -458,6 +476,9 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 		&tr.Operator.Created,
 		&tr.Operator.Updated,
 		&tr.Operator.OwnerID,
+		&tr.Operator.Dives,
+		&tr.Operator.FirstDive,
+		&tr.Operator.LastDive,
 		&tr.Operator.OperatorType.ID,
 		&tr.Operator.OperatorType.Name,
 		&tr.Operator.OperatorType.Description,
@@ -515,6 +536,9 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 		&ce.Operator.Created,
 		&ce.Operator.Updated,
 		&ce.Operator.OwnerID,
+		&ce.Operator.Dives,
+		&ce.Operator.FirstDive,
+		&ce.Operator.LastDive,
 		&ce.Operator.OperatorType.ID,
 		&ce.Operator.OperatorType.Name,
 		&ce.Operator.OperatorType.Description,

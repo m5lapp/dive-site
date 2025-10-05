@@ -134,12 +134,22 @@ var tripSelectQuery string = `
           from dives dv
          where dv.owner_id = $1
       group by dv.trip_id
+           ),
+      operator_dive_stats as (
+        select dv.operator_id operator_id,
+               count(dv.id) dives,
+               min(dv.date_time_in) first_dive,
+               max(dv.date_time_in) last_dive
+          from dives dv
+         where dv.owner_id = $1
+      group by dv.operator_id
            )
     select count(*) over(),
            tr.id, tr.created_at, tr.updated_at, tr.owner_id,
            coalesce(ts.dives, 0), ts.first_dive, ts.last_dive,
            tr.name, tr.start_date, tr.end_date, tr.description, tr.rating,
            op.id, op.created_at, op.updated_at, op.owner_id,
+           coalesce(os.dives, 0), os.first_dive, os.last_dive,
            ot.id, ot.name, ot.description,
            op.name, op.street, op.suburb, op.state, op.postcode,
            oc.id, oc.name, oc.iso_number, oc.iso2_code,
@@ -150,12 +160,13 @@ var tripSelectQuery string = `
            cu.id, cu.iso_alpha, cu.iso_number, cu.name, cu.exponent,
            tr.notes
       from trips tr
- left join trip_dive_stats ts on tr.id = ts.trip_id
- left join operators       op on tr.operator_id = op.id
- left join operator_types  ot on op.operator_type_id = ot.id
- left join countries       oc on op.country_id = oc.id
- left join currencies      ou on oc.currency_id = ou.id
- left join currencies      cu on tr.currency_id = cu.id
+ left join trip_dive_stats     ts on tr.id = ts.trip_id
+ left join operators           op on tr.operator_id = op.id
+ left join operator_dive_stats os on op.id = os.operator_id
+ left join operator_types      ot on op.operator_type_id = ot.id
+ left join countries           oc on op.country_id = oc.id
+ left join currencies          ou on oc.currency_id = ou.id
+ left join currencies          cu on tr.currency_id = cu.id
      where tr.owner_id = $1
 `
 
@@ -181,6 +192,9 @@ func tripFromDBRow(rs RowScanner, totalRecords *int, tr *Trip) error {
 		&op.Created,
 		&op.Updated,
 		&op.OwnerID,
+		&op.Dives,
+		&op.FirstDive,
+		&op.LastDive,
 		&op.OperatorType.ID,
 		&op.OperatorType.Name,
 		&op.OperatorType.Description,
