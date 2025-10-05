@@ -51,7 +51,7 @@ type Operator struct {
 	Comments     string
 }
 
-func (op *Operator) String() string {
+func (op Operator) String() string {
 	if op.Suburb == "" {
 		return fmt.Sprintf("%s, %s", op.Name, op.Country.ISO2Code)
 	}

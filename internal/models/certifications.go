@@ -12,6 +12,9 @@ type Certification struct {
 	Created    time.Time
 	Updated    time.Time
 	OwnerID    int
+	Dives      int
+	FirstDive  *time.Time
+	LastDive   *time.Time
 	Course     AgencyCourse
 	StartDate  time.Time
 	EndDate    time.Time
@@ -40,6 +43,9 @@ type nullableCertification struct {
 	Created    *time.Time
 	Updated    *time.Time
 	OwnerID    *int
+	Dives      *int
+	FirstDive  *time.Time
+	LastDive   *time.Time
 	Course     nullableAgencyCourse
 	StartDate  *time.Time
 	EndDate    *time.Time
@@ -60,6 +66,9 @@ func (nc nullableCertification) ToStruct() *Certification {
 		Created:    *nc.Created,
 		Updated:    *nc.Updated,
 		OwnerID:    *nc.OwnerID,
+		Dives:      *nc.Dives,
+		FirstDive:  nc.FirstDive,
+		LastDive:   nc.LastDive,
 		Course:     *nc.Course.ToStruct(),
 		StartDate:  *nc.StartDate,
 		EndDate:    *nc.EndDate,
@@ -90,7 +99,16 @@ type CertificationModelInterface interface {
 }
 
 var certificationSelectQuery string = `
-      with buddy_dive_stats as (
+      with cert_dive_stats as (
+        select dv.certification_id certification_id,
+               count(dv.id) dives,
+               min(dv.date_time_in) first_dive,
+               max(dv.date_time_in) last_dive
+          from dives dv
+         where dv.owner_id = $1
+      group by dv.certification_id
+           ),
+      buddy_dive_stats as (
         select dv.buddy_id buddy_id, count(dv.id) dives_with,
                min(dv.date_time_in) first_dive_with,
                max(dv.date_time_in) last_dive_with
@@ -100,6 +118,7 @@ var certificationSelectQuery string = `
            )
     select count(*) over(),
            ce.id, ce.created_at, ce.updated_at, ce.owner_id,
+           coalesce(cs.dives, 0), cs.first_dive, cs.last_dive,
            ac.id,
            ag.id, ag.common_name, ag.full_name, ag.acronym, ag.url,
            ac.name, ac.url, ac.is_specialty_course, ac.is_tech_course,
@@ -116,21 +135,23 @@ var certificationSelectQuery string = `
            bu.name, bu.email, bu.phone_number,
            bu.agency_id, ba.common_name, ba.full_name, ba.acronym, ba.url,
            bu.agency_member_num,
-           coalesce(ds.dives_with, 0), ds.first_dive_with, ds.last_dive_with,
+           coalesce(bs.dives_with, 0), bs.first_dive_with, bs.last_dive_with,
            bu.notes,
            ce.price,
            cu.id, cu.iso_alpha, cu.iso_number, cu.name, cu.exponent,
            ce.rating, ce.notes
       from certifications ce
- left join agency_courses ac on ce.course_id = ac.id
- left join agencies       ag on ac.agency_id = ag.id
- left join operators      op on ce.operator_id = op.id
- left join operator_types ot on op.operator_type_id = ot.id
- left join countries      oc on op.country_id = oc.id
- left join currencies     ou on oc.currency_id = ou.id
- left join buddies        bu on ce.instructor_id = bu.id
- left join agencies       ba on bu.agency_id = ba.id
- left join currencies     cu on ce.currency_id = cu.id
+ left join cert_dive_stats  cs on ce.id = cs.certification_id
+ left join agency_courses   ac on ce.course_id = ac.id
+ left join agencies         ag on ac.agency_id = ag.id
+ left join operators        op on ce.operator_id = op.id
+ left join operator_types   ot on op.operator_type_id = ot.id
+ left join countries        oc on op.country_id = oc.id
+ left join currencies       ou on oc.currency_id = ou.id
+ left join buddies          bu on ce.instructor_id = bu.id
+ left join buddy_dive_stats bs on bu.id = bs.buddy_id
+ left join agencies         ba on bu.agency_id = ba.id
+ left join currencies       cu on ce.currency_id = cu.id
      where ce.owner_id = $1
 `
 
@@ -144,6 +165,9 @@ func certificationFromDBRow(rs RowScanner, totalRecords *int, ce *Certification)
 		&ce.Created,
 		&ce.Updated,
 		&ce.OwnerID,
+		&ce.Dives,
+		&ce.FirstDive,
+		&ce.LastDive,
 		&ce.Course.ID,
 		&ce.Course.Agency.ID,
 		&ce.Course.Agency.CommonName,
@@ -280,17 +304,14 @@ func (m *CertificationModel) Insert(
 	return id, nil
 }
 
-func (m *CertificationModel) List(
-	userID int,
-	pager Pager,
-) ([]Certification, PageData, error) {
+func (m *CertificationModel) List(userID int, pager Pager) ([]Certification, PageData, error) {
 	limit := pager.limit()
 	offset := pager.offset()
-	stmt := fmt.Sprintf("%s limit $1 offset $2", certificationSelectQuery)
+	stmt := fmt.Sprintf("%s limit $2 offset $3", certificationSelectQuery)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, stmt, limit, offset)
+	rows, err := m.DB.QueryContext(ctx, stmt, userID, limit, offset)
 	if err != nil {
 		return nil, PageData{}, err
 	}

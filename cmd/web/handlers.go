@@ -873,7 +873,34 @@ func (app *app) tripCreatePOST(w http.ResponseWriter, r *http.Request) {
 	}
 
 	app.sessionManager.Put(r.Context(), "flash", "Dive trip added successfully.")
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "/trip/", http.StatusSeeOther)
+}
+
+func (app *app) tripList(w http.ResponseWriter, r *http.Request) {
+	const defaultPageSize = 20
+
+	page := app.readInt(r.URL.Query(), "page", 1)
+	pageSize := app.readInt(r.URL.Query(), "page_size", defaultPageSize)
+
+	pager := models.NewPager(page, pageSize, defaultPageSize)
+	userID := app.contextGetUser(r).ID
+
+	trips, pageData, err := app.trips.List(userID, pager)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data.Trips = trips
+	data.PageData = pageData
+
+	app.render(w, r, http.StatusOK, "trip/list.tmpl", data)
 }
 
 type certificationForm struct {
@@ -1009,7 +1036,34 @@ func (app *app) certificationCreatePOST(w http.ResponseWriter, r *http.Request) 
 	}
 
 	app.sessionManager.Put(r.Context(), "flash", "Dive certification added successfully.")
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r, "/certification/", http.StatusSeeOther)
+}
+
+func (app *app) certificationList(w http.ResponseWriter, r *http.Request) {
+	const defaultPageSize = 20
+
+	page := app.readInt(r.URL.Query(), "page", 1)
+	pageSize := app.readInt(r.URL.Query(), "page_size", defaultPageSize)
+
+	pager := models.NewPager(page, pageSize, defaultPageSize)
+	userID := app.contextGetUser(r).ID
+
+	certs, pageData, err := app.certifications.List(userID, pager)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data.Certifications = certs
+	data.PageData = pageData
+
+	app.render(w, r, http.StatusOK, "certification/list.tmpl", data)
 }
 
 type diveForm struct {

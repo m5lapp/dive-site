@@ -119,7 +119,20 @@ func ref[T any](v T) *T {
 	return &v
 }
 
+func add[T float32 | float64 | int | uint | int8 | uint8 | int16 | uint16 | int32 | uint32 | int64 | uint64](
+	a, b T,
+) T {
+	return a + b
+}
+
+func divide[T float32 | float64 | int | uint | int8 | uint8 | int16 | uint16 | int32 | uint32 | int64 | uint64](
+	a, b T,
+) T {
+	return a / b
+}
+
 var functions = template.FuncMap{
+	"addF64":            add[float64],
 	"bsBoolField":       ui.BSBoolField,
 	"bsDateField":       ui.BSDateField,
 	"bsNumFieldF64":     ui.BSNumField[float64],
@@ -130,6 +143,7 @@ var functions = template.FuncMap{
 	"bsTextField":       ui.BSTextField,
 	"derefInt":          deref[int],
 	"derefF64":          deref[float64],
+	"divideF64":         divide[float64],
 	"getOSTimeZones":    getOSTimeZones,
 	"intRange":          intRange,
 	"isoCountryToEmoji": isoCountryToEmoji,

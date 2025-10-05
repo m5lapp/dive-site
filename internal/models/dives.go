@@ -174,7 +174,25 @@ var diveSelectQuery string = `
          where dv.owner_id = $1
       group by dv.dive_site_id
            ),
-           buddy_dive_stats as (
+      trip_dive_stats as (
+        select dv.trip_id trip_id,
+               count(dv.id) dives,
+               min(dv.date_time_in) first_dive,
+               max(dv.date_time_in) last_dive
+          from dives dv
+         where dv.owner_id = $1
+      group by dv.trip_id
+           ),
+      cert_dive_stats as (
+        select dv.certification_id certification_id,
+               count(dv.id) dives,
+               min(dv.date_time_in) first_dive,
+               max(dv.date_time_in) last_dive
+          from dives dv
+         where dv.owner_id = $1
+      group by dv.certification_id
+           ),
+      buddy_dive_stats as (
         select dv.buddy_id buddy_id, count(dv.id) dives_with,
                min(dv.date_time_in) first_dive_with,
                max(dv.date_time_in) last_dive_with
@@ -204,8 +222,9 @@ var diveSelectQuery string = `
            op.website_url, op.email_address, op.phone_number, op.comments,
            dv.price, prcu.id, prcu.iso_alpha, prcu.iso_number, prcu.name,
            prcu.exponent,
-           tr.id, tr.created_at, tr.updated_at, tr.owner_id, tr.name,
-           tr.start_date, tr.end_date, tr.description, tr.rating,
+           tr.id, tr.created_at, tr.updated_at, tr.owner_id,
+           coalesce(trds.dives, 0), trds.first_dive, trds.last_dive,
+           tr.name, tr.start_date, tr.end_date, tr.description, tr.rating,
            trop.id, trop.created_at, trop.updated_at, trop.owner_id,
            trot.id, trot.name, trot.description,
            trop.name, trop.street, trop.suburb, trop.state, trop.postcode,
@@ -218,6 +237,7 @@ var diveSelectQuery string = `
            trcu.id, trcu.iso_alpha, trcu.iso_number, trcu.name, trcu.exponent,
            tr.notes,
            ce.id, ce.created_at, ce.updated_at, ce.owner_id,
+           coalesce(ceds.dives, 0), ceds.first_dive, ceds.last_dive,
            ceac.id,
            ceag.id, ceag.common_name, ceag.full_name, ceag.acronym, ceag.url,
            ceac.name, ceac.url, ceac.is_specialty_course, ceac.is_tech_course,
@@ -291,12 +311,14 @@ inner join (
  left join currencies           opcu on opco.currency_id = opcu.id
  left join currencies           prcu on dv.currency_id = prcu.id
  left join trips                tr   on dv.trip_id = tr.id
+ left join trip_dive_stats      trds on tr.id = trds.trip_id
  left join operators            trop on tr.operator_id = trop.id
  left join operator_types       trot on trop.operator_type_id = trot.id
  left join countries            troc on trop.country_id = troc.id
  left join currencies           trou on troc.currency_id = trou.id
  left join currencies           trcu on tr.currency_id = trcu.id
  left join certifications       ce   on dv.certification_id = ce.id
+ left join cert_dive_stats      ceds on ce.id = ceds.certification_id
  left join agency_courses       ceac on ce.course_id = ceac.id
  left join agencies             ceag on ceac.agency_id = ceag.id
  left join operators            ceop on ce.operator_id = ceop.id
@@ -424,6 +446,9 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 		&tr.Created,
 		&tr.Updated,
 		&tr.OwnerID,
+		&tr.Dives,
+		&tr.FirstDive,
+		&tr.LastDive,
 		&tr.Name,
 		&tr.StartDate,
 		&tr.EndDate,
@@ -470,6 +495,9 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 		&ce.Created,
 		&ce.Updated,
 		&ce.OwnerID,
+		&ce.Dives,
+		&ce.FirstDive,
+		&ce.LastDive,
 		&ce.Course.ID,
 		&ce.Course.Agency.ID,
 		&ce.Course.Agency.CommonName,

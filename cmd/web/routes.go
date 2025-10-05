@@ -40,12 +40,14 @@ func (app *app) routes() http.Handler {
 	mux.Handle("GET  /buddy/add", protected.ThenFunc(app.buddyCreateGET))
 	mux.Handle("POST /buddy/add", protected.ThenFunc(app.buddyCreatePOST))
 
+	mux.Handle("GET  /certification/", protected.ThenFunc(app.certificationList))
 	mux.Handle("GET  /certification/add", protected.ThenFunc(app.certificationCreateGET))
 	mux.Handle("POST /certification/add", protected.ThenFunc(app.certificationCreatePOST))
 
 	mux.Handle("GET  /operator/add", protected.ThenFunc(app.operatorCreateGET))
 	mux.Handle("POST /operator/add", protected.ThenFunc(app.operatorCreatePOST))
 
+	mux.Handle("GET  /trip/", protected.ThenFunc(app.tripList))
 	mux.Handle("GET  /trip/add", protected.ThenFunc(app.tripCreateGET))
 	mux.Handle("POST /trip/add", protected.ThenFunc(app.tripCreatePOST))
 
