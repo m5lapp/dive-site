@@ -31,8 +31,11 @@ func (app *app) routes() http.Handler {
 	mux.Handle("GET  /log-book/dive/add", protected.ThenFunc(app.diveCreateGET))
 	mux.Handle("POST /log-book/dive/add", protected.ThenFunc(app.diveCreatePOST))
 	mux.Handle("GET  /log-book/dive/view/{id}", protected.ThenFunc(app.diveGET))
+
 	mux.Handle("GET  /log-book/dive-site/add", protected.ThenFunc(app.diveSiteCreateGET))
 	mux.Handle("POST /log-book/dive-site/add", protected.ThenFunc(app.diveSiteCreatePOST))
+	mux.Handle("GET  /log-book/dive-site/edit/{id}", protected.ThenFunc(app.diveSiteUpdateGET))
+	mux.Handle("POST /log-book/dive-site/edit/{id}", protected.ThenFunc(app.diveSiteUpdatePOST))
 	mux.Handle("GET  /log-book/dive-site", protected.ThenFunc(app.diveSiteList))
 	mux.Handle("GET  /log-book/dive-site/view/{id}", protected.ThenFunc(app.diveSiteGET))
 

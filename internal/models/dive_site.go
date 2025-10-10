@@ -73,6 +73,25 @@ type DiveSiteModelInterface interface {
 		rating *int,
 	) (int, error)
 
+	Update(
+		id int,
+		version int,
+		name string,
+		altName string,
+		location string,
+		region string,
+		countryID int,
+		timeZone TimeZone,
+		latitude *float64,
+		longitude *float64,
+		waterBodyID int,
+		waterTypeID int,
+		altitude int,
+		maxDepth *float64,
+		notes string,
+		rating *int,
+	) error
+
 	GetOneByID(id, diverID int) (DiveSite, error)
 
 	List(diverID int, ListControls Pager, sort []SortDiveSite) ([]DiveSite, PageData, error)
@@ -215,6 +234,81 @@ func (m *DiveSiteModel) Insert(
 	}
 
 	return id, nil
+}
+
+func (m *DiveSiteModel) Update(
+	id int,
+	version int,
+	name string,
+	altName string,
+	location string,
+	region string,
+	countryID int,
+	timeZone TimeZone,
+	latitude *float64,
+	longitude *float64,
+	waterBodyID int,
+	waterTypeID int,
+	altitude int,
+	maxDepth *float64,
+	notes string,
+	rating *int,
+) error {
+	stmt := `
+        update dive_sites
+           set version = version + 1, updated_at = now(), name = $3,
+               alt_name = $4, location = $5, region = $6, country_id = $7,
+               timezone = $8, latitude = $9, longitude = $10,
+               water_body_id = $11, water_type_id = $12, altitude = $13,
+               max_depth = $14, notes = $15, rating = $16
+         where id = $1
+           and version = $2
+     returning version
+    `
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	result := m.DB.QueryRowContext(
+		ctx,
+		stmt,
+		id,
+		version,
+		name,
+		altName,
+		location,
+		region,
+		countryID,
+		timeZone,
+		latitude,
+		longitude,
+		waterBodyID,
+		waterTypeID,
+		altitude,
+		maxDepth,
+		notes,
+		rating,
+	)
+
+	var newVersion int
+	err := result.Scan(&newVersion)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			exists, existsErr := m.Exists(id)
+			if existsErr != nil {
+				return fmt.Errorf("failed to check if dive_site %d exists: %w", id, existsErr)
+			}
+
+			if exists {
+				return ErrUpdateConflict
+			}
+			return ErrNoRecord
+		}
+
+		return fmt.Errorf("failed to update dive_site %d: %w", id, err)
+	}
+
+	return nil
 }
 
 func (m *DiveSiteModel) GetOneByID(id, ownerID int) (DiveSite, error) {

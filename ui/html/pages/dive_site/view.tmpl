@@ -7,6 +7,10 @@
   {{isoCountryToEmoji .DiveSite.Country.ISO2Code}}
   {{.DiveSite.Name}}, {{.DiveSite.Location}},
   {{or .DiveSite.Region .DiveSite.Country.Name}}
+  <a href="/log-book/dive-site/edit/{{.DiveSite.ID}}"
+     class="btn btn-primary btn-lg">
+    Edit
+  </a>
 {{end}}
 
 {{define "main"}}

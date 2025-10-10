@@ -21,7 +21,7 @@
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 
       {{with .Form.Version}}
-        <input type="hidden" name="version" value="{{.}}">
+        <input type="hidden" name="version" id="id_version" value="{{.}}">
       {{end}}
 
       <div class="row mb-4">

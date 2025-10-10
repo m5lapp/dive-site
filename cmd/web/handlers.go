@@ -119,7 +119,7 @@ func (app *app) userCreatePOST(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app.sessionManager.Put(r.Context(), "flash", "Sign up successful, please log in.")
+	app.sessionManager.Put(r.Context(), "flashSuccess", "Sign up successful, please log in.")
 	http.Redirect(w, r, "/user/log-in", http.StatusSeeOther)
 }
 
@@ -204,7 +204,7 @@ func (app *app) userLogOutPOST(w http.ResponseWriter, r *http.Request) {
 	}
 
 	app.sessionManager.Remove(r.Context(), "authenticatedUserID")
-	app.sessionManager.Put(r.Context(), "flash", "You have been logged out.")
+	app.sessionManager.Put(r.Context(), "flashInfo", "You have been logged out.")
 
 	http.Redirect(w, r, "/user/log-in", http.StatusSeeOther)
 }
@@ -235,6 +235,8 @@ func (app *app) home(w http.ResponseWriter, r *http.Request) {
 }
 
 type diveSiteForm struct {
+	ID                  int             `form:"-"`
+	Version             int             `form:"version"`
 	Name                string          `form:"name"`
 	AltName             string          `form:"alt_name"`
 	Location            string          `form:"location"`
@@ -385,7 +387,127 @@ func (app *app) diveSiteCreatePOST(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app.sessionManager.Put(r.Context(), "flash", "Dive site added successfully.")
+	app.sessionManager.Put(r.Context(), "flashSuccess", "Dive site added successfully.")
+
+	nextUrl := fmt.Sprintf("/log-book/dive-site/view/%d", id)
+	http.Redirect(w, r, nextUrl, http.StatusSeeOther)
+}
+
+func (app *app) diveSiteUpdateGET(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || id < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	userID := app.contextGetUser(r).ID
+
+	diveSite, err := app.diveSites.GetOneByID(id, userID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data.Form = diveSiteForm{
+		ID:          id,
+		Version:     diveSite.Version,
+		Name:        diveSite.Name,
+		AltName:     diveSite.AltName,
+		Location:    diveSite.Location,
+		Region:      diveSite.Region,
+		CountryID:   diveSite.Country.ID,
+		TimeZone:    diveSite.TimeZone,
+		Latitude:    diveSite.Latitude,
+		Longitude:   diveSite.Longitude,
+		WaterBodyID: diveSite.WaterBody.ID,
+		WaterTypeID: diveSite.WaterType.ID,
+		Altitude:    diveSite.Altitude,
+		MaxDepth:    diveSite.MaxDepth,
+		Notes:       diveSite.Notes,
+		Rating:      diveSite.Rating,
+	}
+
+	app.render(w, r, http.StatusOK, "dive_site/new.tmpl", data)
+}
+
+func (app *app) diveSiteUpdatePOST(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || id < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	form := &diveSiteForm{}
+	err = app.decodePOSTForm(r, form)
+	if err != nil {
+		app.log.Error("Error whilst decoding dive site form input", "error", err.Error())
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	form.Validate()
+	if !form.Valid() {
+		data, err := app.newTemplateData(r)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		data.Form = form
+		app.render(w, r, http.StatusUnprocessableEntity, "dive_site/new.tmpl", data)
+		return
+	}
+
+	err = app.diveSites.Update(
+		id,
+		form.Version,
+		form.Name,
+		form.AltName,
+		form.Location,
+		form.Region,
+		form.CountryID,
+		form.TimeZone,
+		form.Latitude,
+		form.Longitude,
+		form.WaterBodyID,
+		form.WaterTypeID,
+		form.Altitude,
+		form.MaxDepth,
+		form.Notes,
+		form.Rating,
+	)
+	if err != nil {
+		switch err {
+		case models.ErrUpdateConflict:
+			msg := `The dive site was already updated by another user, please
+                    make your changes again.`
+			app.sessionManager.Put(r.Context(), "flashError", msg)
+			nextUrl := fmt.Sprintf("/log-book/dive-site/edit/%d", id)
+			http.Redirect(w, r, nextUrl, http.StatusSeeOther)
+		case models.ErrNoRecord:
+			msg := `The dive site you are trying to change does not exist or
+                    you do not have permission to edit it. Possibly it was
+                    deleted by another user.`
+			app.sessionManager.Put(r.Context(), "flashError", msg)
+			http.Redirect(w, r, "/log-book/dive-site", http.StatusSeeOther)
+		default:
+			app.serverError(w, r, err)
+		}
+
+		return
+	}
+
+	msg := "Dive site " + form.Name + " has been updated successfully."
+	app.sessionManager.Put(r.Context(), "flashSuccess", msg)
 
 	nextUrl := fmt.Sprintf("/log-book/dive-site/view/%d", id)
 	http.Redirect(w, r, nextUrl, http.StatusSeeOther)
@@ -593,7 +715,7 @@ func (app *app) operatorCreatePOST(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app.sessionManager.Put(r.Context(), "flash", "Dive operator added successfully.")
+	app.sessionManager.Put(r.Context(), "flashSuccess", "Dive operator added successfully.")
 	http.Redirect(w, r, "/operator/", http.StatusSeeOther)
 }
 
@@ -752,7 +874,7 @@ func (app *app) buddyCreatePOST(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app.sessionManager.Put(r.Context(), "flash", "Dive buddy added successfully.")
+	app.sessionManager.Put(r.Context(), "flashSuccess", "Dive buddy added successfully.")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -899,7 +1021,7 @@ func (app *app) tripCreatePOST(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app.sessionManager.Put(r.Context(), "flash", "Dive trip added successfully.")
+	app.sessionManager.Put(r.Context(), "flashSuccess", "Dive trip added successfully.")
 	http.Redirect(w, r, "/trip/", http.StatusSeeOther)
 }
 
@@ -1062,7 +1184,7 @@ func (app *app) certificationCreatePOST(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	app.sessionManager.Put(r.Context(), "flash", "Dive certification added successfully.")
+	app.sessionManager.Put(r.Context(), "flashSuccess", "Dive certification added successfully.")
 	http.Redirect(w, r, "/certification/", http.StatusSeeOther)
 }
 

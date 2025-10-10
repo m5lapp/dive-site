@@ -171,6 +171,10 @@ type templateData struct {
 	EntryPoints        []models.EntryPoint
 	Equipment          []models.Equipment
 	Flash              string
+	FlashError         string
+	FlashInfo          string
+	FlashSuccess       string
+	FlashWarning       string
 	Form               any
 	GasMixes           []models.GasMix
 	IsAuthenticated    bool
