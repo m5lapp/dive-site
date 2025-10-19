@@ -17,8 +17,6 @@ type staticDataInterface interface {
 
 	id() int
 
-	setValues(id, sort int, isDefault bool, name, description string)
-
 	tableName() string
 }
 
@@ -51,17 +49,6 @@ func (sd staticDataItem) getValuesFromDBRow(
 	return item.ID, item.Sort, item.IsDefault, item.Name, item.Description, err
 }
 
-func (sd staticDataItem) setValues(id, sort int, isDefault bool, name, description string) {
-	sd.ID = id
-	sd.Sort = sort
-	sd.IsDefault = isDefault
-	sd.Name = name
-	sd.Description = description
-
-	// This just gets rid of the annoying "unused write to field" warnings.
-	_, _, _, _, _ = sd.ID, sd.Sort, sd.IsDefault, sd.Name, sd.Description
-}
-
 type nullableStaticDataItem struct {
 	ID          *int
 	Sort        *int
@@ -70,9 +57,9 @@ type nullableStaticDataItem struct {
 	Description *string
 }
 
-func nullableStaticDataItemToStruct[T staticDataInterface](ns nullableStaticDataItem) *T {
+func nullableStaticDataItemToStruct[T staticDataInterface](ns nullableStaticDataItem) (*T, error) {
 	if ns.ID == nil {
-		return nil
+		return nil, nil
 	}
 
 	// Check none of the values are null, use the zero value if they are.
@@ -89,10 +76,50 @@ func nullableStaticDataItemToStruct[T staticDataInterface](ns nullableStaticData
 		*ns.Description = ""
 	}
 
+	// We use reflect here to check for and set the various fields of the
+	// static data item. This isn't ideal, but was the only way to get this
+	// working when using a value receiver.
 	var item T
-	item.setValues(*ns.ID, *ns.Sort, *ns.IsDefault, *ns.Name, *ns.Description)
+	recordPtr := &item
+	v := reflect.ValueOf(recordPtr).Elem()
+	if v.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("expected struct, but got a %d (%v)", v.Kind(), item)
+	}
 
-	return &item
+	idField := v.FieldByName("ID")
+	sortField := v.FieldByName("Sort")
+	isDefaultField := v.FieldByName("IsDefault")
+	nameField := v.FieldByName("Name")
+	descriptionField := v.FieldByName("Description")
+
+	if !idField.IsValid() || !sortField.IsValid() || !isDefaultField.IsValid() ||
+		!nameField.IsValid() || !descriptionField.IsValid() {
+		msg := "%T struct does not have requisite fields ID, Sort, IsDefault, Name, Description"
+		return nil, fmt.Errorf(msg, item)
+	}
+
+	if !idField.CanSet() || !sortField.CanSet() || !isDefaultField.CanSet() ||
+		!nameField.CanSet() || !descriptionField.CanSet() {
+		msg := "field(s) in struct %T are not settable"
+		return nil, fmt.Errorf(msg, item)
+	}
+
+	if idField.Kind() != reflect.Int ||
+		sortField.Kind() != reflect.Int ||
+		isDefaultField.Kind() != reflect.Bool ||
+		nameField.Kind() != reflect.String ||
+		descriptionField.Kind() != reflect.String {
+		msg := "field(s) in struct %T are not of required types"
+		return nil, fmt.Errorf(msg, item)
+	}
+
+	idField.SetInt(int64(*ns.ID))
+	sortField.SetInt(int64(*ns.Sort))
+	isDefaultField.SetBool(*ns.IsDefault)
+	nameField.SetString(*ns.Name)
+	descriptionField.SetString(*ns.Description)
+
+	return &item, nil
 }
 
 type StaticDataService[T staticDataInterface] struct {
