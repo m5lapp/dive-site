@@ -1216,6 +1216,8 @@ func (app *app) certificationList(w http.ResponseWriter, r *http.Request) {
 }
 
 type diveForm struct {
+	ID                  int       `form:"-"`
+	Version             int       `form:"version"`
 	Number              int       `form:"number"`
 	Activity            string    `form:"activity"`
 	DiveSiteID          int       `form:"dive_site_id"`
@@ -1227,8 +1229,8 @@ type diveForm struct {
 	DateTimeIn          time.Time `form:"date_time_in"`
 	MaxDepth            float64   `form:"max_depth"`
 	AvgDepth            *float64  `form:"avg_depth"`
-	BottomTimeMins      int64     `form:"bottom_time"`
-	SafetyStopMins      *int64    `form:"safety_stop"`
+	BottomTimeMins      int       `form:"bottom_time"`
+	SafetyStopMins      *int      `form:"safety_stop"`
 	WaterTemp           *int      `form:"water_temp"`
 	AirTemp             *int      `form:"air_temp"`
 	Visibility          *float64  `form:"visibility"`
@@ -1253,6 +1255,89 @@ type diveForm struct {
 	PropertyIDs         []int     `form:"property_ids"`
 	Notes               string    `form:"notes"`
 	validator.Validator `form:"-"`
+}
+
+func diveFormFromDive(dive models.Dive) diveForm {
+	form := diveForm{
+		ID:                  dive.OwnerID,
+		Version:             dive.Version,
+		Number:              dive.Number,
+		Activity:            dive.Activity,
+		DiveSiteID:          dive.DiveSite.ID,
+		DateTimeIn:          dive.DateTimeIn,
+		MaxDepth:            dive.MaxDepth,
+		AvgDepth:            dive.AvgDepth,
+		BottomTimeMins:      int(dive.BottomTime.Minutes()),
+		WaterTemp:           dive.WaterTemp,
+		AirTemp:             dive.AirTemp,
+		Visibility:          dive.Visibility,
+		Weight:              dive.Weight,
+		WeightNotes:         dive.WeightNotes,
+		EquipmentNotes:      dive.EquipmentNotes,
+		TankConfigurationID: dive.TankConfiguration.ID,
+		TankMaterialID:      dive.TankMaterial.ID,
+		TankVolume:          dive.TankVolume,
+		GasMixID:            dive.GasMix.ID,
+		FO2:                 dive.FO2,
+		PressureIn:          dive.PressureIn,
+		PressureOut:         dive.PressureOut,
+		GasMixNotes:         dive.GasMixNotes,
+		EntryPointID:        dive.EntryPoint.ID,
+		Rating:              dive.Rating,
+		Notes:               dive.Notes,
+	}
+
+	if dive.Operator != nil {
+		form.OperatorID = &dive.Operator.ID
+	}
+
+	if dive.Price != nil {
+		form.PriceAmount = &dive.Price.Amount
+		form.CurrencyID = &dive.Price.Currency.ID
+	}
+
+	if dive.Trip != nil {
+		form.TripID = &dive.Trip.ID
+	}
+
+	if dive.Certification != nil {
+		form.CertificationID = &dive.Certification.ID
+	}
+
+	if dive.SafetyStop != nil {
+		ss := int(dive.SafetyStop.Minutes())
+		form.SafetyStopMins = &ss
+	}
+
+	if dive.Current != nil {
+		form.CurrentID = &dive.Current.ID
+	}
+
+	if dive.Waves != nil {
+		form.WavesID = &dive.Waves.ID
+	}
+
+	if dive.Buddy != nil {
+		form.BuddyID = &dive.Buddy.ID
+	}
+
+	if dive.BuddyRole != nil {
+		form.BuddyRoleID = &dive.BuddyRole.ID
+	}
+
+	var equipmentIDs []int
+	for _, item := range dive.Equipment {
+		equipmentIDs = append(equipmentIDs, item.ID)
+	}
+	form.EquipmentIDs = equipmentIDs
+
+	var propertyIDs []int
+	for _, property := range dive.Properties {
+		propertyIDs = append(propertyIDs, property.ID)
+	}
+	form.PropertyIDs = propertyIDs
+
+	return form
 }
 
 func (app *app) addStaticdataToDiveForm(r *http.Request, data *templateData) error {
@@ -1760,6 +1845,157 @@ func (app *app) diveCreatePOST(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	nextUrl := fmt.Sprintf("/log-book/dive/view/%d", id)
+	http.Redirect(w, r, nextUrl, http.StatusSeeOther)
+}
+
+func (app *app) diveUpdateGET(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || id < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	userID := app.contextGetUser(r).ID
+
+	dive, err := app.dives.GetOneByID(userID, id)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data.Form = diveFormFromDive(dive)
+
+	err = app.addStaticdataToDiveForm(r, &data)
+	if err != nil {
+		app.serverError(w, r, fmt.Errorf("failed to load dive form static data: %w", err))
+	}
+
+	app.render(w, r, http.StatusOK, "dive/form.tmpl", data)
+}
+
+func (app *app) diveUpdatePOST(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || id < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	form := &diveForm{}
+	err = app.decodePOSTForm(r, form)
+	if err != nil {
+		app.log.Error("Error whilst decoding dive form input", "error", err.Error())
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	err = app.validateDiveForm(form)
+	if err != nil {
+		app.serverError(w, r, fmt.Errorf("failed to validate dive form: %w", err))
+		return
+	}
+
+	if !form.Valid() {
+		err = app.addStaticdataToDiveForm(r, &data)
+		if err != nil {
+			errMsg := "failed to load dive form static data: %w"
+			app.serverError(w, r, fmt.Errorf(errMsg, err))
+			return
+		}
+
+		data.Form = form
+		app.render(w, r, http.StatusUnprocessableEntity, "dive/form.tmpl", data)
+		return
+	}
+
+	var safetyStop *time.Duration
+	if form.SafetyStopMins != nil {
+		ss := time.Duration(*form.SafetyStopMins) * time.Minute
+		safetyStop = &ss
+	}
+
+	err = app.dives.Update(
+		id,
+		app.contextGetUser(r).ID,
+		form.Number,
+		form.Activity,
+		form.DiveSiteID,
+		form.OperatorID,
+		form.PriceAmount,
+		form.CurrencyID,
+		form.TripID,
+		form.CertificationID,
+		form.DateTimeIn,
+		form.MaxDepth,
+		form.AvgDepth,
+		time.Duration(form.BottomTimeMins)*time.Minute,
+		safetyStop,
+		form.WaterTemp,
+		form.AirTemp,
+		form.Visibility,
+		form.CurrentID,
+		form.WavesID,
+		form.BuddyID,
+		form.BuddyRoleID,
+		form.Weight,
+		form.WeightNotes,
+		form.EquipmentIDs,
+		form.EquipmentNotes,
+		form.TankConfigurationID,
+		form.TankMaterialID,
+		form.TankVolume,
+		form.GasMixID,
+		form.FO2,
+		form.PressureIn,
+		form.PressureOut,
+		form.GasMixNotes,
+		form.EntryPointID,
+		form.PropertyIDs,
+		form.Rating,
+		form.Notes,
+	)
+	if err != nil {
+		switch err {
+		case models.ErrDuplicateDiveNumber:
+			form.AddFieldError("number", "A dive has already been logged with this number")
+			err = app.addStaticdataToDiveForm(r, &data)
+			if err != nil {
+				errMsg := "failed to load dive form static data: %w"
+				app.serverError(w, r, fmt.Errorf(errMsg, err))
+				return
+			}
+			data.Form = form
+			app.render(w, r, http.StatusUnprocessableEntity, "dive/form.tmpl", data)
+		case models.ErrNoRecord:
+			msg := `The dive you are trying to change does not exist or you do
+                    not have permission to edit it.`
+			app.sessionManager.Put(r.Context(), "flashError", msg)
+			http.Redirect(w, r, "/log-book/dive", http.StatusSeeOther)
+		default:
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	msg := fmt.Sprintf("Dive number %d has been updated successfully.", form.Number)
+	app.sessionManager.Put(r.Context(), "flashSuccess", msg)
 
 	nextUrl := fmt.Sprintf("/log-book/dive/view/%d", id)
 	http.Redirect(w, r, nextUrl, http.StatusSeeOther)

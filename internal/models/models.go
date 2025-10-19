@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 // The RowScanner interface allows both sql.Rows.Scan() and sql.Row.Scan() to be
@@ -142,6 +144,43 @@ func buildManyToManyInsert(
 	return strings.TrimRight(stmt.String(), ","), nil
 }
 
+// buildManyToManyUpsert returns a SQL query that will insert or update all the
+// rows in `intermediateTable` for a given ID in `parentCol` using placeholder
+// $1 with the ID values in `childCol` which is a placeholder array identified
+// by $2. The query does not work if $2 is an empty array so this scenario
+// should be guarded against.
+//
+// When the query is run, any values in $2 that do not already exist in the
+// intermediate table will be added to it, any that are in the intermediate
+// table but missing from $2 will be deleted from the table and any that exist
+// in both will be left unaffected.
+func buildManyToManyUpsert(intermediateTable, parentCol, childCol string) string {
+	query := `
+      -- Create a temporary table that maps the ID in the parent column to each
+      -- ID in the child column that needs to be upserted.
+      with new_vals as (
+        select $1::numeric as %[2]s,
+               unnest($2::numeric[]) as %[3]s
+      ),
+      -- This CTE deletes any values from the intermediate table (it) that do
+      -- not exist in the new_vals temporary table.
+      delete_vals_to_remove as (
+        delete from %[1]s it
+         using new_vals nv
+         where it.%[2]s = $1::numeric
+           and it.%[3]s not in (select %[3]s from new_vals)
+      )
+      -- Finally, insert the values from the new_vals table into the
+      -- intermediate table. Any conflicts can be safely ignored as these are
+      -- just existing rows that need to be kept.
+      insert into %[1]s (%[2]s, %[3]s)
+      select %[2]s, %[3]s from new_vals
+ on conflict do nothing
+    `
+
+	return fmt.Sprintf(query, intermediateTable, parentCol, childCol)
+}
+
 func sliceToAnySlice[T any](values []T) []any {
 	var result []any = make([]any, len(values))
 
@@ -162,7 +201,7 @@ type sqlExecer interface {
 }
 
 type sqlID interface {
-	int | int8 | int32 | int64 | uint | uint8 | uint32 | uint64 | string
+	int | int8 | int32 | int64 | uint | uint8 | uint32 | uint64
 }
 
 func insertManyToManyIDs[T sqlID](
@@ -191,6 +230,31 @@ func insertManyToManyIDs[T sqlID](
 	_, err = db.ExecContext(ctx, stmt, args...)
 	if err != nil {
 		errMsg := "failed to insert many-to-many ids (%v, %v) for %s: %w"
+		return fmt.Errorf(errMsg, parentID, childIDs, tableName, err)
+	}
+
+	return nil
+}
+
+func upsertManyToManyIDs[T sqlID](
+	ctx context.Context,
+	db sqlExecer,
+	tableName, parentCol, childCol string,
+	parentID T,
+	childIDs []T,
+) error {
+	var err error
+
+	if len(childIDs) == 0 {
+		query := fmt.Sprintf("delete from %s where %s = $1", tableName, parentCol)
+		_, err = db.ExecContext(ctx, query, parentID)
+	} else {
+		query := buildManyToManyUpsert(tableName, parentCol, childCol)
+		_, err = db.ExecContext(ctx, query, parentID, pq.Array(childIDs))
+	}
+
+	if err != nil {
+		errMsg := "failed to upsert many-to-many ids (%v, %v) for %s: %w"
 		return fmt.Errorf(errMsg, parentID, childIDs, tableName, err)
 	}
 

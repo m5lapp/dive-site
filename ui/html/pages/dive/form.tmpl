@@ -13,10 +13,19 @@
 
     <h2>Main Details</h2>
 
-    <form method="post" action="/log-book/dive/add"
+    <form method="post"
+          {{with .Form.ID}}
+            action="/log-book/dive/edit/{{.}}"
+          {{else}}
+            action="/log-book/dive/add"
+          {{end}}
           class="{{template "bootstrap_form_class" .}}"
           {{if .NoValidate}} novalidate{{end}}>
       <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+      {{with .Form.Version}}
+        <input type="hidden" name="version" id="id_version" value="{{.}}">
+      {{end}}
 
       <div class="row mb-4">
         {{bsNumFieldInt "number" "" "1" "100000" "1" .Form.Number true .Form.FieldErrors}}
@@ -139,10 +148,7 @@
                   class="{{template "bootstrap_form_select_class" .Form.FieldErrors.dive_site_id}}">
             {{range .DiveSites}}
               <option value="{{.ID}}"
-                      {{$diveSiteID := .ID}}
-                      {{with $.Form.DiveSiteID}}
-                        {{if eq $diveSiteID (derefInt . 0)}}selected{{end}}
-                      {{end}}>
+                {{if eq .ID $.Form.DiveSiteID}}selected{{end}}>
                 {{isoCountryToEmoji .Country.ISO2Code}} {{.String}}
               </option>
             {{end}}
@@ -160,7 +166,7 @@
 
         {{bsNumFieldF64Ptr "avg_depth" "Average Depth (m)" "4.0" "350.0" "0.1" .Form.AvgDepth false .Form.FieldErrors}}
 
-        {{bsNumFieldI64 "bottom_time" "Bottom Time (mins)" "10" "1440" "1" .Form.BottomTimeMins true .Form.FieldErrors}}
+        {{bsNumFieldInt "bottom_time" "Bottom Time (mins)" "10" "1440" "1" .Form.BottomTimeMins true .Form.FieldErrors}}
 
         <div class="col-sm">
           <label class="form-label" for="id_safety_stop">Safety Stop</label>
@@ -458,8 +464,12 @@
 
       <div class="row mb-4">
         <div class="col-sm">
-          <button class="btn btn-primary me-2" type="submit">Log Dive</button>
-          <button class="btn btn-outline-danger" type="reset">Reset</button>
+          {{$action := "Log Dive"}}
+          {{if ne .Form.ID 0}}{{$action = "Update Dive"}}{{end}}
+          <button class="btn btn-primary me-2" type="submit">{{$action}}</button>
+          {{if ne .Form.ID 0}}
+            <button class="btn btn-outline-danger" type="reset">Reset</button>
+          {{end}}
         </div>
       </div>
 

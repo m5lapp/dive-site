@@ -161,6 +161,46 @@ type DiveModelInterface interface {
 		rating *int,
 		notes string,
 	) (int, error)
+	Update(
+		id int,
+		ownerID int,
+		number int,
+		activity string,
+		diveSiteID int,
+		operatorID *int,
+		priceAmount *float64,
+		priceCurrencyID *int,
+		tripID *int,
+		certificationID *int,
+		dateTimeIn time.Time,
+		maxDepth float64,
+		avgDepth *float64,
+		bottomTime time.Duration,
+		safetyStop *time.Duration,
+		waterTemp *int,
+		airTemp *int,
+		visibility *float64,
+		currentID *int,
+		wavesID *int,
+		buddyID *int,
+		buddyRoleID *int,
+		weight *float64,
+		weightNotes string,
+		equipmentIDs []int,
+		equipmentNotes string,
+		tankConfigurationID int,
+		tankMaterialID int,
+		tankVolume float64,
+		gasMixID int,
+		fo2 float64,
+		pressureIn *int,
+		pressureOut *int,
+		gasMixNotes string,
+		entryPointID int,
+		propertyIDs []int,
+		rating *int,
+		notes string,
+	) error
 	List(userID int, pager Pager, filter DiveFilter, sort []SortDive) ([]Dive, PageData, error)
 }
 
@@ -690,8 +730,17 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 	dv.Price = pr.ToStruct()
 	dv.Trip = tr.ToStruct()
 	dv.Certification = ce.ToStruct()
-	dv.Current = nullableStaticDataItemToStruct[Current](cu)
-	dv.Waves = nullableStaticDataItemToStruct[Waves](wv)
+
+	dv.Current, err = nullableStaticDataItemToStruct[Current](cu)
+	if err != nil {
+		return err
+	}
+
+	dv.Waves, err = nullableStaticDataItemToStruct[Waves](wv)
+	if err != nil {
+		return err
+	}
+
 	dv.Buddy = bu.ToStruct()
 	dv.BuddyRole = br.ToStruct()
 
@@ -798,18 +847,15 @@ func (m *DiveModel) GetOneByID(ownerID, id int) (Dive, error) {
 		}
 	}
 
-	equipment, err := m.equipmentModel.GetAllForDive(id)
+	dive.Equipment, err = m.equipmentModel.GetAllForDive(id)
 	if err != nil {
 		return Dive{}, err
 	}
 
-	properties, err := m.propertyModel.GetAllForDive(id)
+	dive.Properties, err = m.propertyModel.GetAllForDive(id)
 	if err != nil {
 		return Dive{}, err
 	}
-
-	dive.Equipment = equipment
-	dive.Properties = properties
 
 	return dive, nil
 }
@@ -867,6 +913,7 @@ func (m *DiveModel) Insert(
 	if err != nil {
 		return 0, fmt.Errorf("failed to start db transaction: %w", err)
 	}
+	defer tx.Rollback()
 
 	stmt := `
         insert into dives (
@@ -934,7 +981,6 @@ func (m *DiveModel) Insert(
 	var diveID int
 	err = result.Scan(&diveID)
 	if err != nil {
-		_ = tx.Rollback()
 		switch err.Error() {
 		case `pq: duplicate key value violates unique constraint "dives_owner_id_number_key"`:
 			return 0, ErrDuplicateDiveNumber
@@ -943,38 +989,32 @@ func (m *DiveModel) Insert(
 		}
 	}
 
-	if len(equipmentIDs) > 0 {
-		err = insertManyToManyIDs(
-			ctx,
-			tx,
-			"dive_equipment",
-			"dive_id",
-			"equipment_id",
-			diveID,
-			equipmentIDs,
-		)
+	err = upsertManyToManyIDs(
+		ctx,
+		tx,
+		"dive_equipment",
+		"dive_id",
+		"equipment_id",
+		diveID,
+		equipmentIDs,
+	)
 
-		if err != nil {
-			_ = tx.Rollback()
-			return 0, err
-		}
+	if err != nil {
+		return 0, err
 	}
 
-	if len(propertyIDs) > 0 {
-		err = insertManyToManyIDs(
-			ctx,
-			tx,
-			"dive_dive_properties",
-			"dive_id",
-			"property_id",
-			diveID,
-			propertyIDs,
-		)
+	err = upsertManyToManyIDs(
+		ctx,
+		tx,
+		"dive_dive_properties",
+		"dive_id",
+		"property_id",
+		diveID,
+		propertyIDs,
+	)
 
-		if err != nil {
-			_ = tx.Rollback()
-			return 0, err
-		}
+	if err != nil {
+		return 0, err
 	}
 
 	err = tx.Commit()
@@ -983,6 +1023,184 @@ func (m *DiveModel) Insert(
 	}
 
 	return diveID, nil
+}
+
+func (m *DiveModel) Update(
+	id int,
+	ownerID int,
+	number int,
+	activity string,
+	diveSiteID int,
+	operatorID *int,
+	priceAmount *float64,
+	priceCurrencyID *int,
+	tripID *int,
+	certificationID *int,
+	dateTimeIn time.Time,
+	maxDepth float64,
+	avgDepth *float64,
+	bottomTime time.Duration,
+	safetyStop *time.Duration,
+	waterTemp *int,
+	airTemp *int,
+	visibility *float64,
+	currentID *int,
+	wavesID *int,
+	buddyID *int,
+	buddyRoleID *int,
+	weight *float64,
+	weightNotes string,
+	equipmentIDs []int,
+	equipmentNotes string,
+	tankConfigurationID int,
+	tankMaterialID int,
+	tankVolume float64,
+	gasMixID int,
+	fo2 float64,
+	pressureIn *int,
+	pressureOut *int,
+	gasMixNotes string,
+	entryPointID int,
+	propertyIDs []int,
+	rating *int,
+	notes string,
+) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	// Adjust the dateTimeIn so that it is in the same Location as the
+	// diveSiteID and converted to UTC.
+	dateTimeIn, err := m.adjustDiveTimeZone(ctx, dateTimeIn, diveSiteID)
+	if err != nil {
+		return err
+	}
+
+	tx, err := m.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to start db transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	stmt := `
+        update dives
+           set version = version + 1, updated_at = now(), number = $3,
+               activity = $4, dive_site_id = $5, operator_id = $6, price = $7,
+               currency_id = $8, trip_id = $9, certification_id = $10,
+               date_time_in = $11, max_depth = $12, avg_depth = $13,
+               bottom_time = $14, safety_stop = $15, water_temp = $16,
+               air_temp = $17, visibility = $18, current_id = $19,
+               waves_id = $20, buddy_id = $21, buddy_role_id = $22,
+               weight_used = $23, weight_notes = $24, equipment_notes = $25,
+               tank_configuration_id = $26, tank_material_id = $27,
+               tank_volume = $28, gas_mix_id = $29, fo2 = $30,
+               pressure_in = $31, pressure_out = $32, gas_mix_notes = $33,
+               entry_point_id = $34, rating = $35, notes = $36
+         where id = $1
+           and owner_id = $2
+    `
+
+	var safetyStopNanos *int64
+	if safetyStop != nil {
+		ss := safetyStop.Nanoseconds()
+		safetyStopNanos = &ss
+	}
+
+	result, err := tx.ExecContext(
+		ctx,
+		stmt,
+		id,
+		ownerID,
+		number,
+		activity,
+		diveSiteID,
+		operatorID,
+		priceAmount,
+		priceCurrencyID,
+		tripID,
+		certificationID,
+		dateTimeIn,
+		maxDepth,
+		avgDepth,
+		bottomTime.Nanoseconds(),
+		safetyStopNanos,
+		waterTemp,
+		airTemp,
+		visibility,
+		currentID,
+		wavesID,
+		buddyID,
+		buddyRoleID,
+		weight,
+		weightNotes,
+		equipmentNotes,
+		tankConfigurationID,
+		tankMaterialID,
+		tankVolume,
+		gasMixID,
+		fo2,
+		pressureIn,
+		pressureOut,
+		gasMixNotes,
+		entryPointID,
+		rating,
+		notes,
+	)
+
+	if err != nil {
+		switch err.Error() {
+		case `pq: duplicate key value violates unique constraint "dives_owner_id_number_key"`:
+			return ErrDuplicateDiveNumber
+		default:
+			return err
+		}
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil || rowsAffected != 1 {
+		if rowsAffected == 0 {
+			return ErrNoRecord
+		} else if rowsAffected > 1 {
+			return &ErrUnexpectedRowsAffected{rowsExpected: 1, rowsAffected: int(rowsAffected)}
+		}
+
+		return err
+	}
+
+	err = upsertManyToManyIDs(
+		ctx,
+		tx,
+		"dive_equipment",
+		"dive_id",
+		"equipment_id",
+		id,
+		equipmentIDs,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	err = upsertManyToManyIDs(
+		ctx,
+		tx,
+		"dive_dive_properties",
+		"dive_id",
+		"property_id",
+		id,
+		propertyIDs,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		msg := "failed to commit db transaction to update dive %d: %w"
+		return fmt.Errorf(msg, id, err)
+	}
+
+	return nil
 }
 
 type DiveFilter struct {

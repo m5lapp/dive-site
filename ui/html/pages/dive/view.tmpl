@@ -9,6 +9,10 @@
   #{{.Dive.Number}} {{.Dive.DiveSite.Name}}, {{.Dive.DiveSite.Location}},
   {{with .Dive.DiveSite.Region}}{{.}},{{end}}
   {{.Dive.DateTimeIn.Format "2006-01-02"}}
+  <a href="/log-book/dive/edit/{{.Dive.ID}}"
+     class="btn btn-primary btn-lg">
+    Edit
+  </a>
 {{end}}
 
 {{define "main"}}
@@ -35,7 +39,8 @@
           <h4 class="mb-1">Time</h4>
           <p class="mb-1">
             {{.Dive.DateTimeIn.Format "15:04"}} to
-            {{(.Dive.DateTimeOut).Format "15:04 MST"}}
+            {{(.Dive.DateTimeOut).Format "15:04 -07:00"}}
+            {{.Dive.DiveSite.TimeZone}}
           </p>
         </div>
         <div class="list-group-item list-group-item-action flex-fill">
@@ -159,7 +164,7 @@
         <div class="list-group-item list-group-item-action flex-fill">
           <h4 class="mb-1">Current</h4>
           <p class="mb-1">
-            {{with .Dive.Current}}{{.}}{{else}}-{{end}}
+            {{with .Dive.Current}}{{.Name}}{{else}}-{{end}}
           </p>
         </div>
       </div>
@@ -176,7 +181,7 @@
         <div class="list-group-item list-group-item-action flex-fill">
           <h4 class="mb-1">Waves</h4>
           <p class="mb-1">
-            {{with .Dive.Waves}}{{.}}{{else}}-{{end}}
+            {{with .Dive.Waves}}{{.Name}}{{else}}-{{end}}
           </p>
         </div>
       </div>
