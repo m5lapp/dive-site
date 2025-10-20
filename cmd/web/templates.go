@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"unicode"
 
@@ -108,6 +109,23 @@ func intRange(start, stop int) chan int {
 	return stream
 }
 
+// textToHTMLParas converts any single new lines in the given `text` to an HTML
+// <br> tag and two or more contiguous new lines to a new <p> tag.
+func textToHTMLParas(text string) template.HTML {
+	safeHTML := template.HTMLEscapeString(text)
+
+	newLineRX := `(?:(?:\r)?\n)`
+	multiNewLineRX := regexp.MustCompile(newLineRX + `{2,}`)
+	singleNewLineRX := regexp.MustCompile(newLineRX)
+
+	safeHTML = multiNewLineRX.ReplaceAllString(safeHTML, "</p><p>")
+	safeHTML = singleNewLineRX.ReplaceAllString(safeHTML, "<br>")
+
+	result := "<p>" + safeHTML + "</p>"
+
+	return template.HTML(result)
+}
+
 func deref[T comparable](v *T, nilVal T) T {
 	if v == nil {
 		return nilVal
@@ -149,6 +167,7 @@ var functions = template.FuncMap{
 	"isoCountryToEmoji": isoCountryToEmoji,
 	"pageControls":      ui.PageControls,
 	"stringsReplace":    strings.Replace,
+	"textToHTMLParas":   textToHTMLParas,
 }
 
 type templateData struct {
