@@ -177,12 +177,14 @@ func BSDateField(
 ) (template.HTML, error) {
 	fieldErr, _ := fieldErrs[name]
 
-	// inputFormat := time.DateOnly
-	inputFormat := "2006-01-02T15:04"
+	inputFormat := time.DateOnly
 	inputType := "date"
+	step := 1 // 1 day.
+
 	if withTime {
-		inputFormat = time.DateTime
+		inputFormat = "2006-01-02T15:04"
 		inputType = "datetime-local"
+		step = 60 // 60 seconds.
 	}
 
 	const parseErrorMsg = "failed to parse field %s (%s) for field %s: %w"
@@ -211,7 +213,7 @@ func BSDateField(
 			g.If(required, Required()),
 			Min(minTime.Format(inputFormat)),
 			Max(maxTime.Format(inputFormat)),
-			Step("60"),
+			Step(fmt.Sprintf("%d", step)),
 			g.If(
 				value.IsZero() == true,
 				// By default, truncate the seconds to zero. This will make the
