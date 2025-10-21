@@ -341,7 +341,7 @@ func (app *app) diveSiteCreateGET(w http.ResponseWriter, r *http.Request) {
 		WaterTypeID: 1,
 	}
 
-	app.render(w, r, http.StatusOK, "dive_site/new.tmpl", data)
+	app.render(w, r, http.StatusOK, "dive_site/form.tmpl", data)
 }
 
 func (app *app) diveSiteCreatePOST(w http.ResponseWriter, r *http.Request) {
@@ -361,7 +361,7 @@ func (app *app) diveSiteCreatePOST(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		data.Form = form
-		app.render(w, r, http.StatusUnprocessableEntity, "dive_site/new.tmpl", data)
+		app.render(w, r, http.StatusUnprocessableEntity, "dive_site/form.tmpl", data)
 		return
 	}
 
@@ -437,7 +437,7 @@ func (app *app) diveSiteUpdateGET(w http.ResponseWriter, r *http.Request) {
 		Rating:      diveSite.Rating,
 	}
 
-	app.render(w, r, http.StatusOK, "dive_site/new.tmpl", data)
+	app.render(w, r, http.StatusOK, "dive_site/form.tmpl", data)
 }
 
 func (app *app) diveSiteUpdatePOST(w http.ResponseWriter, r *http.Request) {
@@ -455,6 +455,8 @@ func (app *app) diveSiteUpdatePOST(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	form.ID = id
+
 	form.Validate()
 	if !form.Valid() {
 		data, err := app.newTemplateData(r)
@@ -463,7 +465,7 @@ func (app *app) diveSiteUpdatePOST(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		data.Form = form
-		app.render(w, r, http.StatusUnprocessableEntity, "dive_site/new.tmpl", data)
+		app.render(w, r, http.StatusUnprocessableEntity, "dive_site/form.tmpl", data)
 		return
 	}
 
@@ -1259,7 +1261,7 @@ type diveForm struct {
 
 func diveFormFromDive(dive models.Dive) diveForm {
 	form := diveForm{
-		ID:                  dive.OwnerID,
+		ID:                  dive.ID,
 		Version:             dive.Version,
 		Number:              dive.Number,
 		Activity:            dive.Activity,
@@ -1899,6 +1901,8 @@ func (app *app) diveUpdatePOST(w http.ResponseWriter, r *http.Request) {
 		app.clientError(w, http.StatusBadRequest)
 		return
 	}
+
+	form.ID = id
 
 	data, err := app.newTemplateData(r)
 	if err != nil {
