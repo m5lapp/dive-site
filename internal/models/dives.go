@@ -121,7 +121,10 @@ func (d Dive) IsTrainingDive() bool {
 }
 
 type DiveModelInterface interface {
+	GetDiveStats(userID int) (DiveStats, error)
+
 	GetOneByID(ownerID, id int) (Dive, error)
+
 	Insert(
 		ownerID int,
 		number int,
@@ -161,6 +164,7 @@ type DiveModelInterface interface {
 		rating *int,
 		notes string,
 	) (int, error)
+
 	Update(
 		id int,
 		ownerID int,
@@ -201,6 +205,7 @@ type DiveModelInterface interface {
 		rating *int,
 		notes string,
 	) error
+
 	List(userID int, pager Pager, filter DiveFilter, sort []SortDive) ([]Dive, PageData, error)
 }
 

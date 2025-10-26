@@ -2061,3 +2061,23 @@ func (app *app) diveList(w http.ResponseWriter, r *http.Request) {
 
 	app.render(w, r, http.StatusOK, "dive/list.tmpl", data)
 }
+
+func (app *app) statistics(w http.ResponseWriter, r *http.Request) {
+	user := app.contextGetUser(r)
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	stats, err := app.dives.GetDiveStats(user.ID)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data.DiveStats = stats
+
+	app.render(w, r, http.StatusOK, "statistics.tmpl", data)
+}

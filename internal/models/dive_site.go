@@ -316,8 +316,6 @@ func (m *DiveSiteModel) GetOneByID(id, ownerID int) (DiveSite, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	fmt.Println(id, ownerID)
-
 	var totalRecords int
 	var diveSite DiveSite
 	row := m.DB.QueryRowContext(ctx, stmt, ownerID, id)

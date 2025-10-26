@@ -10,6 +10,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/hako/durafmt"
 	"github.com/m5lapp/divesite-monolith/internal/models"
 	"github.com/m5lapp/divesite-monolith/ui"
 )
@@ -162,6 +163,7 @@ var functions = template.FuncMap{
 	"derefInt":          deref[int],
 	"derefF64":          deref[float64],
 	"divideF64":         divide[float64],
+	"durafmtParse":      durafmt.Parse,
 	"getOSTimeZones":    getOSTimeZones,
 	"intRange":          intRange,
 	"isoCountryToEmoji": isoCountryToEmoji,
@@ -205,6 +207,7 @@ type templateData struct {
 	TankMaterials      []models.TankMaterial
 	Trips              []models.Trip
 	User               models.User
+	DiveStats          models.DiveStats
 	WasPosted          bool
 	WaterBodies        []models.WaterBody
 	WaterTypes         []models.WaterType

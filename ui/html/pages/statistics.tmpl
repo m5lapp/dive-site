@@ -1,0 +1,177 @@
+{{define "title"}}
+  {{.User.Name}}'s SCUBA Diving Statistics
+{{end}}
+
+{{define "heading"}}
+  {{.User.Name}}'s SCUBA Diving Statistics
+{{end}}
+
+{{define "main"}}
+  <section>
+
+    <div class="row mt-5">
+      <h2>General</h2>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Number of Dives</h4>
+          <p class="mb-1">
+            {{.User.DivesLogged}} (logged), {{.User.TotalDives}} (total)
+          </p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Depth (metres)</h4>
+            {{printf "%.1f" .DiveStats.MaxDiveDepth.Max}} (maximum), 
+            {{printf "%.1f" .DiveStats.MaxDiveDepth.Avg}} (average) 
+          <p class="mb-1">
+          </p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Bottom Time</h4>
+            {{durafmtParse .DiveStats.BottomTime.Max}} (maximum), 
+            {{durafmtParse .DiveStats.BottomTime.Avg}} (average) 
+          <p class="mb-1">
+          </p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Total Bottom Time</h4>
+            {{durafmtParse .DiveStats.BottomTime.Sum}}
+          <p class="mb-1">
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-5">
+      <h2>Dives By Month</h2>
+
+      <table class="table table-hover table-striped">
+        <thead>
+          <tr>
+            <th scope="col">Month</th>
+            <th scope="col">Dives</th>
+            <th scope="col">Average Max Depth</th>
+            <th scope="col">Average Bottom Time</th>
+            <th scope="col">Total Bottom Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .DiveStats.DivesByMonth}}
+            <tr>
+              <th scope="row">{{.Month.Format "January 2006"}}</td>
+              <td>{{.Dives}}</td>
+              <td>{{printf "%.1f" .MaxDiveDepth.Avg}} m</td>
+              <td>{{durafmtParse .BottomTime.Avg}}</td>
+              <td>{{durafmtParse .BottomTime.Sum}}</td>
+            </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="row mt-5">
+      <h2>Top Diving Countries</h2>
+
+      <table class="table table-hover table-striped">
+        <thead>
+          <tr>
+            <th scope="col">Country</th>
+            <th scope="col">Continent</th>
+            <th scope="col">Dives</th>
+            <th scope="col">Average Max Depth</th>
+            <th scope="col">Average Bottom Time</th>
+            <th scope="col">Total Bottom Time</th>
+            <th scope="col">First Dive</th>
+            <th scope="col">Latest Dive</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .DiveStats.DivesByCountry}}
+            <tr>
+              <th scope="row">
+                {{isoCountryToEmoji .Country.ISO2Code}}
+                {{.Country.Name}}
+              </td>
+              <td>{{.Continent}}</td>
+              <td>{{.Dives}}</td>
+              <td>{{printf "%.1f" .MaxDiveDepth.Avg}} m</td>
+              <td>{{durafmtParse (.BottomTime.Avg.Truncate 1000000000)}}</td>
+              <td>{{durafmtParse .BottomTime.Sum}}</td>
+              <td>{{.FirstDiveDate.Format "2006-01-02"}}</td>
+              <td>{{.LastDiveDate.Format "2006-01-02"}}</td>
+            </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="row mt-5">
+      <h2>Top Dive Sites</h2>
+
+      <table class="table table-hover table-striped">
+        <thead>
+          <tr>
+            <th scope="col">Dive Site</th>
+            <th scope="col">Dives</th>
+            <th scope="col">Average Max Depth</th>
+            <th scope="col">Average Bottom Time</th>
+            <th scope="col">Total Bottom Time</th>
+            <th scope="col">First Dive</th>
+            <th scope="col">Latest Dive</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .DiveStats.DivesByDiveSite}}
+            <tr>
+              <th scope="row">
+                {{isoCountryToEmoji .DiveSite.Country.ISO2Code}} {{.DiveSite.String}}
+              </td>
+              <td>{{.Dives}}</td>
+              <td>{{printf "%.1f" .MaxDiveDepth.Avg}} m</td>
+              <td>{{durafmtParse (.BottomTime.Avg.Truncate 1000000000)}}</td>
+              <td>{{durafmtParse .BottomTime.Sum}}</td>
+              <td>{{.FirstDiveDate.Format "2006-01-02"}}</td>
+              <td>{{.LastDiveDate.Format "2006-01-02"}}</td>
+            </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="row mt-5">
+      <h2>Top Dive Buddies</h2>
+
+      <table class="table table-hover table-striped">
+        <thead>
+          <tr>
+            <th scope="col">Buddy</th>
+            <th scope="col">Dives</th>
+            <th scope="col">Average Max Depth</th>
+            <th scope="col">Average Bottom Time</th>
+            <th scope="col">Total Bottom Time</th>
+            <th scope="col">First Dive</th>
+            <th scope="col">Latest Dive</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .DiveStats.DivesByBuddy}}
+            <tr>
+              <th scope="row">{{.Buddy.String}}</td>
+              <td>{{.Dives}}</td>
+              <td>{{printf "%.1f" .MaxDiveDepth.Avg}} m</td>
+              <td>{{durafmtParse (.BottomTime.Avg.Truncate 1000000000)}}</td>
+              <td>{{durafmtParse .BottomTime.Sum}}</td>
+              <td>{{.FirstDiveDate.Format "2006-01-02"}}</td>
+              <td>{{.LastDiveDate.Format "2006-01-02"}}</td>
+            </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+
+  </section>
+{{end}}
+
