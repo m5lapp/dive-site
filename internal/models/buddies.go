@@ -91,7 +91,7 @@ type BuddyModelInterface interface {
 		agencyMemberNum string,
 		notes string,
 	) (int, error)
-	List(userID int, pager Pager) ([]Buddy, PageData, error)
+	List(userID int, pager Pager, sort []SortBuddy) ([]Buddy, PageData, error)
 	ListAll(userID int) ([]Buddy, error)
 }
 
@@ -109,7 +109,8 @@ var buddySelectQuery string = `
            bu.name, bu.email, bu.phone_number,
            bu.agency_id, ag.common_name, ag.full_name, ag.acronym, ag.url,
            bu.agency_member_num,
-           coalesce(ds.dives_with, 0), ds.first_dive_with, ds.last_dive_with,
+           coalesce(ds.dives_with, 0) dives_with,
+           ds.first_dive_with, ds.last_dive_with,
            bu.notes
       from buddies bu
  left join agencies ag on bu.agency_id = ag.id
@@ -201,10 +202,15 @@ func (m *BuddyModel) Insert(
 	return id, nil
 }
 
-func (m *BuddyModel) List(userID int, pager Pager) ([]Buddy, PageData, error) {
+func (m *BuddyModel) List(userID int, pager Pager, sort []SortBuddy) ([]Buddy, PageData, error) {
 	limit := pager.limit()
 	offset := pager.offset()
-	stmt := fmt.Sprintf("%s limit $2 offset $3", buddySelectQuery)
+	stmt := fmt.Sprintf(
+		"%s %s limit $2 offset $3",
+		buddySelectQuery,
+		buildOrderByClause(sort, SortBuddyIDAsc),
+	)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 

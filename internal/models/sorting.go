@@ -38,8 +38,8 @@ type Sorter interface {
 
 // buildOrderByClause generates the order by clause for a SQL statement using each of
 // the given table cols in order. The defaultCol sortCol is applied at the end
-// with the intention always-consistent ordering, it is recommended to use a
-// unique or primary key column for this parameter.
+// with the intention of providing always-consistent ordering, it is recommended
+// to use a unique or primary key column for this parameter.
 func buildOrderByClause[T Sorter](cols []T, defaultCol T) string {
 	var clause strings.Builder
 	clause.WriteString("order by ")
@@ -59,6 +59,31 @@ func buildOrderByClause[T Sorter](cols []T, defaultCol T) string {
 
 	return clause.String()
 }
+
+// Buddy sorting options.
+type SortBuddy struct{ sortCol }
+
+func (SortBuddy) isSort() {}
+
+var (
+	SortBuddyIDAsc  = SortBuddy{sortCol{column: "bu.id", direction: sortAsc}}
+	SortBuddyIDDesc = SortBuddy{sortCol{column: "bu.id", direction: sortDesc}}
+
+	SortBuddyNameAsc  = SortBuddy{sortCol{column: "bu.name", direction: sortAsc}}
+	SortBuddyNameDesc = SortBuddy{sortCol{column: "bu.name", direction: sortDesc}}
+
+	SortBuddyDivesWithAsc  = SortBuddy{sortCol{column: "dives_with", direction: sortAsc}}
+	SortBuddyDivesWithDesc = SortBuddy{sortCol{column: "dives_with", direction: sortDesc}}
+
+	SortBuddyFirstDiveWithAsc = SortBuddy{
+		sortCol{column: "ds.first_dive_with", direction: sortAsc},
+	}
+	SortBuddyFirstDiveWithDesc = SortBuddy{
+		sortCol{column: "ds.first_dive_with", direction: sortDesc},
+	}
+
+	SortBuddyDefault = []SortBuddy{SortBuddyNameAsc, SortBuddyIDAsc}
+)
 
 // Dive sorting options.
 type SortDive struct{ sortCol }

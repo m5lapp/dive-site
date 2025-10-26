@@ -764,10 +764,11 @@ func (app *app) buddyList(w http.ResponseWriter, r *http.Request) {
 	page := app.readInt(r.URL.Query(), "page", 1)
 	pageSize := app.readInt(r.URL.Query(), "page_size", defaultPageSize)
 
-	pager := models.NewPager(page, pageSize, defaultPageSize)
 	userID := app.contextGetUser(r).ID
+	pager := models.NewPager(page, pageSize, defaultPageSize)
+	sort := []models.SortBuddy{models.SortBuddyNameAsc}
 
-	buddies, pageData, err := app.buddies.List(userID, pager)
+	buddies, pageData, err := app.buddies.List(userID, pager, sort)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
