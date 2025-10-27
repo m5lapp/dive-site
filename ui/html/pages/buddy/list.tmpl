@@ -8,39 +8,41 @@
     {{if .Buddies}}
       {{pageControls "/buddy" .PageData}}
 
-      <div class="list-group">
-        {{range .Buddies}}
-          <div class="list-group-item list-group-item-action">
-            <div class="d-flex w-100 justify-content-between">
-              <h4 class="mb-1">
-                {{.}}
+      <table class="table table-hover table-striped">
+        <thead>
+          <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Contact Details</th>
+            <th scope="col">Dives Logged</th>
+            <th scope="col">Comments</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Buddies}}
+            <tr>
+              <th scope="row">{{.Name}}</td>
+              <td>
                 {{with .Email}}
-                  <small>
-                    <a class="link-underline-opacity-25 link-underline-opacity-100-hover"
-                       href="mailto:{{.}}">📧</a>
-                  </small>
+                  <a class="link-underline link-underline-opacity-0"
+                     href="mailto:{{.}}">📧</a>
                 {{end}}
                 {{with .PhoneNumber}}
-                  <small>
-                    <a class="link-underline-opacity-25 link-underline-opacity-100-hover"
-                       href="tel:{{.}}">☎️</a>
-                  </small>
+                  <a class="link-underline link-underline-opacity-0"
+                     href="tel:{{.}}">☎️</a>
                 {{end}}
-              </h4>
-              <span>
-              {{.DivesWith}} dive{{if ne .DivesWith 1}}s{{end}}
-              {{if and .FirstDiveWith .LastDiveWith}}
-                between {{.FirstDiveWith.Format "2006-01-02"}}
-                and {{.LastDiveWith.Format "2006-01-02"}}
-              {{end}}
-              </span>
-            </div>
-            <div class="d-flex w-100 justify-content-between">
-            </div>
-            {{with .Notes}}<small><blockquote>{{.}}</blockquote></small>{{end}}
-          </div>
-        {{end}}
-      </div>
+              </td>
+              <td>
+                {{.DivesWith}}
+                {{if .DivesWith}}
+                  between {{.FirstDiveWith.Format "2006-01-02"}}
+                  and {{.LastDiveWith.Format "2006-01-02"}}
+                {{end}}
+              </td>
+              <td>{{.Notes}}</td>
+            </tr>
+          {{end}}
+        </tbody>
+      </table>
 
       {{pageControls "/buddy" .PageData}}
 

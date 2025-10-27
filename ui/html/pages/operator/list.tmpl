@@ -12,8 +12,8 @@
         <thead>
           <tr>
             <th scope="col">Name</th>
-            <th scope="col">Type</th>
             <th scope="col">Address</th>
+            <th scope="col">Type</th>
             <th scope="col">Contact Details</th>
             <th scope="col">Dives Logged</th>
           </tr>
@@ -22,7 +22,6 @@
           {{range .Operators}}
             <tr>
               <th scope="row">{{.Name}}</td>
-              <td>{{.OperatorType.Name}}</td>
               <td>
                 {{isoCountryToEmoji .Country.ISO2Code}}
                 {{$needComma := false}}
@@ -47,26 +46,27 @@
                 {{- with .Postcode}}
                   {{- if $needComma}}, {{end}}
                   {{- .}}
+                  {{- $needComma = true}}
+                {{- end}}
+
+                {{- with .Country}}
+                  {{- if $needComma}}, {{end}}
+                  {{- .Name}}
                 {{- end}}
               </td>
+              <td>{{.OperatorType.Name}}</td>
               <td>
                 {{with .WebsiteURL}}
-                  <small>
-                    <a class="link-underline-opacity-25 link-underline-opacity-100-hover"
-                       href="{{.}}">🌐</a>
-                  </small>
+                  <a class="link-underline link-underline-opacity-0"
+                     href="{{.}}">🌐</a>
                 {{end}}
                 {{with .EmailAddress}}
-                  <small>
-                    <a class="link-underline-opacity-25 link-underline-opacity-100-hover"
-                       href="mailto:{{.}}">📧</a>
-                  </small>
+                  <a class="link-underline link-underline-opacity-0"
+                     href="mailto:{{.}}">📧</a>
                 {{end}}
                 {{with .PhoneNumber}}
-                  <small>
-                    <a class="link-underline-opacity-25 link-underline-opacity-100-hover"
-                       href="tel:{{.}}">☎️</a>
-                  </small>
+                  <a class="link-underline link-underline-opacity-0"
+                     href="tel:{{.}}">☎️</a>
                 {{end}}
               </td>
               <td>
