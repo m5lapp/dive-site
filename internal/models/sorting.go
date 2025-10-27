@@ -36,10 +36,10 @@ type Sorter interface {
 	isSort()
 }
 
-// buildOrderByClause generates the order by clause for a SQL statement using each of
-// the given table cols in order. The defaultCol sortCol is applied at the end
-// with the intention of providing always-consistent ordering, it is recommended
-// to use a unique or primary key column for this parameter.
+// buildOrderByClause generates the order by clause for a SQL statement using
+// each of the given table cols in order. The defaultCol sortCol is applied at
+// the end with the intention of providing always-consistent ordering, it is
+// recommended to use a unique or primary key column for this parameter.
 func buildOrderByClause[T Sorter](cols []T, defaultCol T) string {
 	var clause strings.Builder
 	clause.WriteString("order by ")
@@ -85,6 +85,24 @@ var (
 	SortBuddyDefault = []SortBuddy{SortBuddyNameAsc, SortBuddyIDAsc}
 )
 
+// Certification sorting options.
+type SortCert struct{ sortCol }
+
+func (SortCert) isSort() {}
+
+var (
+	SortCertIDAsc  = SortCert{sortCol{column: "ce.id", direction: sortAsc}}
+	SortCertIDDesc = SortCert{sortCol{column: "ce.id", direction: sortDesc}}
+
+	SortCertNameAsc  = SortCert{sortCol{column: "ce.name", direction: sortAsc}}
+	SortCertNameDesc = SortCert{sortCol{column: "ce.name", direction: sortDesc}}
+
+	SortCertStartDateAsc  = SortCert{sortCol{column: "ce.start_date", direction: sortAsc}}
+	SortCertStartDateDesc = SortCert{sortCol{column: "ce.start_date", direction: sortDesc}}
+
+	SortCertDefault = []SortCert{SortCertStartDateDesc, SortCertNameAsc, SortCertIDAsc}
+)
+
 // Dive sorting options.
 type SortDive struct{ sortCol }
 
@@ -97,7 +115,7 @@ var (
 	SortDiveDateAsc  = SortDive{sortCol{column: "dv.date_time_in", direction: sortAsc}}
 	SortDiveDateDesc = SortDive{sortCol{column: "dv.date_time_in", direction: sortDesc}}
 
-	SortDiveDefault = []SortDive{SortDiveDateDesc}
+	SortDiveDefault = []SortDive{SortDiveDateDesc, SortDiveIDAsc}
 )
 
 // DiveSite sorting options.
@@ -127,4 +145,63 @@ var (
 		SortDiveSiteRegionAsc,
 		SortDiveSiteNameAsc,
 	}
+)
+
+// Operator sorting options.
+type SortOperator struct{ sortCol }
+
+func (SortOperator) isSort() {}
+
+var (
+	SortOperatorIDAsc  = SortOperator{sortCol{column: "op.id", direction: sortAsc}}
+	SortOperatorIDDesc = SortOperator{sortCol{column: "op.id", direction: sortDesc}}
+
+	SortOperatorNameAsc  = SortOperator{sortCol{column: "op.name", direction: sortAsc}}
+	SortOperatorNameDesc = SortOperator{sortCol{column: "op.name", direction: sortDesc}}
+
+	SortOperatorTypeAsc  = SortOperator{sortCol{column: "ot.name", direction: sortAsc}}
+	SortOperatorTypeDesc = SortOperator{sortCol{column: "ot.name", direction: sortDesc}}
+
+	SortOperatorStreetAsc  = SortOperator{sortCol{column: "op.street", direction: sortAsc}}
+	SortOperatorStreetDesc = SortOperator{sortCol{column: "op.street", direction: sortDesc}}
+
+	SortOperatorSuburbAsc  = SortOperator{sortCol{column: "op.suburb", direction: sortAsc}}
+	SortOperatorSuburbDesc = SortOperator{sortCol{column: "op.suburb", direction: sortDesc}}
+
+	SortOperatorStateAsc  = SortOperator{sortCol{column: "op.state", direction: sortAsc}}
+	SortOperatorStateDesc = SortOperator{sortCol{column: "op.state", direction: sortDesc}}
+
+	SortOperatorPostcodeAsc  = SortOperator{sortCol{column: "op.postcode", direction: sortAsc}}
+	SortOperatorPostcodeDesc = SortOperator{sortCol{column: "op.postcode", direction: sortDesc}}
+
+	SortOperatorCountryAsc  = SortOperator{sortCol{column: "co.name", direction: sortAsc}}
+	SortOperatorCountryDesc = SortOperator{sortCol{column: "co.name", direction: sortDesc}}
+
+	SortOperatorDefault = []SortOperator{
+		SortOperatorCountryAsc,
+		SortOperatorNameAsc,
+		SortOperatorStateAsc,
+		SortOperatorSuburbAsc,
+		SortOperatorStreetAsc,
+		SortOperatorTypeAsc,
+		SortOperatorIDAsc,
+	}
+)
+
+// Trip sorting options.
+type SortTrip struct{ sortCol }
+
+func (SortTrip) isSort() {}
+
+var (
+	SortTripIDAsc  = SortTrip{sortCol{column: "tr.id", direction: sortAsc}}
+	SortTripIDDesc = SortTrip{sortCol{column: "tr.id", direction: sortDesc}}
+
+	SortTripNameAsc  = SortTrip{sortCol{column: "tr.name", direction: sortAsc}}
+	SortTripNameDesc = SortTrip{sortCol{column: "tr.name", direction: sortDesc}}
+
+	SortTripStartDateAsc  = SortTrip{sortCol{column: "tr.start_date", direction: sortAsc}}
+	SortTripStartDateDesc = SortTrip{sortCol{column: "tr.start_date", direction: sortDesc}}
+
+	SortTripDefault = []SortTrip{SortTripStartDateDesc, SortTripNameAsc, SortTripIDAsc}
 )

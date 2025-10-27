@@ -82,6 +82,7 @@ func (nc nullableCertification) ToStruct() *Certification {
 
 type CertificationModelInterface interface {
 	Exists(id int) (bool, error)
+
 	Insert(
 		ownerID int,
 		courseID int,
@@ -94,8 +95,10 @@ type CertificationModelInterface interface {
 		rating *int,
 		notes string,
 	) (int, error)
-	List(userID int, pager Pager) ([]Certification, PageData, error)
-	ListAll(userID int) ([]Certification, error)
+
+	List(userID int, pager Pager, sort []SortCert) ([]Certification, PageData, error)
+
+	ListAll(userID int, sort []SortCert) ([]Certification, error)
 }
 
 var certificationSelectQuery string = `
@@ -319,10 +322,16 @@ func (m *CertificationModel) Insert(
 	return id, nil
 }
 
-func (m *CertificationModel) List(userID int, pager Pager) ([]Certification, PageData, error) {
+func (m *CertificationModel) List(
+	userID int,
+	pager Pager,
+	sort []SortCert,
+) ([]Certification, PageData, error) {
 	limit := pager.limit()
 	offset := pager.offset()
-	stmt := fmt.Sprintf("%s limit $2 offset $3", certificationSelectQuery)
+	orderBy := buildOrderByClause(sort, SortCertIDAsc)
+	stmt := fmt.Sprintf("%s %s limit $2 offset $3", certificationSelectQuery, orderBy)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
@@ -357,11 +366,14 @@ func (m *CertificationModel) List(userID int, pager Pager) ([]Certification, Pag
 	return records, paginationData, nil
 }
 
-func (m *CertificationModel) ListAll(userID int) ([]Certification, error) {
+func (m *CertificationModel) ListAll(userID int, sort []SortCert) ([]Certification, error) {
+	orderBy := buildOrderByClause(sort, SortCertIDAsc)
+	stmt := fmt.Sprintf("%s %s", certificationSelectQuery, orderBy)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, certificationSelectQuery, userID)
+	rows, err := m.DB.QueryContext(ctx, stmt, userID)
 	if err != nil {
 		return nil, err
 	}

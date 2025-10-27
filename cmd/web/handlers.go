@@ -730,7 +730,7 @@ func (app *app) operatorList(w http.ResponseWriter, r *http.Request) {
 	pager := models.NewPager(page, pageSize, defaultPageSize)
 	userID := app.contextGetUser(r).ID
 
-	operators, pageData, err := app.operators.List(userID, pager)
+	operators, pageData, err := app.operators.List(userID, pager, models.SortOperatorDefault)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
@@ -1037,7 +1037,7 @@ func (app *app) tripList(w http.ResponseWriter, r *http.Request) {
 	pager := models.NewPager(page, pageSize, defaultPageSize)
 	userID := app.contextGetUser(r).ID
 
-	trips, pageData, err := app.trips.List(userID, pager)
+	trips, pageData, err := app.trips.List(userID, pager, models.SortTripDefault)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
@@ -1200,7 +1200,7 @@ func (app *app) certificationList(w http.ResponseWriter, r *http.Request) {
 	pager := models.NewPager(page, pageSize, defaultPageSize)
 	userID := app.contextGetUser(r).ID
 
-	certs, pageData, err := app.certifications.List(userID, pager)
+	certs, pageData, err := app.certifications.List(userID, pager, models.SortCertDefault)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
@@ -1349,7 +1349,7 @@ func (app *app) addStaticdataToDiveForm(r *http.Request, data *templateData) err
 		user = app.contextGetUser(r)
 	}
 
-	certifications, err := app.certifications.ListAll(user.ID)
+	certifications, err := app.certifications.ListAll(user.ID, models.SortCertDefault)
 	if err != nil {
 		return fmt.Errorf("could not fetch certifications list: %w", err)
 	}
@@ -1403,7 +1403,7 @@ func (app *app) addStaticdataToDiveForm(r *http.Request, data *templateData) err
 	}
 	data.TankMaterials = tankMaterials
 
-	trips, err := app.trips.ListAll(user.ID)
+	trips, err := app.trips.ListAll(user.ID, models.SortTripDefault)
 	if err != nil {
 		return fmt.Errorf("could not fetch trips list: %w", err)
 	}

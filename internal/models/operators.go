@@ -114,6 +114,7 @@ func (no nullableOperator) ToStruct() *Operator {
 
 type OperatorModelInterface interface {
 	Exists(id int) (bool, error)
+
 	Insert(
 		ownerID int,
 		operatorTypeID int,
@@ -128,8 +129,10 @@ type OperatorModelInterface interface {
 		phoneNumber string,
 		comments string,
 	) (int, error)
-	List(userID int, Pager Pager) ([]Operator, PageData, error)
-	ListAll(userID int) ([]Operator, error)
+
+	List(userID int, Pager Pager, sort []SortOperator) ([]Operator, PageData, error)
+
+	ListAll(userID int, sort []SortOperator) ([]Operator, error)
 }
 
 var operatorSelectQuery string = `
@@ -255,10 +258,16 @@ func (m *OperatorModel) Insert(
 	return id, nil
 }
 
-func (m *OperatorModel) List(userID int, pager Pager) ([]Operator, PageData, error) {
+func (m *OperatorModel) List(
+	userID int,
+	pager Pager,
+	sort []SortOperator,
+) ([]Operator, PageData, error) {
 	limit := pager.limit()
 	offset := pager.offset()
-	stmt := fmt.Sprintf("%s limit $2 offset $3", operatorSelectQuery)
+	orderBy := buildOrderByClause(sort, SortOperatorIDAsc)
+	stmt := fmt.Sprintf("%s %s limit $2 offset $3", operatorSelectQuery, orderBy)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
@@ -293,11 +302,14 @@ func (m *OperatorModel) List(userID int, pager Pager) ([]Operator, PageData, err
 	return operators, paginationData, nil
 }
 
-func (m *OperatorModel) ListAll(userID int) ([]Operator, error) {
+func (m *OperatorModel) ListAll(userID int, sort []SortOperator) ([]Operator, error) {
+	orderBy := buildOrderByClause(sort, SortOperatorIDAsc)
+	stmt := fmt.Sprintf("%s %s", operatorSelectQuery, orderBy)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, operatorSelectQuery, userID)
+	rows, err := m.DB.QueryContext(ctx, stmt, userID)
 	if err != nil {
 		return nil, err
 	}

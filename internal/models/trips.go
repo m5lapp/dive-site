@@ -109,6 +109,7 @@ func (nt nullableTrip) ToStruct() *Trip {
 
 type TripModelInterface interface {
 	Exists(id int) (bool, error)
+
 	Insert(
 		ownerID int,
 		name string,
@@ -121,8 +122,10 @@ type TripModelInterface interface {
 		priceCurrencyID *int,
 		notes string,
 	) (int, error)
-	List(userID int, pager Pager) ([]Trip, PageData, error)
-	ListAll(userID int) ([]Trip, error)
+
+	List(userID int, pager Pager, sort []SortTrip) ([]Trip, PageData, error)
+
+	ListAll(userID int, sort []SortTrip) ([]Trip, error)
 }
 
 var tripSelectQuery string = `
@@ -295,10 +298,12 @@ func (m *TripModel) Insert(
 	return id, nil
 }
 
-func (m *TripModel) List(userID int, pager Pager) ([]Trip, PageData, error) {
+func (m *TripModel) List(userID int, pager Pager, sort []SortTrip) ([]Trip, PageData, error) {
 	limit := pager.limit()
 	offset := pager.offset()
-	stmt := fmt.Sprintf("%s limit $2 offset $3", tripSelectQuery)
+	orderBy := buildOrderByClause(sort, SortTripIDAsc)
+	stmt := fmt.Sprintf("%s %s limit $2 offset $3", tripSelectQuery, orderBy)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
@@ -333,11 +338,14 @@ func (m *TripModel) List(userID int, pager Pager) ([]Trip, PageData, error) {
 	return records, paginationData, nil
 }
 
-func (m *TripModel) ListAll(userID int) ([]Trip, error) {
+func (m *TripModel) ListAll(userID int, sort []SortTrip) ([]Trip, error) {
+	orderBy := buildOrderByClause(sort, SortTripIDAsc)
+	stmt := fmt.Sprintf("%s %s", tripSelectQuery, orderBy)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, tripSelectQuery, userID)
+	rows, err := m.DB.QueryContext(ctx, stmt, userID)
 	if err != nil {
 		return nil, err
 	}

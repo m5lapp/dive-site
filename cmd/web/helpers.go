@@ -80,7 +80,7 @@ func (app *app) newTemplateData(r *http.Request) (templateData, error) {
 		return templateData{}, fmt.Errorf("could not fetch agency list for template: %w", err)
 	}
 
-	buddies, err := app.buddies.ListAll(user.ID)
+	buddies, err := app.buddies.ListAll(user.ID, models.SortBuddyDefault)
 	if err != nil {
 		return templateData{}, fmt.Errorf("could not fetch buddy list for template: %w", err)
 	}
@@ -108,7 +108,7 @@ func (app *app) newTemplateData(r *http.Request) (templateData, error) {
 		return templateData{}, fmt.Errorf("could not fetch currency list for template: %w", err)
 	}
 
-	operators, err := app.operators.ListAll(user.ID)
+	operators, err := app.operators.ListAll(user.ID, models.SortOperatorDefault)
 	if err != nil {
 		return templateData{}, fmt.Errorf("could not fetch operator list for template: %w", err)
 	}

@@ -82,6 +82,7 @@ func (nb nullableBuddy) ToStruct() *Buddy {
 
 type BuddyModelInterface interface {
 	Exists(id int) (bool, error)
+
 	Insert(
 		ownerID int,
 		name string,
@@ -91,8 +92,10 @@ type BuddyModelInterface interface {
 		agencyMemberNum string,
 		notes string,
 	) (int, error)
+
 	List(userID int, pager Pager, sort []SortBuddy) ([]Buddy, PageData, error)
-	ListAll(userID int) ([]Buddy, error)
+
+	ListAll(userID int, sort []SortBuddy) ([]Buddy, error)
 }
 
 var buddySelectQuery string = `
@@ -245,11 +248,14 @@ func (m *BuddyModel) List(userID int, pager Pager, sort []SortBuddy) ([]Buddy, P
 	return records, paginationData, nil
 }
 
-func (m *BuddyModel) ListAll(userID int) ([]Buddy, error) {
+func (m *BuddyModel) ListAll(userID int, sort []SortBuddy) ([]Buddy, error) {
+	orderBy := buildOrderByClause(sort, SortBuddyIDAsc)
+	stmt := fmt.Sprintf("%s %s", buddySelectQuery, orderBy)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, buddySelectQuery, userID)
+	rows, err := m.DB.QueryContext(ctx, stmt, userID)
 	if err != nil {
 		return nil, err
 	}
