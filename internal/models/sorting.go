@@ -94,13 +94,21 @@ var (
 	SortCertIDAsc  = SortCert{sortCol{column: "ce.id", direction: sortAsc}}
 	SortCertIDDesc = SortCert{sortCol{column: "ce.id", direction: sortDesc}}
 
-	SortCertNameAsc  = SortCert{sortCol{column: "ce.name", direction: sortAsc}}
-	SortCertNameDesc = SortCert{sortCol{column: "ce.name", direction: sortDesc}}
+	SortCertAgencyAsc  = SortCert{sortCol{column: "ag.common_name", direction: sortAsc}}
+	SortCertAgencyDesc = SortCert{sortCol{column: "ag.common_name", direction: sortDesc}}
+
+	SortCertNameAsc  = SortCert{sortCol{column: "ac.name", direction: sortAsc}}
+	SortCertNameDesc = SortCert{sortCol{column: "ac.name", direction: sortDesc}}
 
 	SortCertStartDateAsc  = SortCert{sortCol{column: "ce.start_date", direction: sortAsc}}
 	SortCertStartDateDesc = SortCert{sortCol{column: "ce.start_date", direction: sortDesc}}
 
-	SortCertDefault = []SortCert{SortCertStartDateDesc, SortCertNameAsc, SortCertIDAsc}
+	SortCertDefault = []SortCert{
+		SortCertStartDateDesc,
+		SortCertAgencyAsc,
+		SortCertNameAsc,
+		SortCertIDAsc,
+	}
 )
 
 // Dive sorting options.
