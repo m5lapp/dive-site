@@ -288,6 +288,9 @@ func (m UserModel) Update(
 		defaultDivingCountryID,
 		defaultDivingTZ,
 	)
+	if err != nil {
+		return err
+	}
 
 	if err != nil {
 		switch {
