@@ -10,6 +10,7 @@ $$ language 'plpgsql';
 
 create table if not exists users (
     id              bigint       primary key generated always as identity,
+    version         integer      not null default 1,
     created_at      timestamp(6) with time zone not null default now(),
     updated_at      timestamp(6) with time zone not null default now(),
     name            varchar(256) not null,

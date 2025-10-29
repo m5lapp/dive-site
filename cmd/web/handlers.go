@@ -7,14 +7,16 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"unicode/utf8"
 
 	"github.com/m5lapp/divesite-monolith/internal/models"
 	"github.com/m5lapp/divesite-monolith/internal/validator"
 )
 
-type userRegistrationForm struct {
+type userProfileForm struct {
 	Name                   string          `form:"name"`
 	Email                  string          `form:"email"`
+	CurrentPassword        string          `form:"current_password"`
 	Password               string          `form:"password"`
 	PasswordConfirm        string          `form:"password_confirm"`
 	DivingSince            time.Time       `form:"diving_since"`
@@ -23,6 +25,56 @@ type userRegistrationForm struct {
 	DefaultDivingTZ        models.TimeZone `form:"default_diving_tz"`
 	DarkMode               bool            `form:"dark_mode"`
 	validator.Validator    `form:"-"`
+}
+
+func (uf *userProfileForm) Validate(accountIsBeingCreated bool) {
+	uf.CheckField(validator.NotBlank(uf.Name), "name", "This field cannot be blank")
+
+	uf.CheckField(validator.NotBlank(uf.Email), "email", "This field cannot be blank")
+	uf.CheckField(
+		validator.Matches(uf.Email, validator.EmailRX),
+		"email",
+		"This field must be a valid email address",
+	)
+
+	passwordIsBeingUpdated := !accountIsBeingCreated && utf8.RuneCountInString(uf.Password) > 0
+
+	if passwordIsBeingUpdated {
+		uf.CheckField(
+			validator.MinChars(uf.CurrentPassword, 8),
+			"current_password",
+			"This field must be at least 8 characters long",
+		)
+	}
+
+	if accountIsBeingCreated || passwordIsBeingUpdated {
+		uf.CheckField(validator.NotBlank(uf.Password), "password", "This field cannot be blank")
+		uf.CheckField(
+			validator.MinChars(uf.Password, 8),
+			"password",
+			"This field must be at least 8 characters long",
+		)
+		uf.CheckField(
+			uf.PasswordConfirm == uf.Password,
+			"password_confirm",
+			"This field must match the password field",
+		)
+	}
+
+	earliestDivingSince := time.Date(1960, time.January, 1, 0, 0, 0, 0, time.UTC)
+	latestDivingSince := time.Now()
+	uf.CheckField(
+		validator.TimeBetween(uf.DivingSince, earliestDivingSince, latestDivingSince),
+		"diving_since",
+		"This field must be between 1960-01-01 and today",
+	)
+
+	uf.CheckField(
+		validator.NumBetween[int](uf.DiveNumberOffset, 0, 10_000),
+		"dive_number_offset",
+		"This field must be between 0 and 10,000 inclusive",
+	)
+
 }
 
 func status(w http.ResponseWriter, r *http.Request) {
@@ -37,13 +89,13 @@ func (app *app) userCreateGET(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defaultTZ, _ := models.NewTimeZone("Etc/UTC")
-	data.Form = userRegistrationForm{DefaultDivingTZ: defaultTZ, DarkMode: true}
+	data.Form = userProfileForm{DefaultDivingTZ: defaultTZ, DarkMode: true}
 
-	app.render(w, r, http.StatusOK, "register.tmpl", data)
+	app.render(w, r, http.StatusOK, "user/register.tmpl", data)
 }
 
 func (app *app) userCreatePOST(w http.ResponseWriter, r *http.Request) {
-	form := &userRegistrationForm{}
+	form := &userProfileForm{}
 	err := app.decodePOSTForm(r, form)
 	if err != nil {
 		app.log.Error("Error whilst decoding user registration form input", "error", err.Error())
@@ -51,50 +103,17 @@ func (app *app) userCreatePOST(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	form.CheckField(validator.NotBlank(form.Name), "name", "This field cannot be blank")
-
-	form.CheckField(validator.NotBlank(form.Email), "email", "This field cannot be blank")
-	form.CheckField(
-		validator.Matches(form.Email, validator.EmailRX),
-		"email",
-		"This field must be a valid email address",
-	)
-
-	form.CheckField(validator.NotBlank(form.Password), "password", "This field cannot be blank")
-	form.CheckField(
-		validator.MinChars(form.Password, 8),
-		"password",
-		"This field must be at least 8 characters long",
-	)
-	form.CheckField(
-		form.PasswordConfirm == form.Password,
-		"password_confirm",
-		"This field must match the password field",
-	)
-
-	earliestDivingSince := time.Date(1960, time.January, 1, 0, 0, 0, 0, time.UTC)
-	latestDivingSince := time.Now()
-	form.CheckField(
-		validator.TimeBetween(form.DivingSince, earliestDivingSince, latestDivingSince),
-		"diving_since",
-		"This field must be between 1960-01-01 and today",
-	)
-
-	form.CheckField(
-		validator.NumBetween[int](form.DiveNumberOffset, 0, 10_000),
-		"dive_number_offset",
-		"This field must be between 0 and 10,000 inclusive",
-	)
-
 	data, err := app.newTemplateData(r)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
 
+	form.Validate(true)
+
 	if !form.Valid() {
 		data.Form = form
-		app.render(w, r, http.StatusUnprocessableEntity, "register.tmpl", data)
+		app.render(w, r, http.StatusUnprocessableEntity, "user/register.tmpl", data)
 		return
 	}
 
@@ -112,7 +131,7 @@ func (app *app) userCreatePOST(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, models.ErrDuplicateEmail) {
 			form.AddFieldError("email", "This email is already registered")
 			data.Form = form
-			app.render(w, r, http.StatusUnprocessableEntity, "register.tmpl", data)
+			app.render(w, r, http.StatusUnprocessableEntity, "user/register.tmpl", data)
 		} else {
 			app.serverError(w, r, err)
 		}
@@ -121,6 +140,100 @@ func (app *app) userCreatePOST(w http.ResponseWriter, r *http.Request) {
 
 	app.sessionManager.Put(r.Context(), "flashSuccess", "Sign up successful, please log in.")
 	http.Redirect(w, r, "/user/log-in", http.StatusSeeOther)
+}
+
+func (app *app) userUpdateGET(w http.ResponseWriter, r *http.Request) {
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	user := app.contextGetUser(r)
+	data.Form = userProfileForm{
+		Name:                   user.Name,
+		Email:                  user.Email,
+		DivingSince:            user.DivingSince,
+		DiveNumberOffset:       user.DiveNumberOffset,
+		DefaultDivingCountryID: user.DefaultDivingCountryID,
+		DefaultDivingTZ:        user.DefaultDivingTZ,
+		DarkMode:               user.DarkMode,
+	}
+
+	app.render(w, r, http.StatusOK, "user/profile_form.tmpl", data)
+}
+
+func (app *app) userUpdatePOST(w http.ResponseWriter, r *http.Request) {
+	form := &userProfileForm{}
+	err := app.decodePOSTForm(r, form)
+	if err != nil {
+		app.log.Error("Error whilst decoding user profile update form input", "error", err.Error())
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	form.Validate(false)
+
+	if !form.Valid() {
+		data.Form = form
+		app.render(w, r, http.StatusUnprocessableEntity, "user/profile_form.tmpl", data)
+		return
+	}
+
+	userID := app.contextGetUser(r).ID
+
+	if utf8.RuneCountInString(form.Password) > 0 {
+		err = app.users.UpdatePassword(userID, form.CurrentPassword, form.Password)
+
+		if errors.Is(err, models.ErrInvalidCredentials) {
+			form.AddFieldError(
+				"current_password",
+				"Your current password was entered incorrectly",
+			)
+			form.AddNonFieldError("Your password update request failed.")
+			data.Form = form
+			app.render(w, r, http.StatusUnprocessableEntity, "user/profile_form.tmpl", data)
+			return
+		} else if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+	}
+
+	err = app.users.Update(
+		userID,
+		form.Name,
+		form.Email,
+		form.DivingSince,
+		form.DiveNumberOffset,
+		form.DefaultDivingCountryID,
+		form.DefaultDivingTZ,
+		form.DarkMode,
+	)
+
+	if err != nil {
+		if errors.Is(err, models.ErrDuplicateEmail) {
+			form.AddFieldError("email", "This email is already registered")
+			data.Form = form
+			app.render(w, r, http.StatusUnprocessableEntity, "user/profile_form.tmpl", data)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	app.sessionManager.Put(
+		r.Context(),
+		"flashSuccess",
+		"Your user profile has been updated successfully.",
+	)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 type userLogInForm struct {
@@ -137,7 +250,7 @@ func (app *app) userLogInGET(w http.ResponseWriter, r *http.Request) {
 	}
 	data.Form = userLogInForm{}
 
-	app.render(w, r, http.StatusOK, "log_in.tmpl", data)
+	app.render(w, r, http.StatusOK, "user/log_in.tmpl", data)
 }
 
 func (app *app) userLogInPOST(w http.ResponseWriter, r *http.Request) {
@@ -165,7 +278,7 @@ func (app *app) userLogInPOST(w http.ResponseWriter, r *http.Request) {
 
 	if !form.Valid() {
 		data.Form = form
-		app.render(w, r, http.StatusUnprocessableEntity, "log_in.tmpl", data)
+		app.render(w, r, http.StatusUnprocessableEntity, "user/log_in.tmpl", data)
 		return
 	}
 
@@ -174,7 +287,7 @@ func (app *app) userLogInPOST(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, models.ErrInvalidCredentials) {
 			form.AddNonFieldError("Email or password is incorrect")
 			data.Form = form
-			app.render(w, r, http.StatusUnprocessableEntity, "log_in.tmpl", data)
+			app.render(w, r, http.StatusUnprocessableEntity, "user/log_in.tmpl", data)
 		} else {
 			app.serverError(w, r, err)
 		}
@@ -2079,5 +2192,5 @@ func (app *app) statistics(w http.ResponseWriter, r *http.Request) {
 
 	data.DiveStats = stats
 
-	app.render(w, r, http.StatusOK, "statistics.tmpl", data)
+	app.render(w, r, http.StatusOK, "dive/statistics.tmpl", data)
 }

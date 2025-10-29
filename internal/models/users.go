@@ -44,9 +44,23 @@ type UserModelInterface interface {
 		defaultDivingTZ TimeZone,
 		darkMode bool,
 	) error
+
 	Authenticate(email, password string) (int, error)
+
 	Exists(id int) (bool, error)
+
 	GetByID(id int) (User, error)
+
+	Update(
+		userID int,
+		name, email string,
+		divingSince time.Time,
+		diveNumberOffset, defaultDivingCountryID int,
+		defaultDivingTZ TimeZone,
+		darkMode bool,
+	) error
+
+	UpdatePassword(userID int, currentPassword, newPassword string) error
 }
 
 type UserModel struct {
@@ -184,4 +198,116 @@ func (m *UserModel) GetByID(id int) (User, error) {
 	}
 
 	return user, nil
+}
+
+func (m UserModel) UpdatePassword(userID int, currentPassword, newPassword string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	var currentPasswordHashed []byte
+
+	stmt := `select hashed_password from users
+              where id = $1 and suspended = false and deleted = false`
+	err := m.DB.QueryRowContext(ctx, stmt, userID).Scan(&currentPasswordHashed)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrInvalidCredentials
+		} else {
+			return err
+		}
+	}
+
+	err = bcrypt.CompareHashAndPassword(currentPasswordHashed, []byte(currentPassword))
+	if err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return ErrInvalidCredentials
+		} else {
+			return err
+		}
+	}
+
+	newPasswordHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), 12)
+	if err != nil {
+		return err
+	}
+
+	stmt = `
+        update users
+           set version = version + 1, updated_at = now(), hashed_password = $2
+         where id = $1
+    `
+
+	result, err := m.DB.ExecContext(ctx, stmt, userID, newPasswordHash)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil || rowsAffected != 1 {
+		if rowsAffected == 0 {
+			return ErrNoRecord
+		} else if rowsAffected > 1 {
+			return &ErrUnexpectedRowsAffected{rowsExpected: 1, rowsAffected: int(rowsAffected)}
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func (m UserModel) Update(
+	userID int,
+	name, email string,
+	divingSince time.Time,
+	diveNumberOffset, defaultDivingCountryID int,
+	defaultDivingTZ TimeZone,
+	darkMode bool,
+) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	stmt := `
+        update users
+           set version = version + 1, updated_at = now(), name = $2,
+               friendly_name = $2, email = $3, dark_mode = $4,
+               diving_since = $5, dive_number_offset = $6,
+               default_diving_country_id = $7, default_diving_tz = $8
+         where id = $1
+    `
+
+	result, err := m.DB.ExecContext(
+		ctx,
+		stmt,
+		userID,
+		name,
+		email,
+		darkMode,
+		divingSince,
+		diveNumberOffset,
+		defaultDivingCountryID,
+		defaultDivingTZ,
+	)
+
+	if err != nil {
+		switch {
+		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
+			return ErrDuplicateEmail
+		default:
+			return err
+		}
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil || rowsAffected != 1 {
+		if rowsAffected == 0 {
+			return ErrNoRecord
+		} else if rowsAffected > 1 {
+			return &ErrUnexpectedRowsAffected{rowsExpected: 1, rowsAffected: int(rowsAffected)}
+		}
+
+		return err
+	}
+
+	return nil
 }
