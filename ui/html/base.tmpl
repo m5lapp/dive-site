@@ -1,6 +1,10 @@
 {{define "base"}}
   <!doctype html>
-  <html lang="en" data-bs-theme="{{if .DarkMode}}dark{{else}}light{{end}}">
+  {{$theme := "dark"}}
+  {{if and .User.ID (not .User.DarkMode)}}
+    {{$theme = "light"}}
+  {{end}}
+  <html lang="en" data-bs-theme="{{$theme}}">
     <head>
       <!-- The following meta tags *must* come first in the head; any other head
            content must come *after* these tags (apparently).-->
