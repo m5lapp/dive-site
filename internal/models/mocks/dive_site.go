@@ -25,6 +25,8 @@ var thailand = models.Country{
 	Currency:    thaiBaht,
 }
 
+var bangkokTZ, _ = models.NewTimeZone("Asia/Bangkok")
+
 var saltWater = models.WaterType{
 	ID:          1,
 	Name:        "Salt Water",
@@ -49,7 +51,7 @@ var mockDiveSite = models.DiveSite{
 	Location:  "Koh Tao",
 	Region:    "Surat Thani",
 	Country:   thailand,
-	TimeZone:  "Asia/Bangkok",
+	TimeZone:  bangkokTZ,
 	Latitude:  nil,
 	Longitude: nil,
 	WaterBody: sea,
@@ -63,13 +65,13 @@ var mockDiveSite = models.DiveSite{
 type DiveSiteModel struct{}
 
 func (m *DiveSiteModel) Insert(
-	ownerId string,
+	ownerId int,
 	name string,
 	altName string,
 	location string,
 	region string,
 	countryID int,
-	timeZone string,
+	timeZone models.TimeZone,
 	latitude *float64,
 	longitude *float64,
 	waterBodyID int,
@@ -82,7 +84,7 @@ func (m *DiveSiteModel) Insert(
 	return 2, nil
 }
 
-func (m *DiveSiteModel) GetOneByID(id int) (models.DiveSite, error) {
+func (m *DiveSiteModel) GetOneByID(id, userID int) (models.DiveSite, error) {
 	switch id {
 	case 1:
 		return mockDiveSite, nil
@@ -91,6 +93,59 @@ func (m *DiveSiteModel) GetOneByID(id int) (models.DiveSite, error) {
 	}
 }
 
-func (m *DiveSiteModel) List(filters map[string]any) ([]models.DiveSite, error) {
+func (m *DiveSiteModel) List(
+	diverID int,
+	filters models.Pager,
+	sort []models.SortDiveSite,
+) ([]models.DiveSite, models.PageData, error) {
+	pageData := models.PageData{
+		FirstPage:    1,
+		LastPage:     1,
+		CurrentPage:  1,
+		PageSize:     1,
+		TotalRecords: 1,
+	}
+	return []models.DiveSite{mockDiveSite}, pageData, nil
+}
+
+func (m *DiveSiteModel) ListAll(diverID int) ([]models.DiveSite, error) {
 	return []models.DiveSite{mockDiveSite}, nil
+}
+
+func (m *DiveSiteModel) Exists(id int) (bool, error) {
+	switch id {
+	case 1:
+		return true, nil
+	default:
+		return false, nil
+	}
+}
+
+func (m *DiveSiteModel) Update(
+	id int,
+	version int,
+	name string,
+	altName string,
+	location string,
+	region string,
+	countryID int,
+	timeZone models.TimeZone,
+	latitude *float64,
+	longitude *float64,
+	waterBodyID int,
+	waterTypeID int,
+	altitude int,
+	maxDepth *float64,
+	notes string,
+	rating *int,
+) error {
+	if id == 1 {
+		if version == 2 {
+			return models.ErrUpdateConflict
+		}
+
+		return nil
+	}
+
+	return models.ErrNoRecord
 }

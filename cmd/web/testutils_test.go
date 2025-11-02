@@ -24,7 +24,7 @@ var csrfTokenRX = regexp.MustCompile(`<input type="hidden" name="csrf_token" val
 func extractCSRFToken(t *testing.T, body string) string {
 	matches := csrfTokenRX.FindStringSubmatch(body)
 	if len(matches) < 2 {
-		t.Fatal("no csrf token found in body")
+		t.Fatalf("no csrf token found in body: %s", body)
 	}
 
 	return html.UnescapeString(matches[1])

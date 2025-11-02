@@ -277,7 +277,7 @@ func BSNumField[N float32 | float64 | int | uint | int8 | uint8 | int16 | uint16
 	case float32, float64:
 		strValue = strconv.FormatFloat(float64(value), 'f', -1, 64)
 	default:
-		strValue = fmt.Sprintf("%d", value)
+		strValue = fmt.Sprintf("%v", value)
 	}
 
 	return bsNumField(name, dispName, min, max, step, strValue, required, fieldErrs)
@@ -298,7 +298,7 @@ func BSNumFieldPtr[N float32 | float64 | int | uint | int8 | uint8 | int16 | uin
 		case float32, float64:
 			strValue = strconv.FormatFloat(float64(*value), 'f', -1, 64)
 		default:
-			strValue = fmt.Sprintf("%d", *value)
+			strValue = fmt.Sprintf("%v", *value)
 		}
 	}
 
