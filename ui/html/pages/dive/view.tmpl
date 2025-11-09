@@ -23,8 +23,13 @@
 
       <div class="list-group list-group-horizontal">
         <div class="list-group-item list-group-item-action flex-fill">
-          <h4 class="mb-1">Date</h4>
-          <p class="mb-1">{{.Dive.DateTimeIn.Format "2006-01-02"}}</p>
+          <h4 class="mb-1">Date and Time</h4>
+          <p class="mb-1">
+            {{.Dive.DateTimeIn.Format "2006-01-02"}}
+            {{.Dive.DateTimeIn.Format "15:04"}} to
+            {{(.Dive.DateTimeOut).Format "15:04 -07:00"}}
+            {{.Dive.DiveSite.TimeZone}}
+          </p>
         </div>
         <div class="list-group-item list-group-item-action flex-fill">
           <h4 class="mb-1">Rating</h4>
@@ -36,29 +41,14 @@
 
       <div class="list-group list-group-horizontal">
         <div class="list-group-item list-group-item-action flex-fill">
-          <h4 class="mb-1">Time</h4>
-          <p class="mb-1">
-            {{.Dive.DateTimeIn.Format "15:04"}} to
-            {{(.Dive.DateTimeOut).Format "15:04 -07:00"}}
-            {{.Dive.DiveSite.TimeZone}}
-          </p>
+          <h4 class="mb-1">Activity</h4>
+          <p class="mb-1">{{.Dive.Activity}}</p>
         </div>
         <div class="list-group-item list-group-item-action flex-fill">
           <h4 class="mb-1">Surface Interval</h4>
           <p class="mb-1">
             {{with .Dive.SurfaceInterval}}{{durafmtParse .}}{{else}}-{{end}}
           </p>
-        </div>
-      </div>
-
-      <div class="list-group list-group-horizontal">
-        <div class="list-group-item list-group-item-action flex-fill">
-          <h4 class="mb-1">Activity</h4>
-          <p class="mb-1">{{.Dive.Activity}}</p>
-        </div>
-        <div class="list-group-item list-group-item-action flex-fill">
-          <h4 class="mb-1">Bottom Time</h4>
-          <p class="mb-1">{{durafmtParse .Dive.BottomTime}}</p>
         </div>
       </div>
 
@@ -80,6 +70,17 @@
                   target="_blank">map</a>)
             {{end}}
           </p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Bottom Time</h4>
+          <p class="mb-1">{{durafmtParse .Dive.BottomTime}}</p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Entry Point</h4>
+          <p class="mb-1">{{.Dive.EntryPoint.Name}}</p>
         </div>
         <div class="list-group-item list-group-item-action flex-fill">
           <h4 class="mb-1">Depth</h4>
