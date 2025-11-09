@@ -21,6 +21,8 @@
 go.work
 
 # Development configuration files
+.bin/
+.env
 .envrc
 db_migrate/
 tls/
