@@ -32,7 +32,7 @@
           <input {{template "form_field_common_attrs" "password"}}
                  type="password"
                  class="{{template "bootstrap_form_field_class" .Form.FieldErrors.password}}"
-                 minlength="8" maxlength="1024" required>
+                 minlength="8" maxlength="50" required>
           {{with .Form.FieldErrors.password}}
             <div class="invalid-feedback" id="id_password_feedback">{{.}}</div>
           {{end}}

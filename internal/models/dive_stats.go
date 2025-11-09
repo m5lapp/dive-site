@@ -315,7 +315,7 @@ func (m DiveModel) getStatsByDiveSite(
         ds.notes, ds.rating, co.id, co.name, co.iso_number, co.iso2_code,
         co.iso3_code, co.dialing_code, co.capital, cu.id, cu.iso_alpha,
         cu.iso_number, cu.name, cu.exponent, wb.id, wb.name, wb.description,
-        wt.id, wt.name, wt.description, wt.density
+        wt.id, wt.name, wt.description
     `
 
 	stmt := fmt.Sprintf(query, aggregateFields, diveSiteColumns)
@@ -366,7 +366,6 @@ func (m DiveModel) getStatsByDiveSite(
 			&record.DiveSite.WaterType.ID,
 			&record.DiveSite.WaterType.Name,
 			&record.DiveSite.WaterType.Description,
-			&record.DiveSite.WaterType.Density,
 		}
 
 		err := statsFromDBRow(rows, &record.aggregateDiveStats, diveSiteFields...)

@@ -15,7 +15,8 @@ insert into agencies (common_name, full_name, acronym, url) values
     ('PADI', 'Professional Association of Diving Instructors', 'PADI', 'https://www.padi.com/'),
     ('SDI', 'Scuba Diving International', 'SDI', 'https://www.tdisdi.com/sdi/'),
     ('SSI', 'Scuba Schools International', 'SSI', 'https://www.divessi.com/'),
-    ('TDI', 'Technical Diving International', 'TDI', 'https://www.tdisdi.com/tdi/');
+    ('TDI', 'Technical Diving International', 'TDI', 'https://www.tdisdi.com/tdi/'),
+    ('CMAS', 'Confédération Mondiale des Activités Subaquatiques', 'CMAS', 'https://www.cmas.org/');
 
 --------------------------------------------------------------------------------
 

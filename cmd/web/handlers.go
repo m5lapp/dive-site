@@ -45,6 +45,12 @@ func (uf *userProfileForm) Validate(accountIsBeingCreated bool) {
 			"current_password",
 			"This field must be at least 8 characters long",
 		)
+		uf.CheckField(
+			// bcrypt only works with passwords up to 72 bytes long.
+			len(uf.CurrentPassword) <= 50,
+			"current_password",
+			"This field must be no more than 50 bytes long",
+		)
 	}
 
 	if accountIsBeingCreated || passwordIsBeingUpdated {
@@ -53,6 +59,12 @@ func (uf *userProfileForm) Validate(accountIsBeingCreated bool) {
 			validator.MinChars(uf.Password, 8),
 			"password",
 			"This field must be at least 8 characters long",
+		)
+		uf.CheckField(
+			// bcrypt only works with passwords up to 72 bytes long.
+			len(uf.Password) <= 50,
+			"password",
+			"This field must be no more than 50 bytes long",
 		)
 		uf.CheckField(
 			uf.PasswordConfirm == uf.Password,

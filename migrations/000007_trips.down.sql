@@ -1,6 +1,6 @@
-drop index if exists course_owner_id_idx;
+drop index if exists certifications_owner_id_idx;
 
-drop table if exists courses;
+drop table if exists certifications;
 
 --------------------------------------------------------------------------------
 

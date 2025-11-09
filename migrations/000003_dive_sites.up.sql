@@ -26,8 +26,8 @@ insert into water_bodies (sort, is_default, name, description) values
     (30, false, 'Lake', 'A relatively large body of water contained on a body of land'),
     (40, false, 'Ocean', 'An immense, continuous expanse of salt water with continents acting as islands within it'),
     (50, false, 'River', 'A natural waterway that flows from higher ground to lower ground'),
-    (40, false, 'Sea', 'A large body of saltwater that partially borders a landmass'),
-    (60, false, 'Quarry', 'A dive in an old quarry');
+    (60, false, 'Sea', 'A large body of saltwater that partially borders a landmass'),
+    (70, false, 'Quarry', 'A dive in an old quarry');
 
 --------------------------------------------------------------------------------
 

@@ -58,6 +58,12 @@ gen-cert:
 db/connect:
 	psql ${DIVESITE_DB_DSN}
 
+## db/run: Run SQL command=$1 against the database.
+.PHONY: db/run command=$1
+db/run:
+	psql ${DIVESITE_DB_DSN} \
+		-c "${command}"
+
 ## db/start/integration: start a local database for running integration tests
 .PHONY: db/start/integration
 db/start/integration:
@@ -101,6 +107,14 @@ db/migrations/down: confirm
 		--path ./migrations/ \
 		--database ${DIVESITE_DB_DSN}?sslmode=disable \
 		down ${n}
+
+## db/migrations/clean: Set the migration status to clean for retrying.
+.PHONY: db/migrations/clean
+db/migrations/clean:
+	@echo "Setting the migration status to clean..."
+	@# For some reason, migrate requires sslmode=disable in the DSN string.
+	psql ${DIVESITE_DB_DSN} \
+		-c 'update schema_migrations set dirty = false returning *;'
 
 # ============================================================================ #
 # QUALITY CONTROL

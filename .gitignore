@@ -22,5 +22,6 @@ go.work
 
 # Development configuration files
 .envrc
+db_migrate/
 tls/
 

@@ -12,7 +12,6 @@ type WaterType struct {
 	ID          int
 	Name        string
 	Description string
-	Density     float64
 }
 
 type WaterBody struct {
@@ -119,7 +118,7 @@ var diveSiteSelectQuery string = `
            ds.notes, ds.rating, co.id, co.name, co.iso_number, co.iso2_code,
            co.iso3_code, co.dialing_code, co.capital, cu.id, cu.iso_alpha,
            cu.iso_number, cu.name, cu.exponent, wb.id, wb.name, wb.description,
-           wt.id, wt.name, wt.description, wt.density
+           wt.id, wt.name, wt.description
       from dive_sites ds
  left join dive_site_dive_stats st on ds.id = st.dive_site_id
  left join countries    co on ds.country_id = co.id
@@ -168,7 +167,6 @@ func diveSiteFromDBRow(rs RowScanner, totalRecords *int, ds *DiveSite) error {
 		&ds.WaterType.ID,
 		&ds.WaterType.Name,
 		&ds.WaterType.Description,
-		&ds.WaterType.Density,
 	)
 }
 
@@ -475,7 +473,7 @@ type WaterTypeModelInterface interface {
 // successive requests can bypass the database call.
 var waterTypeList []WaterType
 var waterTypeListQuery string = `
-    select id, name, description, density
+    select id, name, description
       from water_types
   order by name
 `
@@ -498,7 +496,7 @@ func (m *WaterTypeModel) List() ([]WaterType, error) {
 	var waterTypes []WaterType
 	for rows.Next() {
 		var waterType WaterType
-		err := rows.Scan(&waterType.ID, &waterType.Name, &waterType.Description, &waterType.Density)
+		err := rows.Scan(&waterType.ID, &waterType.Name, &waterType.Description)
 		if err != nil {
 			return nil, err
 		}

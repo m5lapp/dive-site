@@ -265,8 +265,8 @@ var diveSelectQuery string = `
            ds.notes, ds.rating, dsco.id, dsco.name, dsco.iso_number,
            dsco.iso2_code, dsco.iso3_code, dsco.dialing_code, dsco.capital,
            dscu.id, dscu.iso_alpha, dscu.iso_number, dscu.name, dscu.exponent,
-           wb.id, wb.name, wb.description, wt.id, wt.name, wt.description,
-           wt.density,
+           wb.id, wb.name, wb.description,
+           wt.id, wt.name, wt.description,
            op.id, op.created_at, op.updated_at, op.owner_id,
            coalesce(opds.dives, 0), opds.first_dive, opds.last_dive,
            opot.id, opot.name, opot.description,
@@ -461,7 +461,6 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 		&dv.DiveSite.WaterType.ID,
 		&dv.DiveSite.WaterType.Name,
 		&dv.DiveSite.WaterType.Description,
-		&dv.DiveSite.WaterType.Density,
 
 		// Operator.
 		&op.ID,

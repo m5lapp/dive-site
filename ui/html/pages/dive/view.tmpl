@@ -46,7 +46,7 @@
         <div class="list-group-item list-group-item-action flex-fill">
           <h4 class="mb-1">Surface Interval</h4>
           <p class="mb-1">
-            {{with .Dive.SurfaceInterval}}{{.String}}{{else}}-{{end}}
+            {{with .Dive.SurfaceInterval}}{{durafmtParse .}}{{else}}-{{end}}
           </p>
         </div>
       </div>
@@ -58,7 +58,7 @@
         </div>
         <div class="list-group-item list-group-item-action flex-fill">
           <h4 class="mb-1">Bottom Time</h4>
-          <p class="mb-1">{{.Dive.BottomTime.Minutes}} minutes</p>
+          <p class="mb-1">{{durafmtParse .Dive.BottomTime}}</p>
         </div>
       </div>
 
@@ -67,8 +67,12 @@
           <h4 class="mb-1">Dive Site</h4>
           <p class="mb-1">
             <a href="/log-book/dive-site/view/{{.Dive.DiveSite.ID}}">
-              {{.Dive.DiveSite.Name}}
-            </a>
+              {{.Dive.DiveSite.Name -}}
+            </a>,
+            {{- with .Dive.DiveSite.AltName}} ({{.}}),{{end}}
+            {{- with .Dive.DiveSite.Location}} {{.}},{{end}}
+            {{.Dive.DiveSite.Region}},
+            {{.Dive.DiveSite.Country.Name}}
             {{if and .Dive.DiveSite.Latitude .Dive.DiveSite.Longitude}}
               (<a href="http://www.google.com/maps/place/
                   {{- printf "%f" (derefF64 .Dive.DiveSite.Latitude 0.0)}},
@@ -104,7 +108,7 @@
         <div class="list-group-item list-group-item-action flex-fill">
           <h4 class="mb-1">Safety Stop</h4>
           <p class="mb-1">
-            {{with .Dive.SafetyStop}}{{.Minutes}} minutes{{else}}-{{end}}
+            {{with .Dive.SafetyStop}}{{durafmtParse .}}{{else}}-{{end}}
           </p>
         </div>
       </div>
@@ -247,7 +251,7 @@
         <div class="list-group-item list-group-item-action flex-fill">
           <h4 class="mb-1">Tank Pressure</h4>
           <p class="mb-1">
-            {{with .Dive.PressureIn}}{{.}} bar (start){{end}}
+            {{with .Dive.PressureIn}}{{.}} bar (start){{else}}-{{end}}
             {{if and .Dive.PressureIn .Dive.PressureOut}} to {{end}}
             {{with .Dive.PressureOut}}{{.}} bar (finish){{end}}
           </p>
@@ -275,37 +279,36 @@
       </div>
     </div>
 
-    <div class="row mt-5">
-      <h2>Properties</h2>
+    {{with .Dive.Properties}}
+      <div class="row mt-5">
+        <h2>Properties</h2>
 
-      <div class="list-group list-group-horizontal">
-        <div class="list-group-item list-group-item-action flex-fill">
-          <p class="mb-1">
-            {{with .Dive.Properties}}
+        <div class="list-group list-group-horizontal">
+          <div class="list-group-item list-group-item-action flex-fill">
+            <p class="mb-1">
               <ul>
-                {{range .}}
-                  <li>{{.Name}}</li>
-                {{end}}
+                {{range .}}<li>{{.Name}}</li>{{end}}
               </ul>
-            {{else}}
-              -
-            {{end}}
-          </p>
-        </div>
-    </div>
-
-    <div class="row mt-5">
-      <h2>Notes</h2>
-
-      <div class="list-group list-group-horizontal">
-        <div class="list-group-item list-group-item-action flex-fill">
-          <div class="mb-1 blockquote">
-            {{with .Dive.Notes}}{{textToHTMLParas .}}{{else}}-{{end}}
+            </p>
           </div>
         </div>
       </div>
-    </div>
-    </div>
+    {{end}}
+
+    {{with .Dive.Notes}}
+      <div class="row mt-5">
+        <h2>Notes</h2>
+
+        <div class="list-group list-group-horizontal">
+          <div class="list-group-item list-group-item-action flex-fill">
+            <div class="mb-1 blockquote">
+              {{textToHTMLParas .}}
+            </div>
+          </div>
+        </div>
+      </div>
+    {{end}}
+
   </section>
 {{end}}
 

@@ -6,7 +6,7 @@ create table if not exists operator_types (
     description varchar(256) not null
 );
 
-insert into operator_types (sort, is_default name, description) values
+insert into operator_types (sort, is_default, name, description) values
     (10, false, 'Dive Club', 'An organised dive club'),
     (20, false, 'Dive School', 'A dive school that teaches courses'),
     (30, false, 'Dive Shop', 'A dive equipment shop that also runs diving activities'),

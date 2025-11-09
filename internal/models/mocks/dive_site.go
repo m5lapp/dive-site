@@ -31,7 +31,6 @@ var saltWater = models.WaterType{
 	ID:          1,
 	Name:        "Salt Water",
 	Description: "Salt water",
-	Density:     1.03,
 }
 
 var sea = models.WaterBody{
