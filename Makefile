@@ -1,4 +1,5 @@
-include .envrc
+# The dash here ignores any errors if the included file does not exist.
+-include .env
 
 # ============================================================================ #
 # HELPERS
@@ -37,6 +38,16 @@ run:
 		--addr ":8080" \
 		--db-dsn ${DIVESITE_DB_DSN} \
 		--debug=true
+
+## run/tls: Run the cmd/web application using TLS
+.PHONY: run/tls
+run/tls:
+	go run ./cmd/web/ \
+		--addr ":8080" \
+		--db-dsn ${DIVESITE_DB_DSN} \
+		--debug=true \
+		--tls-cert ./tls/cert.pem \
+		--tls-key ./tls/key.pem
 
 ## gen-cert: Generate a TLS certificate and key for testing on localhost
 .PHONY: gen-cert

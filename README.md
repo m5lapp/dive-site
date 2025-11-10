@@ -12,13 +12,13 @@ It was mainly created as a learning exercise and if you are looking for an open-
 
 ```bash
 # Create a local environment file to store your database credentials.
-cat > .envrc << EOF
+cat > .env << EOF
     # %25 in the password here represents the percent sign itself, %40 represents the
     # @ character.
     export DIVESITE_DB_DSN='postgres://USERNAME:PASSWORD@HOST/SERVICE'
 EOF
 
-source .envrc
+source .env
 
 # Run the database migrations to set up the required structure.
 make db/migrations/up

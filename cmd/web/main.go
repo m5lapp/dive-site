@@ -68,20 +68,33 @@ func main() {
 	addr := flag.String("addr", ":8080", "HTTP network address")
 	debug := flag.Bool("debug", false, "Turn on debug mode")
 	dsn := flag.String("db-dsn", "", "PostgreSQL data source name")
+	tlsCert := flag.String("tls-cert", "", "TLS cert file path if TLS is required")
+	tlsKey := flag.String("tls-key", "", "TLS key file path if TLS is required")
 	flag.Parse()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
 
+	if (*tlsCert == "" && *tlsKey != "") || (*tlsCert != "" && *tlsKey == "") {
+		logger.Error(
+			"The --tls-cert and --tls-key flags are mutually inclusive and must both be provided to use TLS",
+			"--tls-cert",
+			*tlsCert,
+			"--tls-key",
+			*tlsKey,
+		)
+		os.Exit(1)
+	}
+
 	templateCache, err := newTemplateCache()
 	if err != nil {
 		logger.Error(err.Error())
-		os.Exit(1)
+		os.Exit(2)
 	}
 
 	db, err := openDB(*dsn)
 	if err != nil {
 		logger.Error(err.Error())
-		os.Exit(2)
+		os.Exit(3)
 	}
 	defer db.Close()
 
@@ -129,7 +142,7 @@ func main() {
 	dm, err := models.NewDiveModel(db, app.equipment, app.diveProperties)
 	if err != nil {
 		app.log.Error("Could not instantiate DiveModel: " + err.Error())
-		os.Exit(3)
+		os.Exit(4)
 	}
 	app.dives = dm
 
@@ -148,7 +161,14 @@ func main() {
 	}
 
 	app.log.Info("Starting server", "addr", *addr)
-	err = srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem")
+
+	if *tlsCert != "" && *tlsKey != "" {
+		err = srv.ListenAndServeTLS(*tlsCert, *tlsKey)
+	} else {
+		logger.Warn("No TLS cert and key was provided, insecure HTTP will be used")
+		err = srv.ListenAndServe()
+	}
+
 	app.log.Error(err.Error())
-	os.Exit(4)
+	os.Exit(5)
 }
