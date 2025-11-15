@@ -52,6 +52,6 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         # These two values save and reuse the Github Action cache for each run.
-        cache-to: type=gha,mode-max
+        cache-to: type=gha,mode=max
         cache-from: type=gha
 
