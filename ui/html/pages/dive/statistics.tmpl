@@ -32,7 +32,8 @@
         <div class="list-group-item list-group-item-action flex-fill">
           <h4 class="mb-1">Bottom Time</h4>
             {{durafmtParse .DiveStats.BottomTime.Max}} (maximum), 
-            {{durafmtParse .DiveStats.BottomTime.Avg}} (average) 
+            {{durafmtParse (.DiveStats.BottomTime.Avg.Truncate 1000000000)}}
+            (average) 
           <p class="mb-1">
           </p>
         </div>
@@ -64,7 +65,7 @@
               <th scope="row">{{.Month.Format "January 2006"}}</td>
               <td>{{.Dives}}</td>
               <td>{{printf "%.1f" .MaxDiveDepth.Avg}} m</td>
-              <td>{{durafmtParse .BottomTime.Avg}}</td>
+              <td>{{durafmtParse (.BottomTime.Avg.Truncate 1000000000)}}</td>
               <td>{{durafmtParse .BottomTime.Sum}}</td>
             </tr>
           {{end}}
