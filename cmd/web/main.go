@@ -1,12 +1,10 @@
 package main
 
 import (
-	"crypto/tls"
 	"database/sql"
 	"flag"
 	"html/template"
 	"log/slog"
-	"net/http"
 	"os"
 	"time"
 
@@ -18,12 +16,44 @@ import (
 	_ "github.com/lib/pq"
 )
 
+type config struct {
+	addr       string
+	debug      bool
+	dsn        string
+	termPeriod time.Duration
+	tlsCert    string
+	tlsKey     string
+}
+
+func (c config) validate(logger *slog.Logger) {
+	if c.termPeriod < 1*time.Second || c.termPeriod > 300*time.Second {
+		logger.Error(
+			"The termination shutdown grace period must be between 1 and 300 seconds",
+			"--term-period",
+			c.termPeriod.String(),
+		)
+		os.Exit(1)
+	}
+
+	if (c.tlsCert == "" && c.tlsKey != "") || (c.tlsCert != "" && c.tlsKey == "") {
+		logger.Error(
+			"The --tls-cert and --tls-key flags are mutually inclusive and must both be provided to use TLS",
+			"--tls-cert",
+			c.tlsCert,
+			"--tls-key",
+			c.tlsKey,
+		)
+		os.Exit(1)
+	}
+}
+
 type app struct {
 	agencies           models.AgencyModelInterface
 	agencyCourses      models.AgencyCourseModelInterface
 	buddies            models.BuddyModelInterface
 	buddyRoles         models.BuddyRoleModelInterface
 	certifications     models.CertificationModelInterface
+	config             config
 	countries          models.CountryModelInterface
 	currencies         models.CurrencyModelInterface
 	currents           models.CurrentModelInterface
@@ -65,25 +95,18 @@ func openDB(dsn string) (*sql.DB, error) {
 }
 
 func main() {
-	addr := flag.String("addr", ":8080", "HTTP network address")
-	debug := flag.Bool("debug", false, "Turn on debug mode")
-	dsn := flag.String("db-dsn", "", "PostgreSQL data source name")
-	tlsCert := flag.String("tls-cert", "", "TLS cert file path if TLS is required")
-	tlsKey := flag.String("tls-key", "", "TLS key file path if TLS is required")
+	var cfg config
+	flag.StringVar(&cfg.addr, "addr", ":8080", "HTTP network address")
+	flag.BoolVar(&cfg.debug, "debug", false, "Turn on debug mode")
+	flag.StringVar(&cfg.dsn, "db-dsn", "", "PostgreSQL data source name")
+	flag.DurationVar(&cfg.termPeriod, "term-period", 30*time.Second, "Termination grace period")
+	flag.StringVar(&cfg.tlsCert, "tls-cert", "", "TLS cert file path if TLS is required")
+	flag.StringVar(&cfg.tlsKey, "tls-key", "", "TLS key file path if TLS is required")
 	flag.Parse()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
 
-	if (*tlsCert == "" && *tlsKey != "") || (*tlsCert != "" && *tlsKey == "") {
-		logger.Error(
-			"The --tls-cert and --tls-key flags are mutually inclusive and must both be provided to use TLS",
-			"--tls-cert",
-			*tlsCert,
-			"--tls-key",
-			*tlsKey,
-		)
-		os.Exit(1)
-	}
+	cfg.validate(logger)
 
 	templateCache, err := newTemplateCache()
 	if err != nil {
@@ -91,7 +114,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	db, err := openDB(*dsn)
+	db, err := openDB(cfg.dsn)
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(3)
@@ -110,7 +133,7 @@ func main() {
 	sessionManager.Cookie.Secure = true
 
 	app := app{
-		debug:              *debug,
+		config:             cfg,
 		log:                logger,
 		templateCache:      templateCache,
 		agencies:           &models.AgencyModel{DB: db},
@@ -146,29 +169,10 @@ func main() {
 	}
 	app.dives = dm
 
-	tlsConfig := &tls.Config{
-		CurvePreferences: []tls.CurveID{tls.CurveP256, tls.X25519},
+	err = app.serve()
+
+	if err != nil {
+		app.log.Error(err.Error())
+		os.Exit(5)
 	}
-
-	srv := &http.Server{
-		Addr:         *addr,
-		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
-		Handler:      app.routes(),
-		IdleTimeout:  1 * time.Minute,
-		ReadTimeout:  5 * time.Second,
-		TLSConfig:    tlsConfig,
-		WriteTimeout: 10 * time.Second,
-	}
-
-	app.log.Info("Starting server", "addr", *addr)
-
-	if *tlsCert != "" && *tlsKey != "" {
-		err = srv.ListenAndServeTLS(*tlsCert, *tlsKey)
-	} else {
-		logger.Warn("No TLS cert and key was provided, insecure HTTP will be used")
-		err = srv.ListenAndServe()
-	}
-
-	app.log.Error(err.Error())
-	os.Exit(5)
 }
