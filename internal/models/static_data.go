@@ -4,21 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"reflect"
 	"time"
-
-	"github.com/lib/pq"
 )
-
-type staticDataInterface interface {
-	getValuesFromDBRow(
-		rs RowScanner,
-	) (id, sort int, isDefault bool, name, description string, err error)
-
-	id() int
-
-	tableName() string
-}
 
 type staticDataItem struct {
 	ID          int
@@ -32,21 +19,71 @@ func (sd staticDataItem) String() string {
 	return fmt.Sprintf("%s - %s", sd.Name, sd.Description)
 }
 
-func (sd staticDataItem) id() int {
-	return sd.ID
-}
+type staticDataItemTable string
 
-func (sd staticDataItem) getValuesFromDBRow(
-	rs RowScanner,
-) (id, sort int, isDefault bool, name, description string, err error) {
-	item := &staticDataItem{}
+var staticDataItemsCache map[staticDataItemTable][]staticDataItem = make(
+	map[staticDataItemTable][]staticDataItem,
+)
 
-	err = rs.Scan(&item.ID, &item.Sort, &item.IsDefault, &item.Name, &item.Description)
-	if err != nil {
-		return 0, 0, false, "", "", err
+var staticDataItemSelectQuery string = `
+    select si.id, si.sort, si.is_default, si.name, si.description
+      from %s si
+  order by si.%s
+`
+
+func listStaticDataItems(
+	db *sql.DB,
+	table staticDataItemTable,
+	sortByName bool,
+) ([]staticDataItem, error) {
+	// If the list of static data items has already been populated, then use it.
+	// Otherwise, we don't really care and will try to load the values from the
+	// database.
+	data, ok := staticDataItemsCache[table]
+	if ok && len(data) >= 0 {
+		return data, nil
 	}
 
-	return item.ID, item.Sort, item.IsDefault, item.Name, item.Description, err
+	sortColumn := "sort"
+	if sortByName {
+		sortColumn = "name"
+	}
+	stmt := fmt.Sprintf(staticDataItemSelectQuery, table, sortColumn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	rows, err := db.QueryContext(ctx, stmt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var records []staticDataItem
+	for rows.Next() {
+		var record staticDataItem
+		err = rows.Scan(
+			&record.ID,
+			&record.Sort,
+			&record.IsDefault,
+			&record.Name,
+			&record.Description,
+		)
+		if err != nil {
+			return nil, err
+		}
+		records = append(records, record)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the response for faster future calls.
+	staticDataItemsCache[table] = records
+
+	return records, nil
 }
 
 type nullableStaticDataItem struct {
@@ -57,299 +94,46 @@ type nullableStaticDataItem struct {
 	Description *string
 }
 
-func nullableStaticDataItemToStruct[T staticDataInterface](ns nullableStaticDataItem) (*T, error) {
+func (ns nullableStaticDataItem) ToStruct() *staticDataItem {
 	if ns.ID == nil {
-		return nil, nil
+		return nil
 	}
 
-	// Check none of the values are null, use the zero value if they are.
-	if ns.Sort == nil {
-		*ns.Sort = 0
+	return &staticDataItem{
+		ID:          *ns.ID,
+		Sort:        *ns.Sort,
+		IsDefault:   *ns.IsDefault,
+		Name:        *ns.Name,
+		Description: *ns.Description,
 	}
-	if ns.IsDefault == nil {
-		*ns.IsDefault = false
-	}
-	if ns.Name == nil {
-		*ns.Name = ""
-	}
-	if ns.Description == nil {
-		*ns.Description = ""
-	}
-
-	// We use reflect here to check for and set the various fields of the
-	// static data item. This isn't ideal, but was the only way to get this
-	// working when using a value receiver.
-	var item T
-	recordPtr := &item
-	v := reflect.ValueOf(recordPtr).Elem()
-	if v.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("expected struct, but got a %d (%v)", v.Kind(), item)
-	}
-
-	idField := v.FieldByName("ID")
-	sortField := v.FieldByName("Sort")
-	isDefaultField := v.FieldByName("IsDefault")
-	nameField := v.FieldByName("Name")
-	descriptionField := v.FieldByName("Description")
-
-	if !idField.IsValid() || !sortField.IsValid() || !isDefaultField.IsValid() ||
-		!nameField.IsValid() || !descriptionField.IsValid() {
-		msg := "%T struct does not have requisite fields ID, Sort, IsDefault, Name, Description"
-		return nil, fmt.Errorf(msg, item)
-	}
-
-	if !idField.CanSet() || !sortField.CanSet() || !isDefaultField.CanSet() ||
-		!nameField.CanSet() || !descriptionField.CanSet() {
-		msg := "field(s) in struct %T are not settable"
-		return nil, fmt.Errorf(msg, item)
-	}
-
-	if idField.Kind() != reflect.Int ||
-		sortField.Kind() != reflect.Int ||
-		isDefaultField.Kind() != reflect.Bool ||
-		nameField.Kind() != reflect.String ||
-		descriptionField.Kind() != reflect.String {
-		msg := "field(s) in struct %T are not of required types"
-		return nil, fmt.Errorf(msg, item)
-	}
-
-	idField.SetInt(int64(*ns.ID))
-	sortField.SetInt(int64(*ns.Sort))
-	isDefaultField.SetBool(*ns.IsDefault)
-	nameField.SetString(*ns.Name)
-	descriptionField.SetString(*ns.Description)
-
-	return &item, nil
 }
 
-type StaticDataService[T staticDataInterface] struct {
-	DB *sql.DB
+func (ns nullableStaticDataItem) ToCurrent() *Current {
+	sdi := ns.ToStruct()
+
+	if sdi == nil {
+		return nil
+	}
+
+	return &Current{
+		staticDataItem: *sdi,
+	}
 }
 
-func NewStaticDataService[T staticDataInterface](db *sql.DB) *StaticDataService[T] {
-	return &StaticDataService[T]{DB: db}
+func (ns nullableStaticDataItem) ToWaves() *Waves {
+	sdi := ns.ToStruct()
+
+	if sdi == nil {
+		return nil
+	}
+
+	return &Waves{
+		staticDataItem: *sdi,
+	}
 }
-
-// staticData is a map which stores a cached slice of each of the static data
-// types using the static data's table as the key. This allows successive
-// requests to bypass the database call.
-var staticData map[string][]staticDataInterface = make(map[string][]staticDataInterface)
-
-func getCachedStaticData[T staticDataInterface]() ([]T, error) {
-	// We need this to be able to get the tableName value for the type T.
-	var tempT T
-	tableName := tempT.tableName()
-
-	data, ok := staticData[tableName]
-	if !ok {
-		return nil, fmt.Errorf("could not find key %s in map", tableName)
-	}
-
-	if len(data) == 0 {
-		return []T{}, nil
-	}
-
-	// Do a quick sanity check to ensure that the first element of the list is
-	// of type T. As this is an internal cache, it should be, but it's good to
-	// check.
-	expectedType := reflect.TypeOf((*T)(nil)).Elem()
-	firstElementType := reflect.TypeOf(data[0])
-	if firstElementType != expectedType {
-		return nil, fmt.Errorf(
-			"unexpected type mismatch, expected %v, but got %v for key %s",
-			expectedType,
-			firstElementType,
-			tableName,
-		)
-	}
-
-	// If everything seems OK, then we need to cast each item in data to the
-	//concrete type T before we can return it.
-	typedData := make([]T, len(data))
-	for i, v := range data {
-		typedData[i] = v.(T)
-	}
-	return typedData, nil
-}
-
-var staticDataItemSelectQuery string = `
-    select si.id, si.sort, si.is_default, si.name, si.description
-      from %s si
-  order by %s
-`
-
-// As staticDataItems are cached locally, it's likely more efficient to fetch
-// the list ourselves and search for the given ID manually than to query the
-// database directly.
-func (m *StaticDataService[T]) Exists(id int) (bool, error) {
-	items, err := m.List(false)
-	if err != nil {
-		msg := "failed to check if %T with id %d exists: %w"
-		return false, fmt.Errorf(msg, *new(T), id, err)
-	}
-
-	for _, item := range items {
-		if item.id() == id {
-			return true, nil
-		}
-	}
-
-	return false, nil
-}
-
-// AllExist checks that a record exists in the database for every ID in the
-// given slice of `ids`.
-func (m *StaticDataService[T]) AllExist(ids []int) (bool, error) {
-	if len(ids) == 0 {
-		return true, nil
-	}
-
-	// We need this to be able to get the tableName value for the type T.
-	var tempT T
-	tableName := tempT.tableName()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	stmt := `
-        select count(id) = $1 as all_exist
-          from ` + tableName + `
-         where id = any($2)
-    `
-
-	var allExist bool
-	err := m.DB.QueryRowContext(ctx, stmt, len(ids), pq.Array(ids)).Scan(&allExist)
-	if err != nil {
-		msg := "failed to scan result of all ids (%v) exist check in %s: %w"
-		return false, fmt.Errorf(msg, ids, tableName, err)
-	}
-
-	return allExist, nil
-}
-
-func (m *StaticDataService[T]) GetOneByID(id int) (T, error) {
-	var emptyT T
-
-	items, err := m.List(false)
-	if err != nil {
-		msg := "failed to fetch %T with id %d: %w"
-		return emptyT, fmt.Errorf(msg, emptyT, id, err)
-	}
-
-	for _, item := range items {
-		if item.id() == id {
-			return item, nil
-		}
-	}
-
-	return emptyT, ErrNoRecord
-}
-
-func (m *StaticDataService[T]) List(sortByName bool) ([]T, error) {
-	// We need this to be able to get the tableName value for the type T.
-	var tempT T
-	tableName := tempT.tableName()
-
-	// If the list of static data items has already been populated, then use it.
-	// Otherwise, if there was an error, we don't really care and will try to
-	// load the values from the database.
-	data, err := getCachedStaticData[T]()
-	if err == nil && len(data) >= 0 {
-		return data, nil
-	}
-
-	sortColumn := "sort"
-	if sortByName {
-		sortColumn = "name"
-	}
-
-	stmt := fmt.Sprintf(staticDataItemSelectQuery, tableName, sortColumn)
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
-	rows, err := m.DB.QueryContext(ctx, stmt)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch static data from %s: %w", tableName, err)
-	}
-	defer rows.Close()
-
-	records := []T{}
-	for rows.Next() {
-		var record T
-		id, sort, isDefault, name, description, err := record.getValuesFromDBRow(rows)
-		if err != nil {
-			return nil, fmt.Errorf(
-				"failed to scan static data row from table %s: %w",
-				tableName,
-				err,
-			)
-		}
-
-		// We use reflect here to check for and set the various fields of the
-		// static data item. This isn't ideal, but was the only way to get this
-		// working when using a value receiver.
-		recordPtr := &record
-		v := reflect.ValueOf(recordPtr).Elem()
-		if v.Kind() != reflect.Struct {
-			return nil, fmt.Errorf("expected struct, but got a %d (%v)", v.Kind(), record)
-		}
-
-		idField := v.FieldByName("ID")
-		sortField := v.FieldByName("Sort")
-		isDefaultField := v.FieldByName("IsDefault")
-		nameField := v.FieldByName("Name")
-		descriptionField := v.FieldByName("Description")
-
-		if !idField.IsValid() || !sortField.IsValid() || !isDefaultField.IsValid() ||
-			!nameField.IsValid() || !descriptionField.IsValid() {
-			msg := "%T struct does not have requisite fields ID, Sort, IsDefault, Name, Description"
-			return nil, fmt.Errorf(msg, record)
-		}
-
-		if !idField.CanSet() || !sortField.CanSet() || !isDefaultField.CanSet() ||
-			!nameField.CanSet() || !descriptionField.CanSet() {
-			msg := "field(s) in struct %T are not settable"
-			return nil, fmt.Errorf(msg, record)
-		}
-
-		if idField.Kind() != reflect.Int ||
-			sortField.Kind() != reflect.Int ||
-			isDefaultField.Kind() != reflect.Bool ||
-			nameField.Kind() != reflect.String ||
-			descriptionField.Kind() != reflect.String {
-			msg := "field(s) in struct %T are not of required types"
-			return nil, fmt.Errorf(msg, record)
-		}
-
-		idField.SetInt(int64(id))
-		sortField.SetInt(int64(sort))
-		isDefaultField.SetBool(isDefault)
-		nameField.SetString(name)
-		descriptionField.SetString(description)
-
-		records = append(records, record)
-	}
-
-	err = rows.Err()
-	if err != nil {
-		return nil, err
-	}
-
-	// Cache the response for faster future calls. We need to convert the []T
-	// to a []staticDataInterface first though, even though T implements the
-	// interface.
-	interfaceData := make([]staticDataInterface, len(records))
-	for i, v := range records {
-		interfaceData[i] = v
-	}
-	staticData[tableName] = interfaceData
-
-	return records, nil
-}
-
-// Here we create our static data structs for the different types of data and
-// embed the staticDataItem base struct into them.
 
 // Current.
+
 type CurrentModelInterface interface {
 	Exists(id int) (bool, error)
 	List(sortByName bool) ([]Current, error)
@@ -359,11 +143,33 @@ type Current struct {
 	staticDataItem
 }
 
-func (_ Current) tableName() string {
-	return "currents"
+type CurrentModel struct {
+	DB *sql.DB
+}
+
+const currentTable staticDataItemTable = "currents"
+
+func (m *CurrentModel) Exists(id int) (bool, error) {
+	return idExistsInTable(m.DB, id, string(currentTable), "id")
+}
+
+func (m *CurrentModel) List(sortByName bool) ([]Current, error) {
+	staticDataItems, err := listStaticDataItems(m.DB, currentTable, sortByName)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to list items from table %s: %w", currentTable, err)
+	}
+
+	var items []Current
+	for _, item := range staticDataItems {
+		items = append(items, Current{staticDataItem: item})
+	}
+
+	return items, nil
 }
 
 // Entry point.
+
 type EntryPointModelInterface interface {
 	Exists(id int) (bool, error)
 	List(sortByName bool) ([]EntryPoint, error)
@@ -373,11 +179,33 @@ type EntryPoint struct {
 	staticDataItem
 }
 
-func (_ EntryPoint) tableName() string {
-	return "entry_points"
+type EntryPointModel struct {
+	DB *sql.DB
 }
 
-// Gas mix.
+const entrypointTable staticDataItemTable = "entry_points"
+
+func (m *EntryPointModel) Exists(id int) (bool, error) {
+	return idExistsInTable(m.DB, id, string(entrypointTable), "id")
+}
+
+func (m *EntryPointModel) List(sortByName bool) ([]EntryPoint, error) {
+	staticDataItems, err := listStaticDataItems(m.DB, entrypointTable, sortByName)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to list items from table %s: %w", entrypointTable, err)
+	}
+
+	var items []EntryPoint
+	for _, item := range staticDataItems {
+		items = append(items, EntryPoint{staticDataItem: item})
+	}
+
+	return items, nil
+}
+
+// Gas Mix.
+
 type GasMixModelInterface interface {
 	Exists(id int) (bool, error)
 	GetOneByID(id int) (GasMix, error)
@@ -388,11 +216,51 @@ type GasMix struct {
 	staticDataItem
 }
 
-func (_ GasMix) tableName() string {
-	return "gas_mixes"
+type GasMixModel struct {
+	DB *sql.DB
 }
 
-// Tank configuration.
+const gasMixTable staticDataItemTable = "gas_mixes"
+
+func (m *GasMixModel) Exists(id int) (bool, error) {
+	return idExistsInTable(m.DB, id, string(entrypointTable), "id")
+}
+
+func (m *GasMixModel) GetOneByID(id int) (GasMix, error) {
+	// As staticDataItems are cached, we may as well get the cached list and
+	// search for the gas mix with the ID there rather than making a DB call.
+	items, err := m.List(false)
+	if err != nil {
+		msg := "failed to fetch gas mix with id %d: %w"
+		return GasMix{}, fmt.Errorf(msg, id, err)
+	}
+
+	for _, item := range items {
+		if item.ID == id {
+			return item, nil
+		}
+	}
+
+	return GasMix{}, ErrNoRecord
+}
+
+func (m *GasMixModel) List(sortByName bool) ([]GasMix, error) {
+	staticDataItems, err := listStaticDataItems(m.DB, gasMixTable, sortByName)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to list items from table %s: %w", gasMixTable, err)
+	}
+
+	var items []GasMix
+	for _, item := range staticDataItems {
+		items = append(items, GasMix{staticDataItem: item})
+	}
+
+	return items, nil
+}
+
+// Tank Configuration,
+
 type TankConfigurationModelInterface interface {
 	Exists(id int) (bool, error)
 	List(sortByName bool) ([]TankConfiguration, error)
@@ -400,13 +268,68 @@ type TankConfigurationModelInterface interface {
 
 type TankConfiguration struct {
 	staticDataItem
+	TankCount int
 }
 
-func (_ TankConfiguration) tableName() string {
-	return "tank_configurations"
+type TankConfigurationModel struct {
+	DB *sql.DB
 }
 
-// Tank material.
+const tankConfigurationTable staticDataItemTable = "tank_configurations"
+
+func (m *TankConfigurationModel) Exists(id int) (bool, error) {
+	return idExistsInTable(m.DB, id, string(tankConfigurationTable), "id")
+}
+
+func (m *TankConfigurationModel) List(sortByName bool) ([]TankConfiguration, error) {
+	sortColumn := "sort"
+	if sortByName {
+		sortColumn = "name"
+	}
+	stmt := `
+    select si.id, si.sort, si.is_default, si.name, si.description, si.tank_count
+      from %s si
+  order by si.%s
+`
+	stmt = fmt.Sprintf(stmt, tankConfigurationTable, sortColumn)
+
+	errMsg := "failed to list items from table %s: %w"
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, stmt)
+	if err != nil {
+		return nil, fmt.Errorf(errMsg, tankConfigurationTable, err)
+	}
+	defer rows.Close()
+
+	var records []TankConfiguration
+	for rows.Next() {
+		var record TankConfiguration
+		err = rows.Scan(
+			&record.ID,
+			&record.Sort,
+			&record.IsDefault,
+			&record.Name,
+			&record.Description,
+			&record.TankCount,
+		)
+		if err != nil {
+			return nil, fmt.Errorf(errMsg, tankConfigurationTable, err)
+		}
+		records = append(records, record)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return nil, fmt.Errorf(errMsg, tankConfigurationTable, err)
+	}
+
+	return records, nil
+}
+
+// Tank Material.
+
 type TankMaterialModelInterface interface {
 	Exists(id int) (bool, error)
 	List(sortByName bool) ([]TankMaterial, error)
@@ -416,11 +339,33 @@ type TankMaterial struct {
 	staticDataItem
 }
 
-func (_ TankMaterial) tableName() string {
-	return "tank_materials"
+type TankMaterialModel struct {
+	DB *sql.DB
+}
+
+const tankMaterialTable staticDataItemTable = "tank_materials"
+
+func (m *TankMaterialModel) Exists(id int) (bool, error) {
+	return idExistsInTable(m.DB, id, string(tankMaterialTable), "id")
+}
+
+func (m *TankMaterialModel) List(sortByName bool) ([]TankMaterial, error) {
+	staticDataItems, err := listStaticDataItems(m.DB, tankMaterialTable, sortByName)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to list items from table %s: %w", tankMaterialTable, err)
+	}
+
+	var items []TankMaterial
+	for _, item := range staticDataItems {
+		items = append(items, TankMaterial{staticDataItem: item})
+	}
+
+	return items, nil
 }
 
 // Waves.
+
 type WavesModelInterface interface {
 	Exists(id int) (bool, error)
 	List(sortByName bool) ([]Waves, error)
@@ -430,6 +375,27 @@ type Waves struct {
 	staticDataItem
 }
 
-func (_ Waves) tableName() string {
-	return "waves"
+type WavesModel struct {
+	DB *sql.DB
+}
+
+const wavesTable staticDataItemTable = "waves"
+
+func (m *WavesModel) Exists(id int) (bool, error) {
+	return idExistsInTable(m.DB, id, string(wavesTable), "id")
+}
+
+func (m *WavesModel) List(sortByName bool) ([]Waves, error) {
+	staticDataItems, err := listStaticDataItems(m.DB, wavesTable, sortByName)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to list items from table %s: %w", wavesTable, err)
+	}
+
+	var items []Waves
+	for _, item := range staticDataItems {
+		items = append(items, Waves{staticDataItem: item})
+	}
+
+	return items, nil
 }

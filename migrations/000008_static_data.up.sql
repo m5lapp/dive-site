@@ -73,15 +73,16 @@ create table if not exists tank_configurations (
     sort        smallint     not null unique,
     is_default  boolean      not null default false,
     name        varchar(32)  not null unique,
-    description varchar(256) not null
+    description varchar(256) not null,
+    tank_count  smallint     not null default 0
 );
 
-insert into tank_configurations (sort, is_default, name, description) values
-    (10, false, 'Rebreather (CCR)', 'Closed circuit rebreather'),
-    (20, false, 'Rebreather (SCR)', 'Semi-closed circuit rebreather'),
-    (30, false, 'Sidemount', 'Two cylinders mounted on each side '),
-    (40, true,  'Single Tank', 'One cylinder mounted on the back'),
-    (50, false, 'Twinset', 'Twin cylinders mounted on the back');
+insert into tank_configurations (sort, is_default, name, description, tank_count) values
+    (10, false, 'Rebreather (CCR)', 'Closed circuit rebreather', 0),
+    (20, false, 'Rebreather (SCR)', 'Semi-closed circuit rebreather', 0),
+    (30, false, 'Sidemount', 'Two cylinders mounted on each side', 2),
+    (40, true,  'Single Tank', 'One cylinder mounted on the back', 1),
+    (50, false, 'Twinset', 'Twin cylinders mounted on the back', 2);
 
 --------------------------------------------------------------------------------
 

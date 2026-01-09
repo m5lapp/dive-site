@@ -70,17 +70,7 @@ func (d Dive) GasUsed() float64 {
 		return 0.0
 	}
 
-	tankCount := 1.0
-
-	// TODO: Switching on the Name field from the database is quite brittle.
-	switch d.TankConfiguration.Name {
-	case "Single Tank":
-		tankCount = 1.0
-	case "Sidemount", "Twinset":
-		tankCount = 2.0
-	default:
-		return 0.0
-	}
+	tankCount := float64(d.TankConfiguration.TankCount)
 
 	return tankCount * d.TankVolume * float64(d.PressureDelta())
 }
@@ -334,7 +324,7 @@ var diveSelectQuery string = `
            bu.notes,
            br.id, br.name, br.description,
            dv.weight_used, dv.weight_notes, dv.equipment_notes,
-           tc.id, tc.sort, tc.is_default, tc.name, tc.description,
+           tc.id, tc.sort, tc.is_default, tc.name, tc.description, tc.tank_count,
            tm.id, tm.sort, tm.is_default, tm.name, tm.description,
            dv.tank_volume,
            gm.id, gm.sort, gm.is_default, gm.name, gm.description,
@@ -693,6 +683,7 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 		&dv.TankConfiguration.IsDefault,
 		&dv.TankConfiguration.Name,
 		&dv.TankConfiguration.Description,
+		&dv.TankConfiguration.TankCount,
 
 		// Tank material.
 		&dv.TankMaterial.ID,
@@ -735,15 +726,8 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 	dv.Trip = tr.ToStruct()
 	dv.Certification = ce.ToStruct()
 
-	dv.Current, err = nullableStaticDataItemToStruct[Current](cu)
-	if err != nil {
-		return err
-	}
-
-	dv.Waves, err = nullableStaticDataItemToStruct[Waves](wv)
-	if err != nil {
-		return err
-	}
+	dv.Current = cu.ToCurrent()
+	dv.Waves = wv.ToWaves()
 
 	dv.Buddy = bu.ToStruct()
 	dv.BuddyRole = br.ToStruct()
