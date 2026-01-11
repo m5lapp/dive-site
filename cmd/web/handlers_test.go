@@ -62,7 +62,8 @@ func TestDiveSiteGet(t *testing.T) {
 		{
 			name:     "Empty ID",
 			urlPath:  "/log-book/dive-site/view/",
-			wantCode: http.StatusNotFound,
+			wantCode: http.StatusOK,
+			wantBody: "Sail Rock",
 		},
 	}
 
@@ -200,6 +201,11 @@ func TestUserSignUp(t *testing.T) {
 			form.Add("email", tt.userEmail)
 			form.Add("password", tt.userPassword)
 			form.Add("password_confirm", tt.userPasswordConfirm)
+			form.Add("diving_since", "1970-01-01T00:00:00Z")
+			form.Add("dive_number_offset", "0")
+			form.Add("default_diving_country_id", "1")
+			form.Add("default_diving_tz", "Europe/London")
+			form.Add("dark_mode", "true")
 			form.Add("csrf_token", tt.csrfToken)
 
 			code, _, body := ts.postForm(t, "/user/sign-up", form)

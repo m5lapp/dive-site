@@ -81,7 +81,7 @@ func (uf *userProfileForm) Validate(accountIsBeingCreated bool) {
 	)
 
 	uf.CheckField(
-		validator.NumBetween[int](uf.DiveNumberOffset, 0, 10_000),
+		validator.NumBetween(uf.DiveNumberOffset, 0, 10_000),
 		"dive_number_offset",
 		"This field must be between 0 and 10,000 inclusive",
 	)
@@ -1065,7 +1065,7 @@ func (app *app) tripCreatePOST(w http.ResponseWriter, r *http.Request) {
 
 	if form.Rating != nil {
 		form.CheckField(
-			validator.NumBetween[int](*form.Rating, 0, 10),
+			validator.NumBetween(*form.Rating, 0, 10),
 			"rating",
 			"This field must be between 0 and 10 inclusive",
 		)
@@ -1077,7 +1077,7 @@ func (app *app) tripCreatePOST(w http.ResponseWriter, r *http.Request) {
 
 	if form.PriceAmount != nil {
 		form.CheckField(
-			validator.NumBetween[float64](*form.PriceAmount, 0.0, 9_999_999_999.999),
+			validator.NumBetween(*form.PriceAmount, 0.0, 9_999_999_999.999),
 			"price",
 			"This field must be between 0.0 and 9,999,999,999.99 inclusive",
 		)
@@ -1232,7 +1232,7 @@ func (app *app) certificationCreatePOST(w http.ResponseWriter, r *http.Request) 
 
 	if form.PriceAmount != nil {
 		form.CheckField(
-			validator.NumBetween[float64](*form.PriceAmount, 0.0, 9_999_999_999.999),
+			validator.NumBetween(*form.PriceAmount, 0.0, 9_999_999_999.999),
 			"price",
 			"This field must be between 0.0 and 9,999,999,999.99 inclusive",
 		)
@@ -1255,7 +1255,7 @@ func (app *app) certificationCreatePOST(w http.ResponseWriter, r *http.Request) 
 
 	if form.Rating != nil {
 		form.CheckField(
-			validator.NumBetween[int](*form.Rating, 0, 10),
+			validator.NumBetween(*form.Rating, 0, 10),
 			"rating",
 			"This field must be between 0 and 10 inclusive",
 		)

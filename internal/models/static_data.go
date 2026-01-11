@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type staticDataItem struct {
+type StaticDataItem struct {
 	ID          int
 	Sort        int
 	IsDefault   bool
@@ -15,14 +15,14 @@ type staticDataItem struct {
 	Description string
 }
 
-func (sd staticDataItem) String() string {
+func (sd StaticDataItem) String() string {
 	return fmt.Sprintf("%s - %s", sd.Name, sd.Description)
 }
 
 type staticDataItemTable string
 
-var staticDataItemsCache map[staticDataItemTable][]staticDataItem = make(
-	map[staticDataItemTable][]staticDataItem,
+var staticDataItemsCache map[staticDataItemTable][]StaticDataItem = make(
+	map[staticDataItemTable][]StaticDataItem,
 )
 
 var staticDataItemSelectQuery string = `
@@ -35,7 +35,7 @@ func listStaticDataItems(
 	db *sql.DB,
 	table staticDataItemTable,
 	sortByName bool,
-) ([]staticDataItem, error) {
+) ([]StaticDataItem, error) {
 	// If the list of static data items has already been populated, then use it.
 	// Otherwise, we don't really care and will try to load the values from the
 	// database.
@@ -59,9 +59,9 @@ func listStaticDataItems(
 	}
 	defer rows.Close()
 
-	var records []staticDataItem
+	var records []StaticDataItem
 	for rows.Next() {
-		var record staticDataItem
+		var record StaticDataItem
 		err = rows.Scan(
 			&record.ID,
 			&record.Sort,
@@ -94,12 +94,12 @@ type nullableStaticDataItem struct {
 	Description *string
 }
 
-func (ns nullableStaticDataItem) ToStruct() *staticDataItem {
+func (ns nullableStaticDataItem) ToStruct() *StaticDataItem {
 	if ns.ID == nil {
 		return nil
 	}
 
-	return &staticDataItem{
+	return &StaticDataItem{
 		ID:          *ns.ID,
 		Sort:        *ns.Sort,
 		IsDefault:   *ns.IsDefault,
@@ -116,7 +116,7 @@ func (ns nullableStaticDataItem) ToCurrent() *Current {
 	}
 
 	return &Current{
-		staticDataItem: *sdi,
+		StaticDataItem: *sdi,
 	}
 }
 
@@ -128,7 +128,7 @@ func (ns nullableStaticDataItem) ToWaves() *Waves {
 	}
 
 	return &Waves{
-		staticDataItem: *sdi,
+		StaticDataItem: *sdi,
 	}
 }
 
@@ -140,7 +140,7 @@ type CurrentModelInterface interface {
 }
 
 type Current struct {
-	staticDataItem
+	StaticDataItem
 }
 
 type CurrentModel struct {
@@ -162,7 +162,7 @@ func (m *CurrentModel) List(sortByName bool) ([]Current, error) {
 
 	var items []Current
 	for _, item := range staticDataItems {
-		items = append(items, Current{staticDataItem: item})
+		items = append(items, Current{StaticDataItem: item})
 	}
 
 	return items, nil
@@ -176,7 +176,7 @@ type EntryPointModelInterface interface {
 }
 
 type EntryPoint struct {
-	staticDataItem
+	StaticDataItem
 }
 
 type EntryPointModel struct {
@@ -198,7 +198,7 @@ func (m *EntryPointModel) List(sortByName bool) ([]EntryPoint, error) {
 
 	var items []EntryPoint
 	for _, item := range staticDataItems {
-		items = append(items, EntryPoint{staticDataItem: item})
+		items = append(items, EntryPoint{StaticDataItem: item})
 	}
 
 	return items, nil
@@ -213,7 +213,7 @@ type GasMixModelInterface interface {
 }
 
 type GasMix struct {
-	staticDataItem
+	StaticDataItem
 }
 
 type GasMixModel struct {
@@ -253,7 +253,7 @@ func (m *GasMixModel) List(sortByName bool) ([]GasMix, error) {
 
 	var items []GasMix
 	for _, item := range staticDataItems {
-		items = append(items, GasMix{staticDataItem: item})
+		items = append(items, GasMix{StaticDataItem: item})
 	}
 
 	return items, nil
@@ -267,7 +267,7 @@ type TankConfigurationModelInterface interface {
 }
 
 type TankConfiguration struct {
-	staticDataItem
+	StaticDataItem
 	TankCount int
 }
 
@@ -336,7 +336,7 @@ type TankMaterialModelInterface interface {
 }
 
 type TankMaterial struct {
-	staticDataItem
+	StaticDataItem
 }
 
 type TankMaterialModel struct {
@@ -358,7 +358,7 @@ func (m *TankMaterialModel) List(sortByName bool) ([]TankMaterial, error) {
 
 	var items []TankMaterial
 	for _, item := range staticDataItems {
-		items = append(items, TankMaterial{staticDataItem: item})
+		items = append(items, TankMaterial{StaticDataItem: item})
 	}
 
 	return items, nil
@@ -372,7 +372,7 @@ type WavesModelInterface interface {
 }
 
 type Waves struct {
-	staticDataItem
+	StaticDataItem
 }
 
 type WavesModel struct {
@@ -394,7 +394,7 @@ func (m *WavesModel) List(sortByName bool) ([]Waves, error) {
 
 	var items []Waves
 	for _, item := range staticDataItems {
-		items = append(items, Waves{staticDataItem: item})
+		items = append(items, Waves{StaticDataItem: item})
 	}
 
 	return items, nil

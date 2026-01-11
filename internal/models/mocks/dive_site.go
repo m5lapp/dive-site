@@ -6,7 +6,7 @@ import (
 	"github.com/m5lapp/divesite-monolith/internal/models"
 )
 
-var thaiBaht = models.Currency{
+var currencyThaiBaht = models.Currency{
 	ID:        1,
 	ISOAlpha:  "THB",
 	ISONumber: 764,
@@ -14,7 +14,7 @@ var thaiBaht = models.Currency{
 	Exponent:  2,
 }
 
-var thailand = models.Country{
+var countryThailand = models.Country{
 	ID:          1,
 	Name:        "Thailand",
 	ISONumber:   764,
@@ -22,24 +22,24 @@ var thailand = models.Country{
 	ISO3Code:    "THA",
 	DialingCode: "66",
 	Capital:     "Bangkok",
-	Currency:    thaiBaht,
+	Currency:    currencyThaiBaht,
 }
 
-var bangkokTZ, _ = models.NewTimeZone("Asia/Bangkok")
+var timeZoneBangkok, _ = models.NewTimeZone("Asia/Bangkok")
 
-var saltWater = models.WaterType{
+var waterTypeSaltWater = models.WaterType{
 	ID:          1,
 	Name:        "Salt Water",
 	Description: "Salt water",
 }
 
-var sea = models.WaterBody{
+var waterBodySea = models.WaterBody{
 	ID:          1,
 	Name:        "Sea",
 	Description: "A sea",
 }
 
-var mockDiveSite = models.DiveSite{
+var diveSiteSailRock = models.DiveSite{
 	ID:        1,
 	Version:   1,
 	Created:   time.Now(),
@@ -49,12 +49,12 @@ var mockDiveSite = models.DiveSite{
 	AltName:   "",
 	Location:  "Koh Tao",
 	Region:    "Surat Thani",
-	Country:   thailand,
-	TimeZone:  bangkokTZ,
+	Country:   countryThailand,
+	TimeZone:  timeZoneBangkok,
 	Latitude:  nil,
 	Longitude: nil,
-	WaterBody: sea,
-	WaterType: saltWater,
+	WaterBody: waterBodySea,
+	WaterType: waterTypeSaltWater,
 	Altitude:  0,
 	MaxDepth:  nil,
 	Notes:     "Great dive site in the gulf of Thailand.",
@@ -86,7 +86,7 @@ func (m *DiveSiteModel) Insert(
 func (m *DiveSiteModel) GetOneByID(id, userID int) (models.DiveSite, error) {
 	switch id {
 	case 1:
-		return mockDiveSite, nil
+		return diveSiteSailRock, nil
 	default:
 		return models.DiveSite{}, models.ErrNoRecord
 	}
@@ -104,11 +104,11 @@ func (m *DiveSiteModel) List(
 		PageSize:     1,
 		TotalRecords: 1,
 	}
-	return []models.DiveSite{mockDiveSite}, pageData, nil
+	return []models.DiveSite{diveSiteSailRock}, pageData, nil
 }
 
 func (m *DiveSiteModel) ListAll(diverID int) ([]models.DiveSite, error) {
-	return []models.DiveSite{mockDiveSite}, nil
+	return []models.DiveSite{diveSiteSailRock}, nil
 }
 
 func (m *DiveSiteModel) Exists(id int) (bool, error) {
@@ -147,4 +147,16 @@ func (m *DiveSiteModel) Update(
 	}
 
 	return models.ErrNoRecord
+}
+
+type WaterBodyModel struct{}
+
+func (m *WaterBodyModel) List() ([]models.WaterBody, error) {
+	return []models.WaterBody{waterBodySea}, nil
+}
+
+type WaterTypeModel struct{}
+
+func (m *WaterTypeModel) List() ([]models.WaterType, error) {
+	return []models.WaterType{waterTypeSaltWater}, nil
 }

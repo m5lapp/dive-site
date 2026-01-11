@@ -91,7 +91,7 @@ db/start/integration:
 .PHONY: db/stop/integration
 db/stop/integration:
 	@echo "Stop the database instance for integration testing..."
-	podman container run stop divesite-integration-test-db
+	podman container stop divesite-integration-test-db
 
 ## db/migrations/new name=$1: Create a new database migration
 .PHONY: db/migrations/new
