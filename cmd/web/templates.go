@@ -15,6 +15,25 @@ import (
 	"github.com/m5lapp/divesite-monolith/ui"
 )
 
+// boolToString converts a boolean value `v` to the appropriate string value
+// defined in valueTrue or valueFalse; if either of those is the empty string,
+// then a suitable default will be used.
+func boolToString(v bool, valueTrue, valueFalse string) string {
+	if valueTrue == "" {
+		valueTrue = "✅"
+	}
+
+	if valueFalse == "" {
+		valueFalse = "❌"
+	}
+
+	if v {
+		return valueTrue
+	}
+
+	return valueFalse
+}
+
 // https://stackoverflow.com/a/48887775/641460
 func isoCountryToEmoji(code string) (string, error) {
 	if len(code) != 2 {
@@ -152,6 +171,8 @@ func divide[T float32 | float64 | int | uint | int8 | uint8 | int16 | uint16 | i
 
 var functions = template.FuncMap{
 	"addF64":            add[float64],
+	"addInt":            add[int],
+	"boolToString":      boolToString,
 	"bsBoolField":       ui.BSBoolField,
 	"bsDateField":       ui.BSDateField,
 	"bsNumFieldF64":     ui.BSNumField[float64],
@@ -177,6 +198,7 @@ type templateData struct {
 	AgencyCourses      []models.AgencyCourse
 	Buddies            []models.Buddy
 	BuddyRoles         []models.BuddyRole
+	CSPNonce           string
 	CSRFToken          string
 	Certifications     []models.Certification
 	Countries          []models.Country
@@ -186,6 +208,8 @@ type templateData struct {
 	DarkMode           bool
 	Dive               models.Dive
 	Dives              []models.Dive
+	DivePlan           *models.DivePlan
+	DivePlans          []models.DivePlan
 	DiveProperties     []models.DiveProperty
 	DiveSite           models.DiveSite
 	DiveSites          []models.DiveSite

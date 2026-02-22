@@ -31,6 +31,18 @@ update-bootstrap:
 	@echo "Remember to also update the integrity hash of each file in ui/html/base.tmpl,"
 	@echo "the hash values can be found at https://getbootstrap.com/docs/5.3/getting-started/introduction/"
 
+## update-chartjs version=X.Y.Z: Update the version of Chart.JS
+.PHONY: update-chartjs
+update-chartjs:
+	@echo "Downloading Chart.JS files at version ${version}..."
+	curl -Lo ui/static/js/chart.umd.min.js \
+		https://cdn.jsdelivr.net/npm/chart.js@${version}/dist/chart.umd.min.js
+	@echo ""
+	@echo "Remember to also update the integrity hash of the file where it is used."
+	@echo "The hash values for version ${version} is:"
+	@echo -n "sha384-"
+	@openssl dgst -sha384 -binary ui/static/js/chart.umd.min.js | openssl base64 -A
+
 ## run: Run the cmd/web application
 .PHONY: run
 run:

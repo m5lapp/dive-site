@@ -15,6 +15,14 @@ github.com/justinas/nosurf v1.1.1/go.mod h1:ALpWdSbuNGy2lZWtyXdjkYv4edL23oSEgfBT
 github.com/lib/pq v1.4.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=
 github.com/lib/pq v1.10.9/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
+github.com/m5lapp/diveplanner v1.0.0 h1:9HPkXfN2ttrFs9vYVeIU6mVjbN81QkzkzKsEbTpBavk=
+github.com/m5lapp/diveplanner v1.0.0/go.mod h1:yDQKD+ZQBW43NTHcMVYu0EtWqlBObhONYeXb5glC7Z0=
+github.com/m5lapp/diveplanner v1.0.1-0.20260129221318-4dc5d2413cc8 h1:a844uU8o5uzv2pNiZz+hKzGWi6atiOzG3/aMAxUv7wc=
+github.com/m5lapp/diveplanner v1.0.1-0.20260129221318-4dc5d2413cc8/go.mod h1:yDQKD+ZQBW43NTHcMVYu0EtWqlBObhONYeXb5glC7Z0=
+github.com/m5lapp/diveplanner v1.0.1 h1:KyIGQupCXJA5YoVDoCQpKlhf+psG7sxHqzfrgZiH4Kg=
+github.com/m5lapp/diveplanner v1.0.1/go.mod h1:yDQKD+ZQBW43NTHcMVYu0EtWqlBObhONYeXb5glC7Z0=
+github.com/m5lapp/diveplanner v1.1.0 h1:OmBmIRvhKQSeH4S80O+le9EHbPVGevNdbFCikBB7jBc=
+github.com/m5lapp/diveplanner v1.1.0/go.mod h1:yDQKD+ZQBW43NTHcMVYu0EtWqlBObhONYeXb5glC7Z0=
 golang.org/x/crypto v0.29.0 h1:L5SG1JTTXupVV3n6sUqMTeWbjAyfPwoda2DLX8J8FrQ=
 golang.org/x/crypto v0.29.0/go.mod h1:+F4F4N5hv6v38hfeYwTdx20oUvLLc+QfrE9Ax9HtgRg=
 maragu.dev/gomponents v1.0.0 h1:eeLScjq4PqP1l+r5z/GC+xXZhLHXa6RWUWGW7gSfLh4=

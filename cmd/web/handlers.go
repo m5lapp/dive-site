@@ -2190,3 +2190,238 @@ func (app *app) statistics(w http.ResponseWriter, r *http.Request) {
 
 	app.render(w, r, http.StatusOK, "dive/statistics.tmpl", data)
 }
+
+type divePlanStopForm struct {
+	Depth    float64 `form:"depth"`
+	Duration float64 `form:"duration"`
+	Comment  string  `form:"comment"`
+}
+
+type divePlanForm struct {
+	ID                  int                `form:"-"`
+	Version             int                `form:"version"`
+	Name                string             `form:"name"`
+	Notes               string             `form:"notes"`
+	IsSoloDive          bool               `form:"is_solo_dive"`
+	DescentRate         float64            `form:"descent_rate"`
+	AscentRate          float64            `form:"ascent_rate"`
+	SACRate             float64            `form:"sac_rate"`
+	TankCount           int                `form:"tank_count"`
+	TankVolume          float64            `form:"tank_volume"`
+	WorkingPressure     int                `form:"working_pressure"`
+	DiveFactor          float64            `form:"dive_factor"`
+	FN2                 float64            `form:"fn2"`
+	FHe                 float64            `form:"fhe"`
+	MaxPPO2             float64            `form:"max_ppo2"`
+	Stops               []divePlanStopForm `form:"stops"`
+	validator.Validator `                   form:"-"`
+}
+
+func (dp *divePlanForm) Validate() {
+	dp.CheckField(validator.NotBlank(dp.Name), "name", "This field cannot be blank")
+	dp.CheckField(
+		validator.MaxChars(dp.Name, 256),
+		"name",
+		"This field cannot be more than 256 characters long",
+	)
+
+	dp.CheckField(
+		validator.MaxChars(dp.Notes, 65536),
+		"notes",
+		"This field cannot be more than 65,536 characters long",
+	)
+
+	dp.CheckField(
+		dp.DescentRate >= 1.0 && dp.DescentRate <= 30.0,
+		"descent_rate",
+		"This field must be between 1.0 and 30.0 inclusive",
+	)
+
+	dp.CheckField(
+		dp.AscentRate >= 1.0 && dp.AscentRate <= 18.0,
+		"ascent_rate",
+		"This field must be between 1.0 and 18.0 inclusive",
+	)
+
+	dp.CheckField(
+		dp.SACRate >= 1.0 && dp.SACRate <= 100.0,
+		"sac_rate",
+		"This field must be between 1.0 and 100.0 inclusive",
+	)
+
+	dp.CheckField(
+		dp.TankCount >= 1 && dp.TankCount <= 6,
+		"tank_count",
+		"This field must be between 1 and 6 inclusive",
+	)
+
+	dp.CheckField(
+		dp.TankVolume >= 3.0 && dp.TankVolume <= 20.0,
+		"tank_volume",
+		"This field must be between 3.0 and 20.0 inclusive",
+	)
+
+	dp.CheckField(
+		dp.WorkingPressure >= 150 && dp.WorkingPressure <= 300,
+		"working_pressure",
+		"This field must be between 150 and 300 inclusive",
+	)
+
+	dp.CheckField(
+		validator.PermittedValue(dp.DiveFactor, 1.5, 1.8, 2.0, 2.5, 3.0),
+		"dive_factor",
+		"This field must be one of the available options",
+	)
+
+	dp.CheckField(
+		dp.FN2 >= 0.0 && dp.FN2 <= 0.99,
+		"fn2",
+		"This field must be between 0.0 and 0.99 inclusive",
+	)
+
+	dp.CheckField(
+		dp.FHe >= 0.0 && dp.FHe <= 0.99,
+		"fhe",
+		"This field must be between 0.0 and 0.99 inclusive",
+	)
+
+	for i, stop := range dp.Stops {
+		dp.CheckField(
+			stop.Depth >= 1.0 && stop.Depth <= 300.0,
+			fmt.Sprintf("stops[%d].depth", i),
+			"This field must be between 1.0 and 300.0 inclusive",
+		)
+
+		dp.CheckField(
+			stop.Duration >= 1.0 && stop.Duration <= 300.0,
+			fmt.Sprintf("stops[%d].duration", i),
+			"This field must be between 0.5 and 300.0 inclusive",
+		)
+
+		dp.CheckField(
+			validator.MaxChars(stop.Comment, 256),
+			fmt.Sprintf("stops[%d].comment", i),
+			"This field cannot be more than 256 characters long",
+		)
+	}
+}
+
+func (app *app) divePlanCreateGET(w http.ResponseWriter, r *http.Request) {
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data.Form = divePlanForm{
+		IsSoloDive:      false,
+		DescentRate:     18.0,
+		AscentRate:      9.0,
+		SACRate:         25.0,
+		TankCount:       1,
+		TankVolume:      11.0,
+		WorkingPressure: 200,
+		DiveFactor:      1.8,
+		FN2:             0.79,
+		FHe:             0.0,
+		MaxPPO2:         1.4,
+		Stops: []divePlanStopForm{
+			{Depth: 30.0, Duration: 10.0},
+			{Depth: 20.0, Duration: 12.0},
+			{Depth: 12.0, Duration: 15.0},
+			{Depth: 5.0, Duration: 3.0, Comment: "Safety stop"},
+		},
+	}
+
+	app.render(w, r, http.StatusOK, "dive_plan/form.tmpl", data)
+}
+
+func (app *app) divePlanCreatePOST(w http.ResponseWriter, r *http.Request) {
+	form := &divePlanForm{}
+	err := app.decodePOSTForm(r, form)
+	if err != nil {
+		app.log.Error("Error whilst decoding dive plan form input", "error", err.Error())
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	form.Validate()
+	if !form.Valid() {
+		data, err := app.newTemplateData(r)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		data.Form = form
+		app.render(w, r, http.StatusUnprocessableEntity, "dive_plan/form.tmpl", data)
+		return
+	}
+
+	var stops []models.DivePlanStopInput
+	for _, stop := range form.Stops {
+		s := models.DivePlanStopInput{
+			Depth:    stop.Depth,
+			Duration: stop.Duration,
+			Comment:  stop.Comment,
+		}
+		stops = append(stops, s)
+	}
+
+	id, err := app.divePlans.Insert(
+		app.contextGetUser(r).ID,
+		form.Name,
+		form.Notes,
+		form.IsSoloDive,
+		form.DescentRate,
+		form.AscentRate,
+		form.SACRate,
+		form.TankCount,
+		form.TankVolume,
+		form.WorkingPressure,
+		form.DiveFactor,
+		form.FN2,
+		form.FHe,
+		form.MaxPPO2,
+		stops,
+	)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	fmt.Println(form)
+
+	app.sessionManager.Put(r.Context(), "flashSuccess", "Dive plan added successfully.")
+
+	nextUrl := fmt.Sprintf("/dive-plan/view/%d", id)
+	http.Redirect(w, r, nextUrl, http.StatusSeeOther)
+}
+
+func (app *app) divePlanGET(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || id < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	userID := app.contextGetUser(r).ID
+
+	divePlan, err := app.divePlans.GetOneByID(id, userID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	data.DivePlan = &divePlan
+
+	app.render(w, r, http.StatusOK, "dive_plan/view.tmpl", data)
+}

@@ -1,0 +1,130 @@
+{{define "title"}}Add a new Dive Plan{{end}}
+
+{{define "heading"}}Add a new Dive Plan{{end}}
+
+{{define "main"}}
+  <section>
+    {{template "form_non_field_errors" .}}
+
+    <p>Add the details for a dive plan to the system.</p>
+
+    <h2>Main Details</h2>
+
+    <form method="post"
+          {{with .Form.ID}}
+            action="/dive-plan/edit/{{.}}"
+          {{else}}
+            action="/dive-plan/add"
+          {{end}}
+          class="{{template "bootstrap_form_class" .}}"
+          {{if .NoValidate}} novalidate{{end}}>
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+
+      {{with .Form.Version}}
+        <input type="hidden" name="version" id="id_version" value="{{.}}">
+      {{end}}
+
+      <div class="row mb-4">
+        {{bsTextField "text" "name" "" .Form.Name "1" "256" true .Form.FieldErrors}}
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_dive_factor">Dive Factor *</label>
+          <select {{template "form_field_common_attrs" "dive_factor"}}
+                  class="{{template "bootstrap_form_select_class" .Form.FieldErrors.dive_factor}}">
+            <option value="1.5"
+              {{with $.Form.DiveFactor}}{{if eq 1.5 .}}selected{{end}}{{end}}>
+              1.5 - Easy
+            </option>
+            <option value="1.8"
+              {{with $.Form.DiveFactor}}{{if eq 1.8 .}}selected{{end}}{{end}}>
+              1.8 - Moderate
+            </option>
+            <option value="2.0"
+              {{with $.Form.DiveFactor}}{{if eq 2.0 .}}selected{{end}}{{end}}>
+              2.0 - Tough
+            </option>
+            <option value="2.5"
+              {{with $.Form.DiveFactor}}{{if eq 2.5 .}}selected{{end}}{{end}}>
+              2.5 - Stressful
+            </option>
+            <option value="3.0"
+              {{with $.Form.DiveFactor}}{{if eq 3.0 .}}selected{{end}}{{end}}>
+              3.0 - Serious Stress
+            </option>
+          </select>
+          {{with .Form.FieldErrors.dive_factor}}
+            <div class="invalid-feedback" id="id_dive_factor_feedback">{{.}}</div>
+          {{end}}
+        </div>
+
+        {{bsBoolField "is_solo_dive" "Solo Dive" "true" .Form.IsSoloDive false true .Form.FieldErrors}}
+      </div>
+
+      <div class="row mb-4">
+        {{bsNumFieldF64 "descent_rate" "Descent Rate (m/min)" "1.0" "30.0" "0.1" .Form.DescentRate true .Form.FieldErrors}}
+        {{bsNumFieldF64 "ascent_rate" "Ascent Rate (m/min)" "1.0" "18.0" "0.1" .Form.AscentRate true .Form.FieldErrors}}
+        {{bsNumFieldF64 "sac_rate" "SAC Rate (l/min)" "1.0" "100.0" "0.1" .Form.SACRate true .Form.FieldErrors}}
+      </div>
+
+      <h2>Breathing Gas</h2>
+
+      <div class="row mb-4">
+        {{bsNumFieldInt "tank_count" "" "1" "6" "1" .Form.TankCount true .Form.FieldErrors}}
+        {{bsNumFieldF64 "tank_volume" "Tank Volume (l)" "3.0" "20.0" "0.1" .Form.TankVolume true .Form.FieldErrors}}
+        {{bsNumFieldInt "working_pressure" "Working Pressure (bar)" "50" "300" "1" .Form.WorkingPressure true .Form.FieldErrors}}
+      </div>
+
+      <div class="row mb-4">
+        {{bsNumFieldF64 "fn2" "Fraction of Nitrogen" "0.00" "0.99" "0.01" .Form.FN2 true .Form.FieldErrors}}
+        {{bsNumFieldF64 "fhe" "Fraction of Helium" "0.00" "0.99" "0.01" .Form.FHe true .Form.FieldErrors}}
+        {{bsNumFieldF64 "max_ppo2" "Max PPO₂" "1.0" "1.6" "0.1" .Form.MaxPPO2 true .Form.FieldErrors}}
+      </div>
+
+      <h2>Stops</h2>
+
+      <p>
+        Add each stop in the plan. There is no need to include the transitions
+        between stops, these will be calculated automatically.
+      </p>
+
+      {{range $i, $stop := .Form.Stops}}
+        <div class="row mb-4">
+          {{bsNumFieldF64 (printf "stops[%d].depth" $i) "Depth (m)" "1.0" "300.0" "1.0" $stop.Depth true $.Form.FieldErrors}}
+          {{bsNumFieldF64 (printf "stops[%d].duration" $i) "Duration (mins)" "0.5" "300.0" "0.1" $stop.Duration true $.Form.FieldErrors}}
+          {{bsTextField "text" (printf "stops[%d].comment" $i) "Comment" $stop.Comment "0" "256" false $.Form.FieldErrors}}
+        </div>
+      {{end}}
+
+      <h2>Additional</h2>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          <label class="form-label" for="id_notes">Notes</label>
+          <textarea {{template "form_field_common_attrs" "notes"}}
+                    class="{{template "bootstrap_form_field_class" .Form.FieldErrors.notes}}">
+            {{- .Form.Notes -}}
+          </textarea>
+          {{with .Form.FieldErrors.notes}}
+            <div class="invalid-feedback" id="id_notes_feedback">{{.}}</div>
+          {{end}}
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-sm">
+          {{$action := "Add Dive Plan"}}
+          {{if ne .Form.ID 0}}{{$action = "Update Dive Plan"}}{{end}}
+          <button class="btn btn-primary me-2" type="submit">{{$action}}</button>
+          {{if ne .Form.ID 0}}
+            <button class="btn btn-outline-danger" type="reset">Reset</button>
+          {{end}}
+        </div>
+      </div>
+
+    </form>
+  </section>
+{{end}}
+
+

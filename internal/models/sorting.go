@@ -126,6 +126,33 @@ var (
 	SortDiveDefault = []SortDive{SortDiveDateDesc, SortDiveIDAsc}
 )
 
+// DivePlan sorting options.
+type SortDivePlan struct{ sortCol }
+
+func (SortDivePlan) isSort() {}
+
+var (
+	SortDivePlanIDAsc  = SortDivePlan{sortCol{column: "dp.id", direction: sortAsc}}
+	SortDivePlanIDDesc = SortDivePlan{sortCol{column: "dp.id", direction: sortDesc}}
+
+	SortDivePlanCreatedAsc  = SortDivePlan{sortCol{column: "dp.created_at", direction: sortAsc}}
+	SortDivePlanCreatedDesc = SortDivePlan{sortCol{column: "dp.created_at", direction: sortDesc}}
+
+	SortDivePlanIsSoloDiveAsc = SortDivePlan{
+		sortCol{column: "dp.is_solo_dive", direction: sortAsc},
+	}
+	SortDivePlanIsSoloDiveDesc = SortDivePlan{
+		sortCol{column: "dp.is_solo_dive", direction: sortDesc},
+	}
+
+	SortDivePlanNameAsc  = SortDivePlan{sortCol{column: "dp.name", direction: sortAsc}}
+	SortDivePlanNameDesc = SortDivePlan{sortCol{column: "dp.name", direction: sortDesc}}
+
+	SortDivePlanDefault = []SortDivePlan{
+		SortDivePlanNameAsc,
+	}
+)
+
 // DiveSite sorting options.
 type SortDiveSite struct{ sortCol }
 

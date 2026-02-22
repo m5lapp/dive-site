@@ -1,9 +1,11 @@
 package main
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/justinas/nosurf"
 	"github.com/m5lapp/divesite-monolith/internal/models"
@@ -43,12 +45,26 @@ func (app *app) authenticate(next http.Handler) http.Handler {
 	})
 }
 
-func commonHeaders(next http.Handler) http.Handler {
+func (app *app) commonHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set(
-			"Content-Security-Policy",
-			"default-src 'self'; style-src 'self' fonts.googleapis.com; font-src fonts.gstatic.com",
-		)
+		// Build the Content-Server-Policy header.
+		cspNonce := rand.Text()
+		r = app.contextSetCSPNonce(r, cspNonce)
+		cspHeader := strings.Builder{}
+		cspHeader.WriteString("default-src 'self'; ")
+		cspHeader.WriteString("script-src 'self' ")
+		cspHeader.WriteString("'sha256-ieoeWczDHkReVBsRBqaal5AFMlBtNjMzgwKvLqi/tSU=' ")
+		cspHeader.WriteString(fmt.Sprintf("'nonce-%s'; ", cspNonce))
+		cspHeader.WriteString("style-src 'self' fonts.googleapis.com ")
+		cspHeader.WriteString("'sha256-3qgWK6nKtgtnBw4V9Vg+RnfoB1A6tJjVUiQLjuzRLhk=' ")
+		cspHeader.WriteString("'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=' ")
+		cspHeader.WriteString("'sha256-9hSz5kaPZSZEIeSna4lh0Z9fYGdrbPwEsbTz0eUERAE=' ")
+		cspHeader.WriteString("'sha256-m5kyiLZaikGV6b9HEBNQjwaI5HR973UB5DpBM4slRB4=' ")
+		cspHeader.WriteString("'sha256-MveBq/V9Jvy+BM7/nmXo1RyNEavRcu+edYderaPfCOk=' ")
+		cspHeader.WriteString("'unsafe-hashes'; ")
+		cspHeader.WriteString("font-src fonts.gstatic.com")
+
+		w.Header().Set("Content-Security-Policy", cspHeader.String())
 		w.Header().Set("Server", "Go")
 		w.Header().Set("Referrer-Policy", "origin-when-cross-origin")
 		w.Header().Set("X-Content-Type-Options", "nosniff")

@@ -138,6 +138,7 @@ func (app *app) newTemplateData(r *http.Request) (templateData, error) {
 		Buddies:         buddies,
 		BuddyRoles:      buddyRoles,
 		Countries:       countries,
+		CSPNonce:        app.contextGetCSPNonce(r),
 		Currencies:      currencies,
 		CurrentYear:     time.Now().Year(),
 		DarkMode:        true,

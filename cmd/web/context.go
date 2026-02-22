@@ -9,8 +9,29 @@ import (
 
 type contextKey string
 
+const cspNonceKey = contextKey("cspScriptNonce")
 const isAuthenticatedContextKey = contextKey("isAuthenticated")
 const userContextKey = contextKey("user")
+
+// The contextSetCSPNonce method returns a new copy of the request with
+// the provided CSP nonce value added to the context.
+func (app *app) contextSetCSPNonce(r *http.Request, cspNonce string) *http.Request {
+	ctx := context.WithValue(r.Context(), cspNonceKey, cspNonce)
+	return r.WithContext(ctx)
+}
+
+// The contextGetCSPNonce retrieves the cspNonce value from the request context.
+// The only time that we'll use this helper is when we logically expect there to
+// be a value in the context, and if it doesn't exist it will firmly be an
+// 'unexpected' error.
+func (app *app) contextGetCSPNonce(r *http.Request) string {
+	cspNonce, ok := r.Context().Value(cspNonceKey).(string)
+	if !ok {
+		panic("missing cspNonce value in request config")
+	}
+
+	return cspNonce
+}
 
 // The contextSetIsAuthenticated method returns a new copy of the request with
 // the provided isAuthenticated value added to the context.

@@ -1,0 +1,354 @@
+{{define "title"}}
+  Dive Plan {{.DivePlan.String}}
+{{end}}
+
+{{define "heading"}}
+  {{.DivePlan.String}}
+{{end}}
+
+{{define "main"}}
+  <section>
+
+    <div class="row mt-5">
+      <h2>Main Details</h2>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Name</h4>
+          <p class="mb-1">{{.DivePlan.Name}}</p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Solo Dive?</h4>
+          <p class="mb-1">{{boolToString .DivePlan.IsSoloDive "Yes" "No"}}</p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Descent Rate</h4>
+          <p class="mb-1">{{.DivePlan.DescentRate}} m/min</p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Ascent Rate</h4>
+          <p class="mb-1">{{.DivePlan.AscentRate}} m/min</p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Tank Count</h4>
+          <p class="mb-1">{{.DivePlan.TankCount}}</p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Tank Volume</h4>
+          <p class="mb-1">{{.DivePlan.TankCapacity}} litres</p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Working Pressure</h4>
+          <p class="mb-1">{{.DivePlan.WorkingPressure}} bar</p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">SAC Rate</h4>
+          <p class="mb-1">{{.DivePlan.SACRate}} litres/min</p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Gas Mix</h4>
+          <p class="mb-1">
+            {{.DivePlan.GasMix.MixType}}
+            ({{printf "%.2f" .DivePlan.GasMix.FO2}} O<sub>2</sub>,
+            {{printf "%.2f" .DivePlan.GasMix.FN2}} N<sub>2</sub>,
+            {{printf "%.2f" .DivePlan.GasMix.FHe}} He)
+          </p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Gas Requirement</h4>
+          <p class="mb-1">
+            {{printf "%.1f" (.DivePlan.GasRequired false)}} litres required of 
+            {{.DivePlan.GasAvailable}} litres available
+          </p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Minimum Gas</h4>
+          <p class="mb-1">{{.DivePlan.MinGas}} litres</p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Gas Spare</h4>
+          <p class="mb-1">{{printf "%.1f" (.DivePlan.GasSpare)}} litres</p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Max PPO<sub>2</sub></h4>
+          <p class="mb-1">{{.DivePlan.MaxPPO2}}</p>
+        </div>
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Pulmonary Oxygen Toxicity Units</h4>
+          <p class="mb-1">{{printf "%.2f" .DivePlan.POT}} OTUs</p>
+        </div>
+      </div>
+
+      <div class="list-group list-group-horizontal">
+        <div class="list-group-item list-group-item-action flex-fill">
+          <h4 class="mb-1">Dive Viability</h4>
+          <p class="mb-1">
+            Currently, this dive plan is
+            {{boolToString .DivePlan.DiveIsPossible "viable" "not viable"}}:<br>
+            Sufficient gas? {{boolToString (ge .DivePlan.GasSpare 0.0) "" ""}}<br>
+            Within MOD? {{boolToString (le .DivePlan.MaxDepth (.DivePlan.GasMix.MOD .DivePlan.MaxPPO2)) "" ""}}<br>
+            Within NDLs? {{boolToString .DivePlan.WithinNDLs "" ""}}
+          </p>
+        </div>
+      </div>
+
+    </div>
+
+    {{if .DivePlan.Notes}}
+      <div class="row mt-5">
+        <h2>Notes</h2>
+
+        <div class="list-group list-group-horizontal">
+          <div class="list-group-item list-group-item-action flex-fill">
+            <blockquote class="mb-1">{{textToHTMLParas .DivePlan.Notes}}</blockquote>
+          </div>
+        </div>
+      </div>
+    {{end}}
+
+    <div class="row mt-5">
+      <h2>Dive Profile</h2>
+
+      <!-- Dive profile chart. -->
+      <script src="/static/js/chart.umd.min.js"
+              integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ"
+              crossorigin="anonymous"></script>
+
+      <div style="width: 95%; margin: 40px auto;">
+        <canvas id="chartDiveProfile" style="height: 400px;"></canvas>
+      </div>
+
+      <script nonce="{{.CSPNonce}}">
+        // Data you want to plot.
+        {{$data := .DivePlan.ChartProfileData 60}}
+
+        const times = {{$data.times}};
+        const depths = {{$data.depths}};
+        const gas = {{$data.gas}};
+        const mod = {{.DivePlan.GasMix.MOD .DivePlan.MaxPPO2}};
+        const ndls = {{$data.ndls}};
+
+        const depthData = times.map((t, i) => ({ x: t, y: depths[i] }));
+        const gasData = times.map((t, i) => ({ x: t, y: gas[i] }));
+        const modData = times.map(t => ({ x: t, y: mod }));
+        const ndlsData = times.map((t, i) => ({ x: t, y: ndls[i] }));
+
+        // Chart configuration.
+        const config = {
+          type: 'line',
+          data: {
+            datasets: [
+              {
+                label: 'Depth (m)',
+                data: depthData,
+                borderColor: '#0077cc', // Line colour.
+                backgroundColor: 'rgba(0,119,204,0.1)', // Fill under the line.
+                tension: 0.3,           // Curve smoothness (0 = straight lines).
+                pointRadius: 4,         // Size of the dots.
+                pointHoverRadius: 6,    // Bigger when hovered.
+                fill: 'start',          // Fill the area under the line.
+                parsing: false,
+                yAxisID: 'y'
+              }, {
+                label: 'NDLs (mins)',
+                data: ndlsData,
+                borderColor: '#00aa44',
+                backgroundColor: 'rgba(0,119,204,0.1)',
+                tension: 0.3,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                fill: true,
+                parsing: false,
+                yAxisID: 'y1'
+              },
+              {{if gt .DivePlan.MaxDepth (.DivePlan.GasMix.MOD .DivePlan.MaxPPO2)}},
+                {
+                  label: 'MOD with PPO₂ of {{.DivePlan.MaxPPO2}} (m)',
+                  data: modData,
+                  borderColor: '#ff0000',
+                  borderWidth: 2,
+                  borderDash: [6, 4],   // Use a dashed line.
+                  pointRadius: 0,       // No dots.
+                  fill: false,          // No area fill.
+                  parsing: false,
+                  yAxisID: 'y',
+                },
+              {{end}}
+              {
+                label: 'Gas used (L)',
+                data: gasData,
+                borderColor: '#cccccc',
+                backgroundColor: 'rgba(255,102,0,0.1)',
+                tension: 0.3,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                fill: false,
+                parsing: false,
+                yAxisID: 'y2'
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: 'index',
+              intersect: false
+            },
+            scales: {
+              x: {
+                type: 'linear',
+                title: { display: true, text: 'Time (mins)' },
+                ticks: {
+                  stepSize: 300,
+                    callback: function(value) {
+                    const minutes = value / 60;
+                    return Number.isInteger(minutes) ? minutes.toString() : minutes.toFixed(1);
+                  }
+                }
+              },
+              // Left hand y-axis.
+              y: {
+                type: 'linear',
+                position: 'left',
+                title: { display: true, text: 'Depth (m)' },
+                //beginAtZero: true,
+                min: 0,
+                reverse: true,
+                // Colour the axis to match the line.
+                grid: { color: 'rgba(0,0,0,0.1)' },
+                ticks: { color: '#0077cc' }
+              },
+              // Right hand y-axis.
+              y1: {
+                type: 'linear',
+                position: 'right',
+                title: { display: true, text: 'NDLs (mins)' },
+                grid: {
+                  // Do not draw a second vertical grid line on the right side.
+                  drawOnChartArea: false
+                },
+                ticks: { color: '#00aa44' }
+              },
+              y2: {
+                position: 'right',
+                offset: true, // Offset slightly from the y1 scale.
+                title: { display: true, text: 'Gas used (L)' },
+                beginAtZero: true,
+                grid: { drawOnChartArea: false },
+                ticks: { color: '#cccccc' }
+              }
+            },
+            plugins: {
+              legend: { position: 'top' },
+              tooltip: {
+                callbacks: {
+                  // Show all values with appropriate units.
+                  label: function(context) {
+                    const label = context.dataset.label || '';
+                    const value = context.parsed.y;
+                    // Add units depending on which dataset is being shown.
+                    if (label.includes('Depth') || label.includes('MOD')) {
+                      return `${label}: ${value} m`;
+                    }
+                    if (label.includes('NDLs')) {
+                      return `${label}: ${value} mins`;
+                    }
+                    if (label.includes('Gas')) {
+                        return `${label}: ${value.toFixed(1)} L`;
+                    }
+                    return `${label}: ${value}`;
+                  },
+                  title: function(context) {
+                    // `context` is an array, the first element holds the point
+                    // that triggered the tooltip.
+                    const sec = context[0].parsed.x; // Raw seconds from the dataset.
+                    const min = sec / 60;            // Convert to minutes.
+                    // Show whole minutes when possible, otherwise show one
+                    // decimal place.
+                    const display = Number.isInteger(min) ? min : min.toFixed(1);
+                    return `Time: ${display} mins`;
+                  },
+                }
+              }
+            }
+          }
+        };
+
+        // Render the chart.
+        const ctx = document.getElementById('chartDiveProfile').getContext('2d');
+        const myChart = new Chart(ctx, config);
+      </script>
+
+      <table class="table table-hover table-striped">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Depth</th>
+            <th scope="col">Duration</th>
+            <th scope="col">Transition?</th>
+            <th scope="col">Comment</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range $i, $stop := .DivePlan.DiveProfile}}
+            <tr>
+              <th scope="row">{{addInt $i 1}}</td>
+              <td>{{$stop.Depth}}</td>
+              <td>{{$stop.Duration}}</td>
+              <td>{{boolToString $stop.IsTransition "Yes" "-"}}</td>
+              <td>{{$stop.Comment}}</td>
+            </tr>
+          {{end}}
+        </tbody>
+      </table>
+
+    </div>
+
+    <div class="row mt-5">
+      <h2>DSR Table</h2>
+
+      <table class="table table-hover table-striped">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Depth</th>
+            <th scope="col">Stop</th>
+            <th scope="col">Run</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range $i, $dsr := .DivePlan.DSRTable}}
+            <tr>
+              <th scope="row">{{addInt $i 1}}</td>
+              <td>{{index $dsr 0}}</td>
+              <td>{{index $dsr 1}}</td>
+              <td>{{index $dsr 2}}</td>
+            </tr>
+          {{end}}
+        </tbody>
+      </table>
+
+    </div>
+
+  </section>
+{{end}}
+

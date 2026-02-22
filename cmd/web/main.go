@@ -60,6 +60,7 @@ type app struct {
 	debug              bool
 	diveProperties     models.DivePropertyModelInterface
 	dives              models.DiveModelInterface
+	divePlans          models.DivePlanModelInterface
 	diveSites          models.DiveSiteModelInterface
 	entryPoints        models.EntryPointModelInterface
 	equipment          models.EquipmentModelInterface
@@ -145,6 +146,7 @@ func main() {
 		currencies:         &models.CurrencyModel{DB: db},
 		currents:           &models.CurrentModel{DB: db},
 		diveProperties:     &models.DivePropertyModel{DB: db},
+		divePlans:          &models.DivePlanModel{DB: db},
 		diveSites:          &models.DiveSiteModel{DB: db},
 		entryPoints:        &models.EntryPointModel{DB: db},
 		equipment:          &models.EquipmentModel{DB: db},
