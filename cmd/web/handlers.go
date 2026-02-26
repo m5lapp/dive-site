@@ -2326,8 +2326,7 @@ func (app *app) divePlanCreateGET(w http.ResponseWriter, r *http.Request) {
 		FHe:             0.0,
 		MaxPPO2:         1.4,
 		Stops: []divePlanStopForm{
-			{Depth: 30.0, Duration: 10.0},
-			{Depth: 20.0, Duration: 12.0},
+			{Depth: 25.0, Duration: 7.0},
 			{Depth: 12.0, Duration: 15.0},
 			{Depth: 5.0, Duration: 3.0, Comment: "Safety stop"},
 		},

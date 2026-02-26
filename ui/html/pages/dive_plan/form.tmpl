@@ -10,6 +10,85 @@
 
     <h2>Main Details</h2>
 
+    <template id="divePlanStopTemplate">
+      <div class="dive-plan-stop-row row mb-4 align-items-start">
+        {{bsNumFieldF64 "depth" "Depth (m)" "1.0" "300.0" "1.0" 0.0 true $.Form.FieldErrors}}
+        {{bsNumFieldF64 "duration" "Duration (mins)" "0.5" "300.0" "0.1" 0 true $.Form.FieldErrors}}
+        {{bsTextField "text" "comment" "Comment" "" "0" "256" false $.Form.FieldErrors}}
+        <div class="col-auto d-flex flex-column">
+          <label class="form-label" for="">&nbsp;</label>
+          <button type="button"
+                  class="dive-plan-stop-remove btn btn-outline-danger me-2">
+            Remove
+          </button>
+        </div>
+      </div>
+    </template>
+
+    <script nonce="{{.CSPNonce}}">
+      // Script to add a new dive plan stop form row.
+      document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('divePlanStops');
+        const template = document.getElementById('divePlanStopTemplate').content;
+        const newStopButton = document.getElementById('addDivePlanStopButton');
+
+        function renumberStops() {
+          const rows = container.querySelectorAll('.dive-plan-stop-row');
+          rows.forEach((row, index) => {
+            row.querySelectorAll('input').forEach(input => {
+              const fieldName = input.name.split('.').pop();
+              const newName = `stops[${index}].${fieldName}`
+              const newID = 'id_' + newName;
+
+              input.id = newID;
+              input.name = newName;
+              input.setAttribute('aria-describedby', newID + '_feedback');
+
+              const label = input.closest('label');
+              if (label) label.htmlFor = newID;
+            });
+          });
+        }
+
+        let stopCount = {{ len .Form.Stops }};
+
+        newStopButton.addEventListener('click', () => {
+          const clone = document.importNode(template, true);
+
+          clone.querySelectorAll('input').forEach(input => {
+            const oldName = input.getAttribute('name');
+            const newName = `stops[${stopCount}].${oldName}`
+            const newID = 'id_' + newName;
+
+            input.id = newID;
+            input.name = newName;
+            input.setAttribute('aria-describedby', newID + '_feedback');
+
+            const label = input.closest('label');
+            if (label) label.htmlFor = newID;
+          });
+
+          container.appendChild(clone);
+          stopCount++;
+        });
+
+        container.addEventListener('click', (event) => {
+          const removeStopButton = event.target.closest('.dive-plan-stop-remove');
+
+          if (!removeStopButton) return
+
+          const stopRow = removeStopButton.closest('.dive-plan-stop-row');
+
+          if (!stopRow) return
+
+          stopRow.remove();
+          renumberStops();
+          stopCount--;
+        });
+
+      });
+    </script>
+
     <form method="post"
           {{with .Form.ID}}
             action="/dive-plan/edit/{{.}}"
@@ -89,13 +168,29 @@
         between stops, these will be calculated automatically.
       </p>
 
-      {{range $i, $stop := .Form.Stops}}
-        <div class="row mb-4">
-          {{bsNumFieldF64 (printf "stops[%d].depth" $i) "Depth (m)" "1.0" "300.0" "1.0" $stop.Depth true $.Form.FieldErrors}}
-          {{bsNumFieldF64 (printf "stops[%d].duration" $i) "Duration (mins)" "0.5" "300.0" "0.1" $stop.Duration true $.Form.FieldErrors}}
-          {{bsTextField "text" (printf "stops[%d].comment" $i) "Comment" $stop.Comment "0" "256" false $.Form.FieldErrors}}
+      <div id="divePlanStops">
+        {{range $i, $stop := .Form.Stops}}
+          <div class="dive-plan-stop-row row mb-4 align-items-start">
+            {{bsNumFieldF64 (printf "stops[%d].depth" $i) "Depth (m)" "1.0" "300.0" "1.0" $stop.Depth true $.Form.FieldErrors}}
+            {{bsNumFieldF64 (printf "stops[%d].duration" $i) "Duration (mins)" "0.5" "300.0" "0.1" $stop.Duration true $.Form.FieldErrors}}
+            {{bsTextField "text" (printf "stops[%d].comment" $i) "Comment" $stop.Comment "0" "256" false $.Form.FieldErrors}}
+            <div class="col-auto d-flex flex-column">
+              <label class="form-label" for="">&nbsp;</label>
+              <button type="button" {{if eq $i 0}}disabled=""{{end}}
+                      class="{{if ne $i 0}}dive-plan-stop-remove {{end}}btn btn-outline-danger me-2">
+                Remove
+              </button>
+            </div>
+          </div>
+        {{end}}
+      </div>
+
+      <div class="row mb-4 d-flex justify-content-end">
+        <div class="col-auto d-flex flex-column">
+          <button type="button" id="addDivePlanStopButton"
+                  class="btn btn-outline-primary me-2">Add Extra Stop</button>
         </div>
-      {{end}}
+      </div>
 
       <h2>Additional</h2>
 

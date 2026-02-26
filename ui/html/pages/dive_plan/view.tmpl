@@ -179,7 +179,7 @@
                 parsing: false,
                 yAxisID: 'y1'
               },
-              {{if gt .DivePlan.MaxDepth (.DivePlan.GasMix.MOD .DivePlan.MaxPPO2)}},
+              {{if gt .DivePlan.MaxDepth (.DivePlan.GasMix.MOD .DivePlan.MaxPPO2)}}
                 {
                   label: 'MOD with PPO₂ of {{.DivePlan.MaxPPO2}} (m)',
                   data: modData,
@@ -311,7 +311,7 @@
         <tbody>
           {{range $i, $stop := .DivePlan.DiveProfile}}
             <tr>
-              <th scope="row">{{addInt $i 1}}</td>
+              <th scope="row">{{addInt $i 1}}</th>
               <td>{{$stop.Depth}}</td>
               <td>{{$stop.Duration}}</td>
               <td>{{boolToString $stop.IsTransition "Yes" "-"}}</td>
@@ -338,7 +338,7 @@
         <tbody>
           {{range $i, $dsr := .DivePlan.DSRTable}}
             <tr>
-              <th scope="row">{{addInt $i 1}}</td>
+              <th scope="row">{{addInt $i 1}}</th>
               <td>{{index $dsr 0}}</td>
               <td>{{index $dsr 1}}</td>
               <td>{{index $dsr 2}}</td>
