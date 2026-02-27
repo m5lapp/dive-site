@@ -61,9 +61,9 @@
           <h4 class="mb-1">Gas Mix</h4>
           <p class="mb-1">
             {{.DivePlan.GasMix.MixType}}
-            ({{printf "%.2f" .DivePlan.GasMix.FO2}} O<sub>2</sub>,
-            {{printf "%.2f" .DivePlan.GasMix.FN2}} N<sub>2</sub>,
-            {{printf "%.2f" .DivePlan.GasMix.FHe}} He)
+            ({{printf "%.2f" (multiplyF64 .DivePlan.GasMix.FO2 100.0)}}% O<sub>2</sub>,
+            {{printf "%.2f" (multiplyF64 .DivePlan.GasMix.FN2 100.0)}}% N<sub>2</sub>,
+            {{printf "%.2f" (multiplyF64 .DivePlan.GasMix.FHe 100.0)}}% He)
           </p>
         </div>
         <div class="list-group-item list-group-item-action flex-fill">

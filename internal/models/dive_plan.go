@@ -312,11 +312,11 @@ func (m *DivePlanModel) List(
 	limit := filters.limit()
 	offset := filters.offset()
 	order := buildOrderByClause(sort, SortDivePlanIDAsc)
-	stmt := fmt.Sprintf("%s %s limit $2 offset $3", divePlanSelectQuery, order)
+	stmt := fmt.Sprintf("%s %s limit $3 offset $4", divePlanSelectQuery, order)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	rows, err := m.DB.QueryContext(ctx, stmt, diverID, limit, offset)
+	rows, err := m.DB.QueryContext(ctx, stmt, diverID, nil, limit, offset)
 	if err != nil {
 		return nil, PageData{}, err
 	}

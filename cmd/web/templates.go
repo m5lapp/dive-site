@@ -169,6 +169,12 @@ func divide[T float32 | float64 | int | uint | int8 | uint8 | int16 | uint16 | i
 	return a / b
 }
 
+func multiply[T float32 | float64 | int | uint | int8 | uint8 | int16 | uint16 | int32 | uint32 | int64 | uint64](
+	a, b T,
+) T {
+	return a * b
+}
+
 var functions = template.FuncMap{
 	"addF64":            add[float64],
 	"addInt":            add[int],
@@ -188,6 +194,7 @@ var functions = template.FuncMap{
 	"getOSTimeZones":    getOSTimeZones,
 	"intRange":          intRange,
 	"isoCountryToEmoji": isoCountryToEmoji,
+	"multiplyF64":       multiply[float64],
 	"pageControls":      ui.PageControls,
 	"stringsReplace":    strings.Replace,
 	"textToHTMLParas":   textToHTMLParas,

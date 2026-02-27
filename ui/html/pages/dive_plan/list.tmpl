@@ -1,0 +1,47 @@
+{{define "title"}}Dive Plans{{end}}
+
+{{define "heading"}}Dive Plans{{end}}
+
+{{define "main"}}
+  <section>
+
+    {{if .DivePlans}}
+      {{pageControls "/dive-plan/" .PageData}}
+
+      <div class="list-group">
+        {{range .DivePlans}}
+          <a class="list-group-item list-group-item-action"
+             href="/dive-plan/view/{{.ID}}">
+            <div class="d-flex w-100 justify-content-between">
+              <h4 class="mb-1">
+                {{boolToString .DivePlan.DiveIsPossible "🟢" "🔴"}}
+                {{.Name}}
+              </h4>
+            </div>
+            <p class="mb-1">
+              {{.Runtime}}min@{{.MaxDepth}}m
+              {{if .IsSoloDive}}<strong>solo dive</strong>{{end}}
+            </p>
+            <small>
+              {{.GasAvailable}}L 
+              {{.DivePlan.GasMix.MixType}}
+              ({{printf "%.1f" (multiplyF64 .DivePlan.GasMix.FO2 100.0)}}% O<sub>2</sub>)
+              using {{.MaxPPO2}} PPO<sub>2</sub>,
+              {{.SACRate}} L/min SAC rate
+            </small>
+          </a>
+        {{end}}
+      </div>
+
+    {{pageControls "/dive-plan/" .PageData}}
+
+    {{else}}
+      <p>
+        No dive plans exist yet. Please feel free to
+        <a href="/dive-plan/add">add a new one</a>.
+      </p>
+    {{end}}
+
+  </section>
+{{end}}
+

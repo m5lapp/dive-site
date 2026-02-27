@@ -2424,3 +2424,29 @@ func (app *app) divePlanGET(w http.ResponseWriter, r *http.Request) {
 
 	app.render(w, r, http.StatusOK, "dive_plan/view.tmpl", data)
 }
+
+func (app *app) divePlanList(w http.ResponseWriter, r *http.Request) {
+	const defaultPageSize = 20
+
+	page := app.readInt(r.URL.Query(), "page", 1)
+	pageSize := app.readInt(r.URL.Query(), "page_size", defaultPageSize)
+
+	pager := models.NewPager(page, pageSize, defaultPageSize)
+	userID := app.contextGetUser(r).ID
+
+	divePlans, pageData, err := app.divePlans.List(userID, pager, models.SortDivePlanDefault)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	data.DivePlans = divePlans
+	data.PageData = pageData
+
+	app.render(w, r, http.StatusOK, "dive_plan/list.tmpl", data)
+}
