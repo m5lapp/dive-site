@@ -30,7 +30,7 @@ func (app *app) serverError(w http.ResponseWriter, r *http.Request, err error) {
 	app.log.Error(err.Error(), "method", method, "uri", uri, "trace", trace)
 
 	responseBody := http.StatusText(http.StatusInternalServerError)
-	if app.debug {
+	if app.config.debug {
 		responseBody = fmt.Sprintf("%s\n\n%s\n\n%s", responseBody, err.Error(), trace)
 	}
 

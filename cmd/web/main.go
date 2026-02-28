@@ -57,7 +57,6 @@ type app struct {
 	countries          models.CountryModelInterface
 	currencies         models.CurrencyModelInterface
 	currents           models.CurrentModelInterface
-	debug              bool
 	diveProperties     models.DivePropertyModelInterface
 	dives              models.DiveModelInterface
 	divePlans          models.DivePlanModelInterface
