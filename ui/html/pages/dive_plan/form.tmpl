@@ -113,24 +113,28 @@
           <select {{template "form_field_common_attrs" "dive_factor"}}
                   class="{{template "bootstrap_form_select_class" .Form.FieldErrors.dive_factor}}">
             <option value="1.5"
+              {{with $.Form.DiveFactor}}{{if eq 1.0 .}}selected{{end}}{{end}}>
+              1.0 - Easy
+            </option>
+            <option value="1.2"
+              {{with $.Form.DiveFactor}}{{if eq 1.2 .}}selected{{end}}{{end}}>
+              1.2 - Moderate
+            </option>
+            <option value="1.5"
               {{with $.Form.DiveFactor}}{{if eq 1.5 .}}selected{{end}}{{end}}>
-              1.5 - Easy
+              1.5 - Tough
             </option>
             <option value="1.8"
               {{with $.Form.DiveFactor}}{{if eq 1.8 .}}selected{{end}}{{end}}>
-              1.8 - Moderate
+              1.8 - Stressful
             </option>
             <option value="2.0"
               {{with $.Form.DiveFactor}}{{if eq 2.0 .}}selected{{end}}{{end}}>
-              2.0 - Tough
+              2.0 - Serious Stress
             </option>
             <option value="2.5"
               {{with $.Form.DiveFactor}}{{if eq 2.5 .}}selected{{end}}{{end}}>
-              2.5 - Stressful
-            </option>
-            <option value="3.0"
-              {{with $.Form.DiveFactor}}{{if eq 3.0 .}}selected{{end}}{{end}}>
-              3.0 - Serious Stress
+              2.5 - Extreme Stress
             </option>
           </select>
           {{with .Form.FieldErrors.dive_factor}}

@@ -2268,7 +2268,7 @@ func (dp *divePlanForm) Validate() {
 	)
 
 	dp.CheckField(
-		validator.PermittedValue(dp.DiveFactor, 1.5, 1.8, 2.0, 2.5, 3.0),
+		validator.PermittedValue(dp.DiveFactor, 1.0, 1.2, 1.5, 1.8, 2.0, 2.5),
 		"dive_factor",
 		"This field must be one of the available options",
 	)
@@ -2317,11 +2317,11 @@ func (app *app) divePlanCreateGET(w http.ResponseWriter, r *http.Request) {
 		IsSoloDive:      false,
 		DescentRate:     18.0,
 		AscentRate:      9.0,
-		SACRate:         25.0,
+		SACRate:         12.0,
 		TankCount:       1,
 		TankVolume:      11.0,
 		WorkingPressure: 200,
-		DiveFactor:      1.8,
+		DiveFactor:      1.2,
 		FN2:             0.79,
 		FHe:             0.0,
 		MaxPPO2:         1.4,

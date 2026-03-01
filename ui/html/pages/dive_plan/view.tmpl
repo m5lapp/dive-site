@@ -52,7 +52,13 @@
         </div>
         <div class="list-group-item list-group-item-action flex-fill">
           <h4 class="mb-1">SAC Rate</h4>
-          <p class="mb-1">{{.DivePlan.SACRate}} litres/min</p>
+          <p class="mb-1">
+            {{.DivePlan.SACRate}} litres/min
+            {{- if gt .DivePlan.DiveFactor 1.0 -}}
+              , increased to {{multiplyF64 .DivePlan.SACRate .DivePlan.DiveFactor}}
+              litres/min by dive factor of {{.DivePlan.DiveFactor}}
+            {{end}}
+          </p>
         </div>
       </div>
 
