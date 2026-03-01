@@ -4,6 +4,10 @@
 
 {{define "heading"}}
   {{.DivePlan.String}}
+  <a href="/dive-plan/edit/{{.DivePlan.ID}}"
+     class="btn btn-primary btn-lg">
+    Edit
+  </a>
 {{end}}
 
 {{define "main"}}
@@ -55,7 +59,8 @@
           <p class="mb-1">
             {{.DivePlan.SACRate}} litres/min
             {{- if gt .DivePlan.DiveFactor 1.0 -}}
-              , increased to {{multiplyF64 .DivePlan.SACRate .DivePlan.DiveFactor}}
+              , increased to
+              {{printf "%.2f" (multiplyF64 .DivePlan.SACRate .DivePlan.DiveFactor)}}
               litres/min by dive factor of {{.DivePlan.DiveFactor}}
             {{end}}
           </p>
@@ -84,7 +89,7 @@
       <div class="list-group list-group-horizontal">
         <div class="list-group-item list-group-item-action flex-fill">
           <h4 class="mb-1">Minimum Gas</h4>
-          <p class="mb-1">{{.DivePlan.MinGas}} litres</p>
+          <p class="mb-1">{{printf "%.1f" .DivePlan.MinGas}} litres</p>
         </div>
         <div class="list-group-item list-group-item-action flex-fill">
           <h4 class="mb-1">Gas Spare</h4>

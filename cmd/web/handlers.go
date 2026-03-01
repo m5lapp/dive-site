@@ -2450,3 +2450,138 @@ func (app *app) divePlanList(w http.ResponseWriter, r *http.Request) {
 
 	app.render(w, r, http.StatusOK, "dive_plan/list.tmpl", data)
 }
+
+func (app *app) divePlanUpdateGET(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || id < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	userID := app.contextGetUser(r).ID
+
+	divePlan, err := app.divePlans.GetOneByID(id, userID)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			http.NotFound(w, r)
+		} else {
+			app.serverError(w, r, err)
+		}
+		return
+	}
+
+	data, err := app.newTemplateData(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	var stops []divePlanStopForm
+	for _, stop := range divePlan.Stops {
+		s := divePlanStopForm{
+			Depth:    stop.Depth,
+			Duration: stop.Duration,
+			Comment:  stop.Comment,
+		}
+		stops = append(stops, s)
+	}
+
+	data.Form = divePlanForm{
+		ID:              id,
+		Version:         divePlan.Version,
+		Name:            divePlan.Name,
+		Notes:           divePlan.Notes,
+		IsSoloDive:      divePlan.IsSoloDive,
+		DescentRate:     divePlan.DescentRate,
+		AscentRate:      divePlan.AscentRate,
+		SACRate:         divePlan.SACRate,
+		TankCount:       divePlan.TankCount,
+		TankVolume:      divePlan.TankCapacity,
+		WorkingPressure: divePlan.WorkingPressure,
+		DiveFactor:      divePlan.DiveFactor,
+		FN2:             divePlan.GasMix.FN2,
+		FHe:             divePlan.GasMix.FHe,
+		MaxPPO2:         divePlan.MaxPPO2,
+		Stops:           stops,
+	}
+
+	app.render(w, r, http.StatusOK, "dive_plan/form.tmpl", data)
+}
+
+func (app *app) divePlanUpdatePOST(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil || id < 1 {
+		http.NotFound(w, r)
+		return
+	}
+
+	form := &divePlanForm{}
+	err = app.decodePOSTForm(r, form)
+	if err != nil {
+		app.log.Error("Error whilst decoding dive plan form input", "error", err.Error())
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	form.ID = id
+
+	form.Validate()
+	if !form.Valid() {
+		data, err := app.newTemplateData(r)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		data.Form = form
+		app.render(w, r, http.StatusUnprocessableEntity, "dive_plan/form.tmpl", data)
+		return
+	}
+
+	var stops []models.DivePlanStopInput
+	for _, stop := range form.Stops {
+		s := models.DivePlanStopInput{
+			Depth:    stop.Depth,
+			Duration: stop.Duration,
+			Comment:  stop.Comment,
+		}
+		stops = append(stops, s)
+	}
+
+	err = app.divePlans.Update(
+		id,
+		app.contextGetUser(r).ID,
+		form.Name,
+		form.Notes,
+		form.IsSoloDive,
+		form.DescentRate,
+		form.AscentRate,
+		form.SACRate,
+		form.TankCount,
+		form.TankVolume,
+		form.WorkingPressure,
+		form.DiveFactor,
+		form.FN2,
+		form.FHe,
+		form.MaxPPO2,
+		stops,
+	)
+	if err != nil {
+		switch err {
+		case models.ErrNoRecord:
+			msg := `The dive plan you are trying to change does not exist or you
+                    do not have permission to edit it.`
+			app.sessionManager.Put(r.Context(), "flashError", msg)
+			http.Redirect(w, r, "/dive-plan/", http.StatusSeeOther)
+		default:
+			app.serverError(w, r, err)
+		}
+
+		return
+	}
+
+	msg := "Dive plan " + form.Name + " has been updated successfully."
+	app.sessionManager.Put(r.Context(), "flashSuccess", msg)
+
+	nextUrl := fmt.Sprintf("/dive-plan/view/%d", id)
+	http.Redirect(w, r, nextUrl, http.StatusSeeOther)
+}

@@ -64,8 +64,8 @@ func (app *app) routes() http.Handler {
 	mux.Handle("GET  /dive-plan/", protected.ThenFunc(app.divePlanList))
 	mux.Handle("GET  /dive-plan/add", protected.ThenFunc(app.divePlanCreateGET))
 	mux.Handle("POST /dive-plan/add", protected.ThenFunc(app.divePlanCreatePOST))
-	// mux.Handle("GET  /dive-plan/edit/{id}", protected.ThenFunc(app.divePlanUpdateGET))
-	// mux.Handle("POST /dive-plan/edit/{id}", protected.ThenFunc(app.divePlanUpdatePOST))
+	mux.Handle("GET  /dive-plan/edit/{id}", protected.ThenFunc(app.divePlanUpdateGET))
+	mux.Handle("POST /dive-plan/edit/{id}", protected.ThenFunc(app.divePlanUpdatePOST))
 	mux.Handle("GET  /dive-plan/view/{id}", protected.ThenFunc(app.divePlanGET))
 
 	standard := alice.New(app.recoverPanic, app.logRequest, app.commonHeaders)

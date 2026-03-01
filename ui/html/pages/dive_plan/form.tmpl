@@ -112,7 +112,7 @@
           <label class="form-label" for="id_dive_factor">Dive Factor *</label>
           <select {{template "form_field_common_attrs" "dive_factor"}}
                   class="{{template "bootstrap_form_select_class" .Form.FieldErrors.dive_factor}}">
-            <option value="1.5"
+            <option value="1.0"
               {{with $.Form.DiveFactor}}{{if eq 1.0 .}}selected{{end}}{{end}}>
               1.0 - Easy
             </option>
@@ -225,5 +225,4 @@
     </form>
   </section>
 {{end}}
-
 

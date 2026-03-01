@@ -94,6 +94,25 @@ type DivePlanModelInterface interface {
 		stops []DivePlanStopInput,
 	) (int, error)
 
+	Update(
+		id int,
+		ownerID int,
+		name string,
+		notes string,
+		isSoloDive bool,
+		descentRate float64,
+		ascentRate float64,
+		sacRate float64,
+		tankCount int,
+		tankVolume float64,
+		workingPressure int,
+		diveFactor float64,
+		fn2 float64,
+		fhe float64,
+		maxPPO2 float64,
+		stops []DivePlanStopInput,
+	) error
+
 	GetOneByID(id, diverID int) (DivePlan, error)
 
 	List(diverID int, ListControls Pager, sort []SortDivePlan) ([]DivePlan, PageData, error)
@@ -182,6 +201,47 @@ type DivePlanStopInput struct {
 	Comment  string
 }
 
+func insertDivePlanStops(
+	ctx context.Context,
+	db sqlExecer,
+	deleteBeforeInsert bool,
+	divePlanID int,
+	stops []DivePlanStopInput,
+) error {
+	if deleteBeforeInsert {
+		stopDeleteStmt := `delete from dive_plan_stops where dive_plan_id = $1`
+		_, err := db.ExecContext(ctx, stopDeleteStmt, divePlanID)
+		if err != nil {
+			return err
+		}
+	}
+
+	stopStmt := strings.Builder{}
+	stopStmt.WriteString("insert into dive_plan_stops (")
+	stopStmt.WriteString("sort, dive_plan_id, depth, duration, comment")
+	stopStmt.WriteString(") values ")
+
+	var params []any
+	for i, stop := range stops {
+		j := i * 5
+
+		if i > 0 {
+			stopStmt.WriteString(",")
+		}
+
+		stopStmt.WriteString(fmt.Sprintf("($%d, $%d, $%d, $%d, $%d)", j+1, j+2, j+3, j+4, j+5))
+		params = append(params, i, divePlanID, stop.Depth, stop.Duration, stop.Comment)
+	}
+
+	_, err := db.ExecContext(
+		ctx,
+		stopStmt.String(),
+		params...,
+	)
+
+	return err
+}
+
 func (m *DivePlanModel) Insert(
 	ownerID int,
 	name string,
@@ -248,30 +308,7 @@ func (m *DivePlanModel) Insert(
 		return 0, err
 	}
 
-	stopStmt := strings.Builder{}
-	stopStmt.WriteString("insert into dive_plan_stops (")
-	stopStmt.WriteString("sort, dive_plan_id, depth, duration, comment")
-	stopStmt.WriteString(") values ")
-
-	var params []any
-
-	for i, stop := range stops {
-		j := i * 5
-
-		if i > 0 {
-			stopStmt.WriteString(",")
-		}
-		stopStmt.WriteString(fmt.Sprintf("($%d, $%d, $%d, $%d, $%d)", j+1, j+2, j+3, j+4, j+5))
-
-		params = append(params, i, id, stop.Depth, stop.Duration, stop.Comment)
-	}
-
-	_, err = tx.ExecContext(
-		ctx,
-		stopStmt.String(),
-		params...,
-	)
-
+	err = insertDivePlanStops(ctx, tx, false, id, stops)
 	if err != nil {
 		return 0, fmt.Errorf("failed to insert plan stops: %w", err)
 	}
@@ -282,6 +319,96 @@ func (m *DivePlanModel) Insert(
 	}
 
 	return id, nil
+}
+
+func (m *DivePlanModel) Update(
+	id int,
+	ownerID int,
+	name string,
+	notes string,
+	isSoloDive bool,
+	descentRate float64,
+	ascentRate float64,
+	sacRate float64,
+	tankCount int,
+	tankVolume float64,
+	workingPressure int,
+	diveFactor float64,
+	fn2 float64,
+	fhe float64,
+	maxPPO2 float64,
+	stops []DivePlanStopInput,
+) error {
+	stmt := `
+        update dive_plans
+           set version = version + 1, updated_at = now(), name = $3, notes = $4,
+               is_solo_dive = $5, descent_rate = $6, ascent_rate = $7,
+               sac_rate = $8, tank_count = $9, tank_volume = $10,
+               working_pressure = $11, dive_factor = $12, fn2 = $13, fhe = $14,
+               max_ppo2 = $15
+         where id = $1
+           and owner_id = $2
+    `
+
+	if len(stops) == 0 {
+		return fmt.Errorf("no stops provided, cannot update dive plan")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	tx, err := m.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to start db transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	result, err := tx.ExecContext(
+		ctx,
+		stmt,
+		id,
+		ownerID,
+		name,
+		notes,
+		isSoloDive,
+		descentRate,
+		ascentRate,
+		sacRate,
+		tankCount,
+		tankVolume,
+		workingPressure,
+		diveFactor,
+		fn2,
+		fhe,
+		maxPPO2,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil || rowsAffected != 1 {
+		if rowsAffected == 0 {
+			return ErrNoRecord
+		} else if rowsAffected > 1 {
+			return &ErrUnexpectedRowsAffected{rowsExpected: 1, rowsAffected: int(rowsAffected)}
+		}
+
+		return err
+	}
+
+	err = insertDivePlanStops(ctx, tx, true, id, stops)
+	if err != nil {
+		return fmt.Errorf("failed to insert plan stops: %w", err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("failed to commit db transaction: %w", err)
+	}
+
+	return nil
 }
 
 func (m *DivePlanModel) GetOneByID(id, ownerID int) (DivePlan, error) {
