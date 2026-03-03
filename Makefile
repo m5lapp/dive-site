@@ -1,6 +1,9 @@
 # The dash here ignores any errors if the included file does not exist.
 -include .env
 
+# Add the path to your container runtime of choice here or in the .env file.
+CONTAINER_RUNTIME ?= /usr/bin/docker
+
 # ============================================================================ #
 # HELPERS
 # ============================================================================ #
@@ -91,7 +94,7 @@ db/run:
 .PHONY: db/start/integration
 db/start/integration:
 	@echo "Starting new database instance for integration testing..."
-	podman container run \
+	${CONTAINER_RUNTIME} container run \
 		-d --rm \
 		--name divesite-integration-test-db \
 		-e POSTGRES_USER=divesite_integration_test \
@@ -103,7 +106,7 @@ db/start/integration:
 .PHONY: db/stop/integration
 db/stop/integration:
 	@echo "Stop the database instance for integration testing..."
-	podman container stop divesite-integration-test-db
+	${CONTAINER_RUNTIME} container stop divesite-integration-test-db
 
 ## db/migrations/new name=$1: Create a new database migration
 .PHONY: db/migrations/new

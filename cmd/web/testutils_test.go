@@ -55,6 +55,7 @@ func newTestApplication(t *testing.T) *app {
 		countries:          &mocks.CountryModel{},
 		currencies:         &mocks.CurrencyModel{},
 		currents:           &mocks.CurrentModel{},
+		divePlans:          &mocks.DivePlanModel{},
 		diveProperties:     &mocks.DivePropertyModel{},
 		dives:              &mocks.DiveModel{},
 		diveSites:          &mocks.DiveSiteModel{},
