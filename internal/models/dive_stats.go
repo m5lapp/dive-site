@@ -120,9 +120,7 @@ func statsFromDBRow(rs RowScanner, stats *aggregateDiveStats, otherData ...any) 
 	}
 
 	// Merge the items from otherData into the slice of destinations.
-	for _, item := range otherData {
-		destinations = append(destinations, item)
-	}
+	destinations = append(destinations, otherData...)
 
 	err := rs.Scan(destinations...)
 	if err != nil {

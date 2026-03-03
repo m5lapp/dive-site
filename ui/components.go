@@ -215,12 +215,12 @@ func BSDateField(
 			Max(maxTime.Format(inputFormat)),
 			Step(fmt.Sprintf("%d", step)),
 			g.If(
-				value.IsZero() == true,
+				value.IsZero(),
 				// By default, truncate the seconds to zero. This will make the
 				// date picker show just hours and minutes in the browser.
 				Value(defaultTime.Truncate(time.Minute).Format(inputFormat)),
 			),
-			g.If(value.IsZero() == false, Value(value.Format(inputFormat))),
+			g.If(!value.IsZero(), Value(value.Format(inputFormat))),
 		),
 		g.If(
 			fieldErr != "",

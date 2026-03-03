@@ -12,7 +12,7 @@ import (
 // of them can be parsed. If the slice of timeFormats is nil or empty, then a
 // default selection will be used.
 func FormDecoderRegisterTimeType(fd *form.Decoder, timeFormats []string) {
-	if timeFormats == nil || len(timeFormats) == 0 {
+	if len(timeFormats) == 0 {
 		timeFormats = []string{
 			time.DateOnly,
 			time.TimeOnly,
@@ -24,7 +24,7 @@ func FormDecoderRegisterTimeType(fd *form.Decoder, timeFormats []string) {
 		}
 	}
 
-	fd.RegisterCustomTypeFunc(func(vals []string) (interface{}, error) {
+	fd.RegisterCustomTypeFunc(func(vals []string) (any, error) {
 		timeStr := vals[0]
 
 		for _, format := range timeFormats {
@@ -41,7 +41,7 @@ func FormDecoderRegisterTimeType(fd *form.Decoder, timeFormats []string) {
 
 // Registers a custom form decoder for time.Location time zone locations.
 func FormDecoderRegisterTimeLocationType(fd *form.Decoder) {
-	fd.RegisterCustomTypeFunc(func(vals []string) (interface{}, error) {
+	fd.RegisterCustomTypeFunc(func(vals []string) (any, error) {
 		locationStr := vals[0]
 		location, err := time.LoadLocation(locationStr)
 

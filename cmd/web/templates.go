@@ -65,7 +65,7 @@ func getOSTimeZones() []string {
 	for _, zoneDir := range zonesDirs {
 		zones = walkTZDir(zoneDir, zones)
 
-		for i, _ := range zones {
+		for i := range zones {
 			zones[i] = strings.TrimPrefix(zones[i], zoneDir)
 
 			// Check that each timezone value can be loaded successfully.
@@ -263,7 +263,7 @@ func recursiveGlob(filesystem fs.FS, dir string, ext string) ([]string, error) {
 func newTemplateCache() (map[string]*template.Template, error) {
 	cache := map[string]*template.Template{}
 	pagesDir := "html/pages"
-	pages := []string{}
+	var pages []string
 
 	pages, err := recursiveGlob(ui.Files, pagesDir, ".tmpl")
 	if err != nil {
