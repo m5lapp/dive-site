@@ -17,9 +17,15 @@ import (
 )
 
 type config struct {
-	addr       string
-	debug      bool
-	dsn        string
+	addr  string
+	debug bool
+	db    struct {
+		dsn             string
+		maxOpenConns    int
+		maxIdleConns    int
+		maxConnLifetime time.Duration
+		maxConnIdleTime time.Duration
+	}
 	termPeriod time.Duration
 	tlsCert    string
 	tlsKey     string
@@ -79,11 +85,16 @@ type app struct {
 	waves              models.WavesModelInterface
 }
 
-func openDB(dsn string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", dsn)
+func openDB(cfg config) (*sql.DB, error) {
+	db, err := sql.Open("postgres", cfg.db.dsn)
 	if err != nil {
 		return nil, err
 	}
+
+	db.SetMaxOpenConns(cfg.db.maxOpenConns)
+	db.SetMaxIdleConns(cfg.db.maxIdleConns)
+	db.SetConnMaxLifetime(cfg.db.maxConnLifetime)
+	db.SetConnMaxIdleTime(cfg.db.maxConnIdleTime)
 
 	err = db.Ping()
 	if err != nil {
@@ -98,7 +109,21 @@ func main() {
 	var cfg config
 	flag.StringVar(&cfg.addr, "addr", ":8080", "HTTP network address")
 	flag.BoolVar(&cfg.debug, "debug", false, "Turn on debug mode")
-	flag.StringVar(&cfg.dsn, "db-dsn", "", "PostgreSQL data source name")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "", "PostgreSQL data source name")
+	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 0, "PostgreSQL max open connections")
+	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 0, "PostgreSQL max idle connections")
+	flag.DurationVar(
+		&cfg.db.maxConnLifetime,
+		"db-max-conn-lifetime",
+		0*time.Second,
+		"PostgreSQL max connection idle time",
+	)
+	flag.DurationVar(
+		&cfg.db.maxConnIdleTime,
+		"db-max-conn-idle-time",
+		0*time.Second,
+		"PostgreSQL max connection idle time",
+	)
 	flag.DurationVar(&cfg.termPeriod, "term-period", 30*time.Second, "Termination grace period")
 	flag.StringVar(&cfg.tlsCert, "tls-cert", "", "TLS cert file path if TLS is required")
 	flag.StringVar(&cfg.tlsKey, "tls-key", "", "TLS key file path if TLS is required")
@@ -114,7 +139,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	db, err := openDB(cfg.dsn)
+	db, err := openDB(cfg)
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(3)
