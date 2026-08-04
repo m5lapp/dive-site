@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
 )
 
 type AgencyModelInterface interface {
@@ -30,7 +29,8 @@ type nullableAgency struct {
 }
 
 type AgencyModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 func (na nullableAgency) ToStruct() *Agency {
@@ -62,7 +62,7 @@ func (m *AgencyModel) List() ([]Agency, error) {
 		return agencyList, nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, agencyListQuery)
@@ -103,7 +103,8 @@ type AgencyCourseModelInterface interface {
 }
 
 type AgencyCourseModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 type AgencyCourse struct {
@@ -165,7 +166,7 @@ func (m *AgencyCourseModel) List() ([]AgencyCourse, error) {
 		return agencyCourseList, nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, agencyCourseListQuery)

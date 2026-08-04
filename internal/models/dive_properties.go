@@ -4,13 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
 
 	"github.com/lib/pq"
 )
 
 type DivePropertyModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 type DivePropertyModelInterface interface {
@@ -43,7 +43,7 @@ var divePropertySelectQuery string = `
 `
 
 func (m *DivePropertyModel) getMultiple(query string, args ...any) ([]DiveProperty, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Standard)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, query, args...)
@@ -137,7 +137,7 @@ func (m DivePropertyModel) AllExist(ids []int) (bool, error) {
 		return true, nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Standard)
 	defer cancel()
 	stmt := `
         select count(id) = $1 as all_exist

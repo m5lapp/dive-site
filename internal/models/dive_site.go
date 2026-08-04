@@ -171,7 +171,8 @@ func diveSiteFromDBRow(rs RowScanner, totalRecords *int, ds *DiveSite) error {
 }
 
 type DiveSiteModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 func (m *DiveSiteModel) Insert(
@@ -202,7 +203,7 @@ func (m *DiveSiteModel) Insert(
         returning id
     `
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	result := m.DB.QueryRowContext(
@@ -264,7 +265,7 @@ func (m *DiveSiteModel) Update(
      returning version
     `
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	result := m.DB.QueryRowContext(
@@ -311,7 +312,7 @@ func (m *DiveSiteModel) Update(
 
 func (m *DiveSiteModel) GetOneByID(id, ownerID int) (DiveSite, error) {
 	stmt := fmt.Sprintf("%s where ds.id = $2", diveSiteSelectQuery)
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Standard)
 	defer cancel()
 
 	var totalRecords int
@@ -339,7 +340,7 @@ func (m *DiveSiteModel) List(
 	offset := filters.offset()
 	order := buildOrderByClause(sort, SortDiveSiteIDAsc)
 	stmt := fmt.Sprintf("%s %s limit $2 offset $3", diveSiteSelectQuery, order)
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, stmt, diverID, limit, offset)
@@ -374,7 +375,7 @@ func (m *DiveSiteModel) List(
 }
 
 func (m *DiveSiteModel) ListAll(diverID int) ([]DiveSite, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	order := buildOrderByClause(SortDiveSiteDefault, SortDiveSiteIDAsc)
@@ -409,7 +410,8 @@ func (m *DiveSiteModel) Exists(id int) (bool, error) {
 }
 
 type WaterBodyModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 type WaterBodyModelInterface interface {
@@ -431,7 +433,7 @@ func (m *WaterBodyModel) List() ([]WaterBody, error) {
 		return waterBodyList, nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Standard)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, waterBodyListQuery)
@@ -462,7 +464,8 @@ func (m *WaterBodyModel) List() ([]WaterBody, error) {
 }
 
 type WaterTypeModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 type WaterTypeModelInterface interface {
@@ -484,7 +487,7 @@ func (m *WaterTypeModel) List() ([]WaterType, error) {
 		return waterTypeList, nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Standard)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, waterTypeListQuery)

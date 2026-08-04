@@ -64,7 +64,8 @@ type UserModelInterface interface {
 }
 
 type UserModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 func (m *UserModel) Insert(
@@ -110,7 +111,7 @@ func (m *UserModel) Insert(
 }
 
 func (m *UserModel) Authenticate(email, password string) (int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	var id int
@@ -201,7 +202,7 @@ func (m *UserModel) GetByID(id int) (User, error) {
 }
 
 func (m UserModel) UpdatePassword(userID int, currentPassword, newPassword string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Complex)
 	defer cancel()
 
 	var currentPasswordHashed []byte
@@ -264,7 +265,7 @@ func (m UserModel) Update(
 	defaultDivingTZ TimeZone,
 	darkMode bool,
 ) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	stmt := `

@@ -198,7 +198,8 @@ func operatorFromDBRow(rs RowScanner, totalRecords *int, op *Operator) error {
 }
 
 type OperatorModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 func (m *OperatorModel) Exists(id int) (bool, error) {
@@ -229,7 +230,7 @@ func (m *OperatorModel) Insert(
         returning id
     `
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Standard)
 	defer cancel()
 
 	result := m.DB.QueryRowContext(
@@ -268,7 +269,7 @@ func (m *OperatorModel) List(
 	orderBy := buildOrderByClause(sort, SortOperatorIDAsc)
 	stmt := fmt.Sprintf("%s %s limit $2 offset $3", operatorSelectQuery, orderBy)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, stmt, userID, limit, offset)
@@ -306,7 +307,7 @@ func (m *OperatorModel) ListAll(userID int, sort []SortOperator) ([]Operator, er
 	orderBy := buildOrderByClause(sort, SortOperatorIDAsc)
 	stmt := fmt.Sprintf("%s %s", operatorSelectQuery, orderBy)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, stmt, userID)
@@ -335,7 +336,8 @@ func (m *OperatorModel) ListAll(userID int, sort []SortOperator) ([]Operator, er
 }
 
 type OperatorTypeModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 type OperatorTypeModelInterface interface {
@@ -362,7 +364,7 @@ func (m *OperatorTypeModel) List() ([]OperatorType, error) {
 		return operatorTypeList, nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Standard)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, operatorTypeListQuery)

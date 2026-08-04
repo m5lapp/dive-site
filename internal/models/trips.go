@@ -242,7 +242,8 @@ func tripFromDBRow(rs RowScanner, totalRecords *int, tr *Trip) error {
 }
 
 type TripModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 func (m *TripModel) Exists(id int) (bool, error) {
@@ -271,7 +272,7 @@ func (m *TripModel) Insert(
         returning id
     `
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Standard)
 	defer cancel()
 
 	result := m.DB.QueryRowContext(
@@ -304,7 +305,7 @@ func (m *TripModel) List(userID int, pager Pager, sort []SortTrip) ([]Trip, Page
 	orderBy := buildOrderByClause(sort, SortTripIDAsc)
 	stmt := fmt.Sprintf("%s %s limit $2 offset $3", tripSelectQuery, orderBy)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, stmt, userID, limit, offset)
@@ -342,7 +343,7 @@ func (m *TripModel) ListAll(userID int, sort []SortTrip) ([]Trip, error) {
 	orderBy := buildOrderByClause(sort, SortTripIDAsc)
 	stmt := fmt.Sprintf("%s %s", tripSelectQuery, orderBy)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, stmt, userID)

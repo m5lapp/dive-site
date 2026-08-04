@@ -3,11 +3,11 @@ package models
 import (
 	"context"
 	"database/sql"
-	"time"
 )
 
 type CurrencyModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 type CurrencyModelInterface interface {
@@ -62,7 +62,7 @@ func (m *CurrencyModel) List() ([]Currency, error) {
 		return currencyList, nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, currencyListQuery)
@@ -99,7 +99,8 @@ func (m *CurrencyModel) List() ([]Currency, error) {
 }
 
 type CountryModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 type CountryModelInterface interface {
@@ -166,7 +167,7 @@ func (m *CountryModel) List() ([]Country, error) {
 		return countryList, nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, countryListQuery)

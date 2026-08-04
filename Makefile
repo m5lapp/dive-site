@@ -118,20 +118,18 @@ db/migrations/new:
 .PHONY: db/migrations/up
 db/migrations/up: confirm
 	@echo "Running ${n} up migrations..."
-	@# For some reason, migrate requires sslmode=disable in the DSN string.
 	migrate \
 		--path ./migrations/ \
-		--database ${DIVESITE_DB_DSN}?sslmode=disable \
+		--database ${DIVESITE_DB_DSN} \
 		up ${n}
 
 ## db/migrations/down n=$1: Apply all or N down database migrations
 .PHONY: db/migrations/down
 db/migrations/down: confirm
 	@echo "Running ${n} down migrations..."
-	@# For some reason, migrate requires sslmode=disable in the DSN string.
 	migrate \
 		--path ./migrations/ \
-		--database ${DIVESITE_DB_DSN}?sslmode=disable \
+		--database ${DIVESITE_DB_DSN} \
 		down ${n}
 
 ## db/migrations/clean: Set the migration status to clean for retrying.

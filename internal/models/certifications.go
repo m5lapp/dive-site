@@ -266,7 +266,8 @@ func certificationFromDBRow(rs RowScanner, totalRecords *int, ce *Certification)
 }
 
 type CertificationModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 func (m *CertificationModel) Exists(id int) (bool, error) {
@@ -295,7 +296,7 @@ func (m *CertificationModel) Insert(
         returning id
     `
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Standard)
 	defer cancel()
 
 	result := m.DB.QueryRowContext(
@@ -332,7 +333,7 @@ func (m *CertificationModel) List(
 	orderBy := buildOrderByClause(sort, SortCertIDAsc)
 	stmt := fmt.Sprintf("%s %s limit $2 offset $3", certificationSelectQuery, orderBy)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, stmt, userID, limit, offset)
@@ -370,7 +371,7 @@ func (m *CertificationModel) ListAll(userID int, sort []SortCert) ([]Certificati
 	orderBy := buildOrderByClause(sort, SortCertIDAsc)
 	stmt := fmt.Sprintf("%s %s", certificationSelectQuery, orderBy)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, stmt, userID)

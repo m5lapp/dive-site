@@ -25,6 +25,7 @@ type config struct {
 		maxIdleConns    int
 		maxConnLifetime time.Duration
 		maxConnIdleTime time.Duration
+		timeouts        models.QueryTimeouts
 	}
 	termPeriod time.Duration
 	tlsCert    string
@@ -124,6 +125,36 @@ func main() {
 		0*time.Second,
 		"PostgreSQL max connection idle time",
 	)
+	flag.DurationVar(
+		&cfg.db.timeouts.Quick,
+		"query-timeout-quick",
+		1*time.Second,
+		"DB timeout for quick, simple queries",
+	)
+	flag.DurationVar(
+		&cfg.db.timeouts.Standard,
+		"query-timeout-standard",
+		3*time.Second,
+		"DB timeout for standard queries",
+	)
+	flag.DurationVar(
+		&cfg.db.timeouts.Moderate,
+		"query-timeout-moderate",
+		5*time.Second,
+		"DB timeout for more demanding queries",
+	)
+	flag.DurationVar(
+		&cfg.db.timeouts.Complex,
+		"query-timeout-complex",
+		10*time.Second,
+		"DB timeout for complex queries",
+	)
+	flag.DurationVar(
+		&cfg.db.timeouts.Bulk,
+		"query-timeout-bulk",
+		20*time.Second,
+		"DB timeout for large, bulk queries",
+	)
 	flag.DurationVar(&cfg.termPeriod, "term-period", 30*time.Second, "Termination grace period")
 	flag.StringVar(&cfg.tlsCert, "tls-cert", "", "TLS cert file path if TLS is required")
 	flag.StringVar(&cfg.tlsKey, "tls-key", "", "TLS key file path if TLS is required")
@@ -161,34 +192,34 @@ func main() {
 		config:             cfg,
 		log:                logger,
 		templateCache:      templateCache,
-		agencies:           &models.AgencyModel{DB: db},
-		agencyCourses:      &models.AgencyCourseModel{DB: db},
-		buddies:            &models.BuddyModel{DB: db},
-		buddyRoles:         &models.BuddyRoleModel{DB: db},
-		certifications:     &models.CertificationModel{DB: db},
-		countries:          &models.CountryModel{DB: db},
-		currencies:         &models.CurrencyModel{DB: db},
-		currents:           &models.CurrentModel{DB: db},
-		diveProperties:     &models.DivePropertyModel{DB: db},
-		divePlans:          &models.DivePlanModel{DB: db},
-		diveSites:          &models.DiveSiteModel{DB: db},
-		entryPoints:        &models.EntryPointModel{DB: db},
-		equipment:          &models.EquipmentModel{DB: db},
+		agencies:           &models.AgencyModel{DB: db, Timeouts: cfg.db.timeouts},
+		agencyCourses:      &models.AgencyCourseModel{DB: db, Timeouts: cfg.db.timeouts},
+		buddies:            &models.BuddyModel{DB: db, Timeouts: cfg.db.timeouts},
+		buddyRoles:         &models.BuddyRoleModel{DB: db, Timeouts: cfg.db.timeouts},
+		certifications:     &models.CertificationModel{DB: db, Timeouts: cfg.db.timeouts},
+		countries:          &models.CountryModel{DB: db, Timeouts: cfg.db.timeouts},
+		currencies:         &models.CurrencyModel{DB: db, Timeouts: cfg.db.timeouts},
+		currents:           &models.CurrentModel{DB: db, Timeouts: cfg.db.timeouts},
+		diveProperties:     &models.DivePropertyModel{DB: db, Timeouts: cfg.db.timeouts},
+		divePlans:          &models.DivePlanModel{DB: db, Timeouts: cfg.db.timeouts},
+		diveSites:          &models.DiveSiteModel{DB: db, Timeouts: cfg.db.timeouts},
+		entryPoints:        &models.EntryPointModel{DB: db, Timeouts: cfg.db.timeouts},
+		equipment:          &models.EquipmentModel{DB: db, Timeouts: cfg.db.timeouts},
 		formDecoder:        formDecoder,
-		gasMixes:           &models.GasMixModel{DB: db},
-		operators:          &models.OperatorModel{DB: db},
-		operatorTypes:      &models.OperatorTypeModel{DB: db},
+		gasMixes:           &models.GasMixModel{DB: db, Timeouts: cfg.db.timeouts},
+		operators:          &models.OperatorModel{DB: db, Timeouts: cfg.db.timeouts},
+		operatorTypes:      &models.OperatorTypeModel{DB: db, Timeouts: cfg.db.timeouts},
 		sessionManager:     sessionManager,
-		tankConfigurations: &models.TankConfigurationModel{DB: db},
-		tankMaterials:      &models.TankMaterialModel{DB: db},
-		trips:              &models.TripModel{DB: db},
-		users:              &models.UserModel{DB: db},
-		waterBodies:        &models.WaterBodyModel{DB: db},
-		waterTypes:         &models.WaterTypeModel{DB: db},
-		waves:              &models.WavesModel{DB: db},
+		tankConfigurations: &models.TankConfigurationModel{DB: db, Timeouts: cfg.db.timeouts},
+		tankMaterials:      &models.TankMaterialModel{DB: db, Timeouts: cfg.db.timeouts},
+		trips:              &models.TripModel{DB: db, Timeouts: cfg.db.timeouts},
+		users:              &models.UserModel{DB: db, Timeouts: cfg.db.timeouts},
+		waterBodies:        &models.WaterBodyModel{DB: db, Timeouts: cfg.db.timeouts},
+		waterTypes:         &models.WaterTypeModel{DB: db, Timeouts: cfg.db.timeouts},
+		waves:              &models.WavesModel{DB: db, Timeouts: cfg.db.timeouts},
 	}
 
-	dm, err := models.NewDiveModel(db, app.equipment, app.diveProperties)
+	dm, err := models.NewDiveModel(db, cfg.db.timeouts, app.equipment, app.diveProperties)
 	if err != nil {
 		app.log.Error("Could not instantiate DiveModel: " + err.Error())
 		os.Exit(4)

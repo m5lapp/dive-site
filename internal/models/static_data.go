@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
 )
 
 type StaticDataItem struct {
@@ -33,6 +32,7 @@ var staticDataItemSelectQuery string = `
 
 func listStaticDataItems(
 	db *sql.DB,
+	timeouts QueryTimeouts,
 	table staticDataItemTable,
 	sortByName bool,
 ) ([]StaticDataItem, error) {
@@ -50,7 +50,7 @@ func listStaticDataItems(
 	}
 	stmt := fmt.Sprintf(staticDataItemSelectQuery, table, sortColumn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeouts.Moderate)
 	defer cancel()
 
 	rows, err := db.QueryContext(ctx, stmt)
@@ -144,7 +144,8 @@ type Current struct {
 }
 
 type CurrentModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 const currentTable staticDataItemTable = "currents"
@@ -154,7 +155,7 @@ func (m *CurrentModel) Exists(id int) (bool, error) {
 }
 
 func (m *CurrentModel) List(sortByName bool) ([]Current, error) {
-	staticDataItems, err := listStaticDataItems(m.DB, currentTable, sortByName)
+	staticDataItems, err := listStaticDataItems(m.DB, m.Timeouts, currentTable, sortByName)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to list items from table %s: %w", currentTable, err)
@@ -180,7 +181,8 @@ type EntryPoint struct {
 }
 
 type EntryPointModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 const entrypointTable staticDataItemTable = "entry_points"
@@ -190,7 +192,7 @@ func (m *EntryPointModel) Exists(id int) (bool, error) {
 }
 
 func (m *EntryPointModel) List(sortByName bool) ([]EntryPoint, error) {
-	staticDataItems, err := listStaticDataItems(m.DB, entrypointTable, sortByName)
+	staticDataItems, err := listStaticDataItems(m.DB, m.Timeouts, entrypointTable, sortByName)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to list items from table %s: %w", entrypointTable, err)
@@ -217,7 +219,8 @@ type GasMix struct {
 }
 
 type GasMixModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 const gasMixTable staticDataItemTable = "gas_mixes"
@@ -245,7 +248,7 @@ func (m *GasMixModel) GetOneByID(id int) (GasMix, error) {
 }
 
 func (m *GasMixModel) List(sortByName bool) ([]GasMix, error) {
-	staticDataItems, err := listStaticDataItems(m.DB, gasMixTable, sortByName)
+	staticDataItems, err := listStaticDataItems(m.DB, m.Timeouts, gasMixTable, sortByName)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to list items from table %s: %w", gasMixTable, err)
@@ -272,7 +275,8 @@ type TankConfiguration struct {
 }
 
 type TankConfigurationModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 const tankConfigurationTable staticDataItemTable = "tank_configurations"
@@ -294,7 +298,7 @@ func (m *TankConfigurationModel) List(sortByName bool) ([]TankConfiguration, err
 	stmt = fmt.Sprintf(stmt, tankConfigurationTable, sortColumn)
 
 	errMsg := "failed to list items from table %s: %w"
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Standard)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, stmt)
@@ -340,7 +344,8 @@ type TankMaterial struct {
 }
 
 type TankMaterialModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 const tankMaterialTable staticDataItemTable = "tank_materials"
@@ -350,7 +355,7 @@ func (m *TankMaterialModel) Exists(id int) (bool, error) {
 }
 
 func (m *TankMaterialModel) List(sortByName bool) ([]TankMaterial, error) {
-	staticDataItems, err := listStaticDataItems(m.DB, tankMaterialTable, sortByName)
+	staticDataItems, err := listStaticDataItems(m.DB, m.Timeouts, tankMaterialTable, sortByName)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to list items from table %s: %w", tankMaterialTable, err)
@@ -376,7 +381,8 @@ type Waves struct {
 }
 
 type WavesModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 const wavesTable staticDataItemTable = "waves"
@@ -386,7 +392,7 @@ func (m *WavesModel) Exists(id int) (bool, error) {
 }
 
 func (m *WavesModel) List(sortByName bool) ([]Waves, error) {
-	staticDataItems, err := listStaticDataItems(m.DB, wavesTable, sortByName)
+	staticDataItems, err := listStaticDataItems(m.DB, m.Timeouts, wavesTable, sortByName)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to list items from table %s: %w", wavesTable, err)

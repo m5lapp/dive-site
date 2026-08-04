@@ -4,13 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
 
 	"github.com/lib/pq"
 )
 
 type EquipmentModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 type EquipmentModelInterface interface {
@@ -43,7 +43,7 @@ var equipmentSelectQuery string = `
 `
 
 func (m *EquipmentModel) getMultiple(query string, args ...any) ([]Equipment, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, query, args...)
@@ -137,7 +137,7 @@ func (m EquipmentModel) AllExist(ids []int) (bool, error) {
 		return true, nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Standard)
 	defer cancel()
 	stmt := `
         select count(id) = $1 as all_exist

@@ -155,7 +155,8 @@ func buddyFromDBRow(rs RowScanner, totalRecords *int, bu *Buddy) error {
 }
 
 type BuddyModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 func (m *BuddyModel) Exists(id int) (bool, error) {
@@ -181,7 +182,7 @@ func (m *BuddyModel) Insert(
         returning id
     `
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Standard)
 	defer cancel()
 
 	result := m.DB.QueryRowContext(
@@ -214,7 +215,7 @@ func (m *BuddyModel) List(userID int, pager Pager, sort []SortBuddy) ([]Buddy, P
 		buildOrderByClause(sort, SortBuddyIDAsc),
 	)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, stmt, userID, limit, offset)
@@ -252,7 +253,7 @@ func (m *BuddyModel) ListAll(userID int, sort []SortBuddy) ([]Buddy, error) {
 	orderBy := buildOrderByClause(sort, SortBuddyIDAsc)
 	stmt := fmt.Sprintf("%s %s", buddySelectQuery, orderBy)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, stmt, userID)
@@ -305,7 +306,8 @@ func (nb nullableBuddyRole) ToStruct() *BuddyRole {
 }
 
 type BuddyRoleModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 type BuddyRoleModelInterface interface {
@@ -332,7 +334,7 @@ func (m *BuddyRoleModel) List() ([]BuddyRole, error) {
 		return buddyRoleList, nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, buddyRoleListQuery)

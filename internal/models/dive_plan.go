@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"html/template"
 	"strings"
-	"time"
 
 	"github.com/m5lapp/diveplanner"
 	"github.com/m5lapp/diveplanner/gasmix"
@@ -192,7 +191,8 @@ func divePlanFromDBRow(rs RowScanner, totalRecords *int, dp *DivePlan) error {
 }
 
 type DivePlanModel struct {
-	DB *sql.DB
+	DB       *sql.DB
+	Timeouts QueryTimeouts
 }
 
 type DivePlanStopInput struct {
@@ -274,7 +274,7 @@ func (m *DivePlanModel) Insert(
 		return 0, fmt.Errorf("no stops provided, cannot save dive plan")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Standard)
 	defer cancel()
 
 	tx, err := m.DB.BeginTx(ctx, nil)
@@ -354,7 +354,7 @@ func (m *DivePlanModel) Update(
 		return fmt.Errorf("no stops provided, cannot update dive plan")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Standard)
 	defer cancel()
 
 	tx, err := m.DB.BeginTx(ctx, nil)
@@ -412,7 +412,7 @@ func (m *DivePlanModel) Update(
 }
 
 func (m *DivePlanModel) GetOneByID(id, ownerID int) (DivePlan, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Standard)
 	defer cancel()
 
 	var totalRecords int
@@ -440,7 +440,7 @@ func (m *DivePlanModel) List(
 	offset := filters.offset()
 	order := buildOrderByClause(sort, SortDivePlanIDAsc)
 	stmt := fmt.Sprintf("%s %s limit $3 offset $4", divePlanSelectQuery, order)
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Standard)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, stmt, diverID, nil, limit, offset)

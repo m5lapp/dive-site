@@ -60,7 +60,7 @@ type DiveStats struct {
 }
 
 func (m DiveModel) GetDiveStats(userID int) (DiveStats, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Complex)
 	defer cancel()
 
 	stats := DiveStats{}

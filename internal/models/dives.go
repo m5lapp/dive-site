@@ -752,12 +752,14 @@ func diveFromDBRow(rs RowScanner, totalRecords *int, dv *Dive) error {
 
 type DiveModel struct {
 	DB             *sql.DB
+	Timeouts       QueryTimeouts
 	equipmentModel EquipmentModelInterface
 	propertyModel  DivePropertyModelInterface
 }
 
 func NewDiveModel(
 	db *sql.DB,
+	timeouts QueryTimeouts,
 	equipmentModel EquipmentModelInterface,
 	propertyModel DivePropertyModelInterface,
 ) (*DiveModel, error) {
@@ -775,6 +777,7 @@ func NewDiveModel(
 
 	return &DiveModel{
 		DB:             db,
+		Timeouts:       timeouts,
 		equipmentModel: equipmentModel,
 		propertyModel:  propertyModel,
 	}, nil
@@ -819,7 +822,7 @@ func (m *DiveModel) adjustDiveTimeZone(
 
 func (m *DiveModel) GetOneByID(ownerID, id int) (Dive, error) {
 	stmt := fmt.Sprintf("%s and dv.id = $2", diveSelectQuery)
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Standard)
 	defer cancel()
 
 	var totalRecords int
@@ -887,7 +890,7 @@ func (m *DiveModel) Insert(
 	rating *int,
 	notes string,
 ) (int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Complex)
 	defer cancel()
 
 	// Adjust the dateTimeIn so that it is in the same Location as the
@@ -1053,7 +1056,7 @@ func (m *DiveModel) Update(
 	rating *int,
 	notes string,
 ) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	// Adjust the dateTimeIn so that it is in the same Location as the
@@ -1220,7 +1223,7 @@ func (m *DiveModel) List(
 	where := filter.buildWhereClause()
 	order := buildOrderByClause(sort, SortDiveIDAsc)
 	stmt := fmt.Sprintf("%s %s %s limit $7 offset $8", diveSelectQuery, where, order)
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), m.Timeouts.Moderate)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(

@@ -17,6 +17,17 @@ type RowScanner interface {
 	Scan(dest ...any) error
 }
 
+// QueryTimeouts defines a set of database query timeout values for increasingly
+// longer running queries from a very simple lookup in a single table to a full
+// export of a report or even entire database.
+type QueryTimeouts struct {
+	Quick    time.Duration
+	Standard time.Duration
+	Moderate time.Duration
+	Complex  time.Duration
+	Bulk     time.Duration
+}
+
 // TimeZone embeds a time.Location struct to represent a time zone location that
 // can be saved and fetched from a SQL database.
 type TimeZone struct {
